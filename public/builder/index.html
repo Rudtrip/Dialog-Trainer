@@ -568,6 +568,66 @@
         color: #dc2626;
       }
 
+      .scene-type-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 6px;
+      }
+
+      .scene-type-input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .scene-type-option {
+        position: relative;
+        display: block;
+        cursor: pointer;
+      }
+
+      .scene-type-card {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: #f8fafc;
+        min-height: 120px;
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+        color: #64748b;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+      }
+
+      .scene-type-option:hover .scene-type-card {
+        border-color: #93c5fd;
+        background: #f8fbff;
+      }
+
+      .scene-type-icon {
+        font-size: 26px;
+      }
+
+      .scene-type-title {
+        font-size: 15px;
+        font-weight: 700;
+      }
+
+      .scene-type-input:focus-visible + .scene-type-card {
+        border-color: #60a5fa;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+      }
+
+      .scene-type-input:checked + .scene-type-card {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.22);
+        background: #eff6ff;
+        color: #2563eb;
+      }
+
       .modal-actions {
         display: flex;
         justify-content: flex-end;
@@ -775,6 +835,25 @@
               required
             />
 
+            <div style="height: 12px"></div>
+            <label class="field-label">Тип сцены</label>
+            <div class="scene-type-grid" role="radiogroup" aria-label="Тип сцены">
+              <label class="scene-type-option">
+                <input class="scene-type-input" type="radio" name="sceneType" value="messenger" checked />
+                <span class="scene-type-card">
+                  <span class="material-symbols-outlined scene-type-icon">chat</span>
+                  <span class="scene-type-title">Мессенджер</span>
+                </span>
+              </label>
+              <label class="scene-type-option">
+                <input class="scene-type-input" type="radio" name="sceneType" value="dialog" />
+                <span class="scene-type-card">
+                  <span class="material-symbols-outlined scene-type-icon">forum</span>
+                  <span class="scene-type-title">Диалог</span>
+                </span>
+              </label>
+            </div>
+
             <div style="height: 10px"></div>
             <label class="field-label" for="createImageUrlInput">Image URL (optional)</label>
             <input
@@ -885,6 +964,7 @@
         cancelCreateBtn: document.getElementById("cancelCreateBtn"),
         createForm: document.getElementById("createForm"),
         createNameInput: document.getElementById("createNameInput"),
+        createSceneTypeInputs: Array.from(document.querySelectorAll('input[name="sceneType"]')),
         createImageUrlInput: document.getElementById("createImageUrlInput"),
         createImageFileInput: document.getElementById("createImageFileInput"),
         createImagePreviewWrap: document.getElementById("createImagePreviewWrap"),
@@ -1003,6 +1083,17 @@
         }
 
         return normalized;
+      }
+
+      function setCreateSceneType(value) {
+        elements.createSceneTypeInputs.forEach((input) => {
+          input.checked = input.value === value;
+        });
+      }
+
+      function getCreateSceneType() {
+        const selected = elements.createSceneTypeInputs.find((input) => input.checked);
+        return selected?.value || "messenger";
       }
 
       function setDialogCover(dialogId, coverValue) {
@@ -1239,6 +1330,7 @@
       function openCreateModal() {
         elements.createFormError.textContent = "";
         elements.createNameInput.value = "";
+        setCreateSceneType("messenger");
         elements.createImageUrlInput.value = "";
         elements.createImageFileInput.value = "";
         setCreateImagePreview("");
@@ -1265,6 +1357,7 @@
       async function handleCreate(event) {
         event.preventDefault();
         const name = elements.createNameInput.value.trim();
+        const sceneType = getCreateSceneType();
 
         if (name.length < 2) {
           elements.createFormError.textContent = "Минимум 2 символа.";
@@ -1278,7 +1371,7 @@
 
           const payload = await apiRequest("/api/v1/builder/dialogs", {
             method: "POST",
-            body: { name },
+            body: { name, sceneType },
           });
 
           const createdId = payload?.item?.id || null;

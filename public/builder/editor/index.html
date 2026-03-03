@@ -75,6 +75,98 @@
         opacity: 0.45;
         pointer-events: none;
       }
+
+      .phone-preview-shell {
+        width: 330px;
+        height: 700px;
+        border-radius: 3rem;
+        background: #fff;
+        overflow: hidden;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        border: 8px solid #111827;
+        box-shadow:
+          0 0 0 12px #1a1a1a,
+          0 0 0 14px #333,
+          0 20px 50px rgba(0, 0, 0, 0.2);
+      }
+
+      .phone-preview-notch {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 96px;
+        height: 20px;
+        background: #000;
+        border-bottom-left-radius: 12px;
+        border-bottom-right-radius: 12px;
+        z-index: 2;
+      }
+
+      .phone-bubble-left,
+      .phone-bubble-right {
+        max-width: 80%;
+        border-radius: 16px;
+        padding: 8px 12px;
+        font-size: 13px;
+        line-height: 1.3;
+      }
+
+      .phone-bubble-left {
+        align-self: flex-start;
+        background: #f3f4f6;
+        color: #1f2937;
+        border-bottom-left-radius: 4px;
+      }
+
+      .phone-bubble-right {
+        align-self: flex-end;
+        background: #514df7;
+        color: #fff;
+        border-bottom-right-radius: 4px;
+      }
+
+      .phone-choice-btn {
+        width: 100%;
+        border-radius: 9999px;
+        border: 1px solid #e5e7eb;
+        padding: 8px 12px;
+        font-size: 12px;
+        font-weight: 600;
+        text-align: left;
+        color: #4b5563;
+        background: #fff;
+        transition: all 0.15s ease;
+      }
+
+      .phone-choice-btn:hover {
+        border-color: #514df7;
+        color: #514df7;
+        background: rgba(81, 77, 247, 0.04);
+      }
+
+      .phone-choice-btn.active {
+        border-color: #514df7;
+        color: #514df7;
+        background: rgba(81, 77, 247, 0.08);
+      }
+
+      @keyframes phoneBubbleIn {
+        0% {
+          opacity: 0;
+          transform: translateY(8px) scale(0.98);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      .phone-bubble-enter {
+        animation: phoneBubbleIn 0.24s ease-out both;
+      }
     </style>
   </head>
   <body class="bg-background-light font-display text-text-primary overflow-hidden h-screen flex flex-col">
@@ -139,10 +231,18 @@
         </button>
         <button
           id="toolConnectBtn"
-          class="size-10 rounded-lg flex items-center justify-center text-text-secondary hover:bg-primary/5 hover:text-primary transition-colors"
+          class="size-10 rounded-lg hidden items-center justify-center text-text-secondary hover:bg-primary/5 hover:text-primary transition-colors"
           title="Connect"
         >
           <span class="material-symbols-outlined">cable</span>
+        </button>
+        <div id="toolPhoneDivider" class="h-px w-8 bg-border-light my-1 hidden"></div>
+        <button
+          id="toolPhonePreviewBtn"
+          class="size-10 rounded-lg hidden items-center justify-center text-text-secondary hover:bg-primary/5 hover:text-primary transition-colors"
+          title="Phone Preview"
+        >
+          <span class="material-symbols-outlined">smartphone</span>
         </button>
       </aside>
 
@@ -152,8 +252,8 @@
           style="background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 20px 20px"
         ></div>
         <div id="canvasInner" class="relative min-w-[1200px] min-h-[900px] z-0">
-          <svg id="edgesSvg" class="absolute inset-0 w-full h-full pointer-events-none z-0"></svg>
-          <div id="nodesLayer" class="absolute inset-0 z-10"></div>
+          <svg id="edgesSvg" class="absolute left-0 top-0 pointer-events-none z-0"></svg>
+          <div id="nodesLayer" class="absolute left-0 top-0 z-10"></div>
           <div id="quickAddWrap" class="absolute z-30 hidden">
             <button
               id="quickAddBtn"
@@ -210,12 +310,13 @@
       </main>
 
       <aside
-        class="w-[360px] bg-surface-light border-l border-border-light flex flex-col z-10 shadow-[-4px_0_24px_rgba(0,0,0,0.02)]"
+        id="inspectorPanel"
+        class="w-[360px] bg-surface-light border-l border-border-light flex flex-col z-10 shadow-[-4px_0_24px_rgba(0,0,0,0.02)] hidden"
       >
         <div class="p-4 border-b border-border-light flex items-center justify-between">
           <div class="flex items-center gap-3">
-            <div class="size-8 rounded bg-primary/10 text-primary flex items-center justify-center">
-              <span class="material-symbols-outlined">tune</span>
+            <div id="inspectorIconWrap" class="size-8 rounded bg-primary/10 text-primary flex items-center justify-center overflow-hidden">
+              <span id="inspectorIcon" class="material-symbols-outlined">tune</span>
             </div>
             <div>
               <h3 id="inspectorTitle" class="text-sm font-bold text-text-primary">Node</h3>
@@ -239,6 +340,54 @@
           </button>
         </div>
       </aside>
+
+      <aside
+        id="phonePreviewPanel"
+        class="w-[460px] h-full bg-gray-50 border-l border-border-light flex-col items-center justify-center p-8 z-20 shadow-[-10px_0_30px_rgba(0,0,0,0.05)] hidden relative"
+      >
+        <div class="phone-preview-shell">
+          <div class="phone-preview-notch"></div>
+          <div class="bg-white border-b border-gray-100 pt-8 pb-3 px-4 flex items-center gap-3">
+            <span class="material-symbols-outlined text-gray-400 text-lg">chevron_left</span>
+            <div
+              id="phonePreviewHeaderAvatar"
+              class="size-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center overflow-hidden"
+            >
+              <span class="material-symbols-outlined text-sm">person</span>
+            </div>
+            <div class="flex flex-col min-w-0">
+              <span id="phonePreviewHeaderName" class="text-xs font-bold truncate">NPC</span>
+              <span class="text-[10px] text-green-500 font-medium">Active now</span>
+            </div>
+            <div class="ml-auto flex gap-1">
+              <span class="material-symbols-outlined text-primary text-base">call</span>
+              <span class="material-symbols-outlined text-primary text-base">videocam</span>
+            </div>
+          </div>
+          <div id="phonePreviewMessages" class="flex-1 min-h-0 p-4 flex flex-col gap-2 overflow-y-auto bg-white"></div>
+          <div class="p-3 border-t border-gray-100 bg-white pb-6 flex flex-col gap-3">
+            <div id="phonePreviewChoices" class="flex flex-col gap-2"></div>
+            <div class="w-full h-8 bg-gray-100 rounded-full px-3 flex items-center">
+              <span class="text-[10px] text-gray-400">Aa</span>
+            </div>
+          </div>
+          <div class="absolute bottom-1 left-1/2 -translate-x-1/2 w-20 h-1 bg-gray-300 rounded-full"></div>
+        </div>
+        <button
+          id="phonePreviewResetBtn"
+          class="absolute top-4 right-14 h-8 rounded-full bg-white border border-gray-200 px-3 text-[11px] font-semibold text-gray-600 hover:text-primary hover:border-primary/30 shadow-sm"
+          title="Reset Conversation"
+        >
+          Сбросить
+        </button>
+        <button
+          id="phonePreviewCloseBtn"
+          class="absolute top-4 right-4 size-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-600 shadow-sm"
+          title="Close Phone Preview"
+        >
+          <span class="material-symbols-outlined text-sm">close</span>
+        </button>
+      </aside>
     </div>
 
     <div id="toastContainer" class="fixed right-4 bottom-4 z-50 flex flex-col gap-2"></div>
@@ -249,10 +398,18 @@
         session: "dialogTrainerSession",
       };
 
+      const MESSAGE_EMOTION_STATES = [
+        { key: "neutral", label: "Neutral", icon: "sentiment_neutral" },
+        { key: "happy", label: "Happy", icon: "sentiment_satisfied" },
+        { key: "concerned", label: "Concerned", icon: "sentiment_dissatisfied" },
+        { key: "angry", label: "Angry", icon: "sentiment_very_dissatisfied" },
+      ];
+
       const app = {
         token: null,
         dialogId: "",
         dialogName: "",
+        sceneType: "messenger",
         scenarioVersionId: null,
         revision: null,
         tool: "select",
@@ -267,6 +424,12 @@
         },
         graph: { version: 1, viewport: { zoom: 100, x: 0, y: 0 }, nodes: [], edges: [] },
         selectedNodeId: null,
+        phonePreview: {
+          open: false,
+          selections: {},
+          lastBubbleKeys: [],
+          awaitFirstChoice: true,
+        },
       };
 
       const els = {
@@ -277,6 +440,8 @@
         toolSelectBtn: document.getElementById("toolSelectBtn"),
         toolAddBtn: document.getElementById("toolAddBtn"),
         toolConnectBtn: document.getElementById("toolConnectBtn"),
+        toolPhoneDivider: document.getElementById("toolPhoneDivider"),
+        toolPhonePreviewBtn: document.getElementById("toolPhonePreviewBtn"),
         canvasViewport: document.getElementById("canvasViewport"),
         canvasInner: document.getElementById("canvasInner"),
         edgesSvg: document.getElementById("edgesSvg"),
@@ -287,12 +452,22 @@
         zoomOutBtn: document.getElementById("zoomOutBtn"),
         zoomInBtn: document.getElementById("zoomInBtn"),
         zoomLabel: document.getElementById("zoomLabel"),
+        inspectorPanel: document.getElementById("inspectorPanel"),
+        inspectorIconWrap: document.getElementById("inspectorIconWrap"),
+        inspectorIcon: document.getElementById("inspectorIcon"),
         inspectorTitle: document.getElementById("inspectorTitle"),
         inspectorNodeId: document.getElementById("inspectorNodeId"),
         deleteNodeBtn: document.getElementById("deleteNodeBtn"),
         inspectorBody: document.getElementById("inspectorBody"),
         saveStatusLabel: document.getElementById("saveStatusLabel"),
         saveGraphBtn: document.getElementById("saveGraphBtn"),
+        phonePreviewPanel: document.getElementById("phonePreviewPanel"),
+        phonePreviewResetBtn: document.getElementById("phonePreviewResetBtn"),
+        phonePreviewCloseBtn: document.getElementById("phonePreviewCloseBtn"),
+        phonePreviewMessages: document.getElementById("phonePreviewMessages"),
+        phonePreviewChoices: document.getElementById("phonePreviewChoices"),
+        phonePreviewHeaderAvatar: document.getElementById("phonePreviewHeaderAvatar"),
+        phonePreviewHeaderName: document.getElementById("phonePreviewHeaderName"),
         toastContainer: document.getElementById("toastContainer"),
       };
 
@@ -317,6 +492,434 @@
           .replace(/>/g, "&gt;")
           .replace(/"/g, "&quot;")
           .replace(/'/g, "&#39;");
+      }
+
+      function normalizeSceneType(value) {
+        return String(value || "").trim().toLowerCase() === "dialog" ? "dialog" : "messenger";
+      }
+
+      function isMessengerScene() {
+        return normalizeSceneType(app.sceneType) === "messenger";
+      }
+
+      function updatePhonePreviewToolVisibility() {
+        const show = isMessengerScene();
+        if (els.toolPhonePreviewBtn) {
+          els.toolPhonePreviewBtn.classList.toggle("hidden", !show);
+          els.toolPhonePreviewBtn.classList.toggle("flex", show);
+        }
+        if (els.toolPhoneDivider) {
+          els.toolPhoneDivider.classList.toggle("hidden", !show);
+        }
+        if (!show) {
+          app.phonePreview.open = false;
+        }
+      }
+
+      function setPhonePreviewOpen(nextOpen) {
+        if (!isMessengerScene()) {
+          app.phonePreview.open = false;
+          return;
+        }
+        app.phonePreview.open = Boolean(nextOpen);
+        if (!app.phonePreview.open) {
+          app.phonePreview.lastBubbleKeys = [];
+        }
+      }
+
+      function togglePhonePreview() {
+        setPhonePreviewOpen(!app.phonePreview.open);
+        renderAll();
+      }
+
+      function resetPhonePreviewConversation() {
+        app.phonePreview.selections = {};
+        app.phonePreview.lastBubbleKeys = [];
+        app.phonePreview.awaitFirstChoice = true;
+        renderPhonePreview();
+        updateToolButtons();
+        if (els.phonePreviewMessages) {
+          els.phonePreviewMessages.scrollTop = 0;
+        }
+        toast("Диалог в телефоне сброшен.");
+      }
+
+      function getAssetById(type, assetId) {
+        const normalizedType = type === "background" ? "background" : "character";
+        const list = app.assetCatalog?.[normalizedType];
+        if (!Array.isArray(list) || !assetId) {
+          return null;
+        }
+        return list.find((asset) => String(asset.id || "") === String(assetId || "")) || null;
+      }
+
+      function getMessageCharacterAsset(node) {
+        if (!node || node.type !== "message") {
+          return null;
+        }
+        return getAssetById("character", node.data?.characterAssetId);
+      }
+
+      function normalizeMessageEmotionState(value) {
+        const normalized = String(value || "").trim().toLowerCase();
+        return MESSAGE_EMOTION_STATES.some((item) => item.key === normalized) ? normalized : "neutral";
+      }
+
+      function getMessageEmotionState(node) {
+        return normalizeMessageEmotionState(node?.data?.emotionState);
+      }
+
+      function resolveAssetMediaUrl(value) {
+        if (!value) return "";
+        if (typeof value === "string") return String(value).trim();
+        if (typeof value === "object") {
+          return String(value.thumbnailUrl || value.fileUrl || value.url || value.src || "")
+            .trim();
+        }
+        return "";
+      }
+
+      function resolveCharacterEmotionImageUrl(asset, emotionState) {
+        if (!asset) return "";
+        const metadata = asset.metadata && typeof asset.metadata === "object" ? asset.metadata : {};
+        const stateKey = normalizeMessageEmotionState(emotionState);
+
+        const fromEmotionImages =
+          metadata.emotionImages && typeof metadata.emotionImages === "object"
+            ? resolveAssetMediaUrl(metadata.emotionImages[stateKey])
+            : "";
+        if (fromEmotionImages) return fromEmotionImages;
+
+        const fromEmotionMap =
+          metadata.emotions &&
+          !Array.isArray(metadata.emotions) &&
+          typeof metadata.emotions === "object"
+            ? resolveAssetMediaUrl(metadata.emotions[stateKey])
+            : "";
+        if (fromEmotionMap) return fromEmotionMap;
+
+        if (Array.isArray(metadata.emotions)) {
+          const fromArray = metadata.emotions.find((item) => {
+            const itemKey = String(item?.key || item?.state || item?.emotion || "")
+              .trim()
+              .toLowerCase();
+            return itemKey === stateKey;
+          });
+          const fromArrayUrl = resolveAssetMediaUrl(fromArray);
+          if (fromArrayUrl) return fromArrayUrl;
+        }
+
+        const fromFlatKeys =
+          resolveAssetMediaUrl(metadata[`${stateKey}Url`]) ||
+          resolveAssetMediaUrl(metadata[`${stateKey}_url`]) ||
+          resolveAssetMediaUrl(metadata[`emotion_${stateKey}`]) ||
+          resolveAssetMediaUrl(metadata[`emotion_${stateKey}_url`]);
+        if (fromFlatKeys) return fromFlatKeys;
+
+        // Demo fallback for preinstalled DiceBear characters:
+        // if explicit emotion images are not provided, derive a deterministic avatar by emotion.
+        if (asset.source === "preinstalled" && typeof asset.fileUrl === "string" && asset.fileUrl.includes("api.dicebear.com")) {
+          try {
+            const derivedUrl = new URL(asset.fileUrl);
+            const seedBase = String(metadata.seed || asset.title || asset.id || "character")
+              .trim()
+              .replace(/\s+/g, "-");
+            derivedUrl.searchParams.set("seed", `${seedBase}-${stateKey}`);
+            return derivedUrl.toString();
+          } catch (_error) {
+            // no-op
+          }
+        }
+
+        return asset.thumbnailUrl || asset.fileUrl || "";
+      }
+
+      function getMessageCharacterImageUrl(node) {
+        const asset = getMessageCharacterAsset(node);
+        if (!asset) return "";
+        return resolveCharacterEmotionImageUrl(asset, getMessageEmotionState(node));
+      }
+
+      function renderCharacterThumbOrRobotIcon(imageUrl, titleText, sizeClass) {
+        if (imageUrl) {
+          return `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(titleText || "Character")}" class="${sizeClass} rounded-full object-cover" />`;
+        }
+        return `<span class="material-symbols-outlined text-xs">smart_toy</span>`;
+      }
+
+      function updateInspectorHeaderVisual(node) {
+        if (!els.inspectorIconWrap || !els.inspectorIcon) {
+          return;
+        }
+
+        const wrapBaseClass = "size-8 rounded-lg flex items-center justify-center overflow-hidden";
+        let wrapExtraClass = "bg-primary/10 text-primary";
+        let iconMarkup = '<span class="material-symbols-outlined">tune</span>';
+
+        if (node) {
+          if (node.type === "start") {
+            wrapExtraClass = "bg-green-50 text-green-600 border border-green-200";
+            iconMarkup = '<span class="material-symbols-outlined text-[18px]">play_circle</span>';
+          } else if (node.type === "message") {
+            const imageUrl = getMessageCharacterImageUrl(node);
+            if (imageUrl) {
+              wrapExtraClass = "bg-slate-100";
+              iconMarkup = `<img src="${escapeHtml(imageUrl)}" alt="Character" class="size-8 object-cover" />`;
+            } else {
+              wrapExtraClass = "bg-primary/10 text-primary border border-primary/20";
+              iconMarkup = '<span class="material-symbols-outlined text-[18px]">smart_toy</span>';
+            }
+          } else if (node.type === "response") {
+            wrapExtraClass = "bg-indigo-50 text-indigo-600 border border-indigo-200";
+            iconMarkup = '<span class="material-symbols-outlined text-[18px]">chat_bubble</span>';
+          } else if (node.type === "end") {
+            wrapExtraClass = "bg-rose-50 text-rose-600 border border-rose-200";
+            iconMarkup = '<span class="material-symbols-outlined text-[18px]">flag</span>';
+          }
+        }
+
+        els.inspectorIconWrap.className = `${wrapBaseClass} ${wrapExtraClass}`;
+        els.inspectorIconWrap.innerHTML = iconMarkup;
+      }
+
+      function sortNodesByX(nodes) {
+        return (Array.isArray(nodes) ? nodes.slice() : []).sort((a, b) => {
+          const ax = Number(a?.position?.x || 0);
+          const bx = Number(b?.position?.x || 0);
+          return ax - bx;
+        });
+      }
+
+      function getOutgoingNodes(sourceId, targetType) {
+        if (!sourceId) return [];
+        const outgoing = app.graph.edges
+          .filter((edge) => edge.source === sourceId)
+          .map((edge) => getNodeById(edge.target))
+          .filter((node) => Boolean(node));
+
+        if (!targetType) {
+          return outgoing;
+        }
+
+        return outgoing.filter((node) => node.type === targetType);
+      }
+
+      function getMessageBackgroundImageUrl(node) {
+        if (!node || node.type !== "message") return "";
+        const background = getAssetById("background", node.data?.backgroundAssetId);
+        return resolveAssetMediaUrl(background?.fileUrl || background?.thumbnailUrl);
+      }
+
+      function buildMessengerPreviewState() {
+        const baseState = {
+          headerName: "NPC",
+          headerAvatarUrl: "",
+          backgroundImageUrl: "",
+          bubbles: [],
+          choices: [],
+          activeMessageId: null,
+          empty: true,
+        };
+
+        const startNode = app.graph.nodes.find((node) => node.type === "start") || null;
+        const firstMessageFromStart = sortNodesByX(getOutgoingNodes(startNode?.id, "message"))[0] || null;
+        const fallbackMessage = app.graph.nodes.find((node) => node.type === "message") || null;
+        let currentMessage = firstMessageFromStart || fallbackMessage;
+
+        if (!currentMessage) {
+          return baseState;
+        }
+
+        const bubbles = [];
+        let headerName = "NPC";
+        let headerAvatarUrl = "";
+        let backgroundImageUrl = "";
+        let choices = [];
+        let activeMessageId = null;
+        const visited = new Set();
+        let depth = 0;
+
+        while (currentMessage && depth < 12) {
+          const revisitedMessage = visited.has(currentMessage.id);
+          visited.add(currentMessage.id);
+          depth += 1;
+
+          const speakerName = String(currentMessage.data?.speakerName || "").trim() || "NPC";
+          const messageText = String(currentMessage.data?.text || "").trim() || "Empty message";
+          const characterAsset = getMessageCharacterAsset(currentMessage);
+          const characterImageUrl = getMessageCharacterImageUrl(currentMessage);
+          const backgroundUrl = getMessageBackgroundImageUrl(currentMessage);
+
+          if (!headerAvatarUrl && characterImageUrl) {
+            headerAvatarUrl = characterImageUrl;
+          }
+          if (headerName === "NPC" && (characterAsset?.title || speakerName)) {
+            headerName = String(characterAsset?.title || speakerName);
+          }
+          if (!backgroundImageUrl && backgroundUrl) {
+            backgroundImageUrl = backgroundUrl;
+          }
+
+          bubbles.push({
+            key: `m_${currentMessage.id}`,
+            side: "left",
+            text: messageText,
+          });
+
+          const responseNodes = sortNodesByX(getOutgoingNodes(currentMessage.id, "response"));
+          if (responseNodes.length === 0) {
+            choices = [];
+            activeMessageId = null;
+            break;
+          }
+
+          activeMessageId = currentMessage.id;
+          choices = responseNodes.map((responseNode) => ({
+            id: responseNode.id,
+            text: String(responseNode.data?.responseText || "").trim() || "Empty response",
+          }));
+
+          if (app.phonePreview.awaitFirstChoice) {
+            break;
+          }
+
+          // Stop traversal on cycles after rendering the revisited NPC message and choices.
+          if (revisitedMessage) {
+            break;
+          }
+
+          const selectedResponseId = String(app.phonePreview.selections[currentMessage.id] || "").trim();
+          if (!selectedResponseId) {
+            break;
+          }
+
+          const selectedResponse = responseNodes.find(
+            (responseNode) => responseNode.id === selectedResponseId
+          );
+          if (!selectedResponse) {
+            delete app.phonePreview.selections[currentMessage.id];
+            break;
+          }
+
+          bubbles.push({
+            key: `r_${selectedResponse.id}`,
+            side: "right",
+            text: String(selectedResponse.data?.responseText || "").trim() || "Empty response",
+          });
+
+          const nextMessage = sortNodesByX(getOutgoingNodes(selectedResponse.id, "message"))[0] || null;
+          if (!nextMessage) {
+            choices = [];
+            activeMessageId = null;
+            break;
+          }
+
+          currentMessage = nextMessage;
+        }
+
+        return {
+          headerName,
+          headerAvatarUrl,
+          backgroundImageUrl,
+          bubbles,
+          choices,
+          activeMessageId,
+          empty: bubbles.length === 0,
+        };
+      }
+
+      function renderPhonePreview() {
+        updatePhonePreviewToolVisibility();
+
+        if (!els.phonePreviewPanel) {
+          return;
+        }
+
+        const shouldShow = isMessengerScene() && app.phonePreview.open;
+        els.phonePreviewPanel.classList.toggle("hidden", !shouldShow);
+        els.phonePreviewPanel.classList.toggle("flex", shouldShow);
+
+        if (!shouldShow) {
+          return;
+        }
+
+        const preview = buildMessengerPreviewState();
+        const avatarMarkup = preview.headerAvatarUrl
+          ? `<img src="${escapeHtml(preview.headerAvatarUrl)}" alt="${escapeHtml(
+              preview.headerName
+            )}" class="size-8 object-cover" />`
+          : '<span class="material-symbols-outlined text-sm">person</span>';
+
+        if (els.phonePreviewHeaderAvatar) {
+          els.phonePreviewHeaderAvatar.innerHTML = avatarMarkup;
+        }
+        if (els.phonePreviewHeaderName) {
+          els.phonePreviewHeaderName.textContent = preview.headerName || "NPC";
+        }
+
+        const backgroundStyle = preview.backgroundImageUrl
+          ? ` style="background-image: linear-gradient(rgba(255,255,255,0.92), rgba(255,255,255,0.92)), url('${escapeHtml(
+              preview.backgroundImageUrl
+            )}'); background-size: cover; background-position: center;"`
+          : "";
+
+        if (preview.empty) {
+          els.phonePreviewMessages.innerHTML = `
+            <div class="h-full flex items-center justify-center text-center text-xs text-slate-400">
+              Add a Message node to see messenger preview.
+            </div>
+          `;
+          if (els.phonePreviewChoices) {
+            els.phonePreviewChoices.innerHTML = "";
+          }
+          app.phonePreview.lastBubbleKeys = [];
+          return;
+        }
+
+        const previousBubbleSet = new Set(
+          Array.isArray(app.phonePreview.lastBubbleKeys) ? app.phonePreview.lastBubbleKeys : []
+        );
+        const bubblesMarkup = preview.bubbles
+          .map((bubble, index) => {
+            const bubbleClass = bubble.side === "right" ? "phone-bubble-right" : "phone-bubble-left";
+            const isNewBubble = !previousBubbleSet.has(String(bubble.key || ""));
+            const enterClass = isNewBubble ? "phone-bubble-enter" : "";
+            const delayStyle = isNewBubble ? ` style="animation-delay:${index * 40}ms"` : "";
+            return `<div class="${bubbleClass} ${enterClass}"${delayStyle}>${escapeHtml(bubble.text)}</div>`;
+          })
+          .join("");
+
+        const choicesMarkup = preview.choices.length
+          ? `
+              <p class="text-[10px] text-center text-gray-400 uppercase font-bold tracking-widest mb-1">Select Response</p>
+              ${preview.choices
+                .map((choice) => {
+                  const selectedId = String(app.phonePreview.selections[preview.activeMessageId] || "");
+                  const activeClass = selectedId === choice.id ? "active" : "";
+                  return `
+                    <button
+                      type="button"
+                      class="phone-choice-btn ${activeClass}"
+                      data-phone-choice-id="${escapeHtml(choice.id)}"
+                      data-phone-message-id="${escapeHtml(preview.activeMessageId || "")}"
+                    >
+                      ${escapeHtml(choice.text)}
+                    </button>
+                  `;
+                })
+                .join("")}
+            `
+          : "";
+
+        els.phonePreviewMessages.innerHTML = `
+          <div class="min-h-full flex flex-col gap-2"${backgroundStyle}>
+            ${bubblesMarkup}
+          </div>
+        `;
+        if (els.phonePreviewChoices) {
+          els.phonePreviewChoices.innerHTML = choicesMarkup;
+        }
+        app.phonePreview.lastBubbleKeys = preview.bubbles.map((bubble) => String(bubble.key || ""));
       }
 
       function getToken() {
@@ -398,6 +1001,8 @@
 
         const normalizedEdges = [];
         const edgeKeySet = new Set();
+        const startEdgeSources = new Set();
+        const responseEdgeSources = new Set();
         for (const edge of edges) {
           if (!edge || typeof edge !== "object") continue;
           const source = String(edge.source || "").trim();
@@ -407,6 +1012,9 @@
           const targetNode = byId.get(target);
           if (!sourceNode || !targetNode) continue;
           if (sourceNode.type === "end" || targetNode.type === "start") continue;
+          if (!isConnectionAllowed(sourceNode.type, targetNode.type)) continue;
+          if (sourceNode.type === "start" && startEdgeSources.has(source)) continue;
+          if (sourceNode.type === "response" && responseEdgeSources.has(source)) continue;
           const key = `${source}->${target}`;
           if (edgeKeySet.has(key)) continue;
           edgeKeySet.add(key);
@@ -415,6 +1023,12 @@
             source,
             target,
           });
+          if (sourceNode.type === "start") {
+            startEdgeSources.add(source);
+          }
+          if (sourceNode.type === "response") {
+            responseEdgeSources.add(source);
+          }
         }
 
         return {
@@ -483,9 +1097,14 @@
       }
 
       function updateToolButtons() {
-        [els.toolSelectBtn, els.toolConnectBtn].forEach((btn) => btn.classList.remove("tool-active"));
+        [els.toolSelectBtn, els.toolConnectBtn, els.toolPhonePreviewBtn]
+          .filter(Boolean)
+          .forEach((btn) => btn.classList.remove("tool-active"));
         if (app.tool === "select") els.toolSelectBtn.classList.add("tool-active");
         if (app.tool === "connect") els.toolConnectBtn.classList.add("tool-active");
+        if (app.phonePreview.open && isMessengerScene() && els.toolPhonePreviewBtn) {
+          els.toolPhonePreviewBtn.classList.add("tool-active");
+        }
       }
 
       function nodeSizeByType(type) {
@@ -493,6 +1112,34 @@
         if (type === "message") return { width: 320, height: 132 };
         if (type === "response") return { width: 260, height: 122 };
         return { width: 220, height: 96 };
+      }
+
+      function getZoomScale() {
+        const rawZoom = Number(app.graph?.viewport?.zoom || 100);
+        return Math.max(0.25, Math.min(2, rawZoom / 100));
+      }
+
+      function applyViewportTransform(bounds) {
+        const scale = getZoomScale();
+        const scaledWidth = Math.round(bounds.width * scale);
+        const scaledHeight = Math.round(bounds.height * scale);
+
+        els.canvasInner.style.width = `${scaledWidth}px`;
+        els.canvasInner.style.height = `${scaledHeight}px`;
+
+        els.nodesLayer.style.width = `${bounds.width}px`;
+        els.nodesLayer.style.height = `${bounds.height}px`;
+        els.edgesSvg.style.width = `${bounds.width}px`;
+        els.edgesSvg.style.height = `${bounds.height}px`;
+
+        [els.nodesLayer, els.edgesSvg].forEach((element) => {
+          element.style.transformOrigin = "top left";
+          element.style.transform = `scale(${scale})`;
+        });
+
+        // Keep floating quick-add in screen space; position is computed from rendered node rects.
+        els.quickAddWrap.style.transformOrigin = "";
+        els.quickAddWrap.style.transform = "";
       }
 
       function nodeClassByType(node) {
@@ -523,21 +1170,49 @@
         }
 
         if (node.type === "message") {
+          const speakerName = String(node.data?.speakerName || "NPC").trim().slice(0, 80) || "NPC";
+          const messageText = String(node.data?.text || "Empty message").slice(0, 120);
+          const emotionState = getMessageEmotionState(node);
+          const emotionLabel =
+            MESSAGE_EMOTION_STATES.find((emotion) => emotion.key === emotionState)?.label || "Neutral";
+          const characterAsset = getMessageCharacterAsset(node);
+          const characterImageUrl = getMessageCharacterImageUrl(node);
+          const characterTitle = characterAsset?.title || speakerName;
+          const avatarMarkup = renderCharacterThumbOrRobotIcon(
+            characterImageUrl,
+            characterTitle,
+            "size-6"
+          );
+
           return `
             <div class="h-1.5 w-full bg-blue-500 rounded-t-xl"></div>
             <div class="p-4">
               <div class="flex items-center gap-2 mb-3">
                 <div class="size-6 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100">
-                  <span class="material-symbols-outlined text-xs">smart_toy</span>
+                  ${avatarMarkup}
                 </div>
-                <span class="text-xs font-bold uppercase tracking-wider text-text-secondary">Message</span>
+                <span class="text-xs font-bold uppercase tracking-wider text-text-secondary">NPC: ${escapeHtml(
+                  speakerName
+                )}</span>
               </div>
-              <p class="text-sm text-text-primary">${(node.data?.text || "Empty message").slice(0, 120)}</p>
+              <p class="text-sm text-text-primary">${escapeHtml(messageText)}</p>
+              <p class="text-[10px] mt-2 inline-flex items-center px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200">${escapeHtml(
+                emotionLabel
+              )}</p>
             </div>
           `;
         }
 
         if (node.type === "response") {
+          const scoreDeltaRaw = Number(node.data?.scoreDelta);
+          const scoreDelta = Number.isFinite(scoreDeltaRaw) ? scoreDeltaRaw : 0;
+          const scoreClass =
+            scoreDelta > 0
+              ? "bg-green-50 text-green-600 border-green-100"
+              : scoreDelta < 0
+                ? "bg-red-50 text-red-600 border-red-100"
+                : "bg-blue-50 text-blue-600 border-blue-100";
+
           return `
             <div class="p-3">
               <div class="flex items-center gap-2 mb-2">
@@ -546,8 +1221,8 @@
               </div>
               <p class="text-sm font-medium text-text-primary">${(node.data?.responseText || "Empty response").slice(0, 120)}</p>
               <div class="mt-2">
-                <span class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600 border border-indigo-100 font-medium">
-                  ${Number(node.data?.scoreDelta || 0) >= 0 ? "+" : ""}${Number(node.data?.scoreDelta || 0)} pts
+                <span class="text-[10px] px-1.5 py-0.5 rounded border font-medium ${scoreClass}">
+                  ${scoreDelta > 0 ? "+" : ""}${scoreDelta} pts
                 </span>
               </div>
             </div>
@@ -665,13 +1340,21 @@
           els.nodesLayer.appendChild(nodeEl);
         });
       }
+      function getCanvasBounds() {
+        let width = 1200;
+        let height = 900;
+        const nodeEls = els.nodesLayer.querySelectorAll("[data-node-id]");
+        nodeEls.forEach((nodeEl) => {
+          width = Math.max(width, nodeEl.offsetLeft + nodeEl.offsetWidth + 280);
+          height = Math.max(height, nodeEl.offsetTop + nodeEl.offsetHeight + 280);
+        });
+        return { width, height };
+      }
+
       function renderEdges() {
-        const rect = els.canvasInner.getBoundingClientRect();
-        const width = Math.max(els.canvasInner.scrollWidth, 1200);
-        const height = Math.max(els.canvasInner.scrollHeight, 900);
-        els.edgesSvg.setAttribute("viewBox", `0 0 ${width} ${height}`);
-        els.edgesSvg.setAttribute("width", `${width}`);
-        els.edgesSvg.setAttribute("height", `${height}`);
+        const bounds = getCanvasBounds();
+        els.edgesSvg.setAttribute("viewBox", `0 0 ${bounds.width} ${bounds.height}`);
+        els.edgesSvg.setAttribute("preserveAspectRatio", "none");
         els.edgesSvg.innerHTML = "";
 
         app.graph.edges.forEach((edge) => {
@@ -679,16 +1362,17 @@
           const targetEl = els.nodesLayer.querySelector(`[data-node-id="${CSS.escape(edge.target)}"]`);
           if (!sourceEl || !targetEl) return;
 
-          const sourceRect = sourceEl.getBoundingClientRect();
-          const targetRect = targetEl.getBoundingClientRect();
+          const sx = sourceEl.offsetLeft + sourceEl.offsetWidth / 2;
+          const sy = sourceEl.offsetTop + sourceEl.offsetHeight;
+          const tx = targetEl.offsetLeft + targetEl.offsetWidth / 2;
+          const ty = targetEl.offsetTop;
 
-          const sx = sourceRect.left + sourceRect.width / 2 - rect.left;
-          const sy = sourceRect.bottom - rect.top;
-          const tx = targetRect.left + targetRect.width / 2 - rect.left;
-          const ty = targetRect.top - rect.top;
+          const verticalDelta = Math.abs(ty - sy);
+          const curve = Math.max(42, Math.min(140, Math.round(verticalDelta * 0.45)));
+          const isForward = ty >= sy;
+          const c1y = isForward ? sy + curve : sy + 32;
+          const c2y = isForward ? ty - curve : ty - 32;
 
-          const c1y = sy + 48;
-          const c2y = ty - 48;
           const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
           path.setAttribute("d", `M ${sx} ${sy} C ${sx} ${c1y}, ${tx} ${c2y}, ${tx} ${ty}`);
           path.setAttribute("stroke", "#cbd5e1");
@@ -696,11 +1380,15 @@
           path.setAttribute("fill", "none");
           els.edgesSvg.appendChild(path);
         });
+
+        applyViewportTransform(bounds);
       }
 
       function renderInspector() {
         const node = getNodeById(app.selectedNodeId);
         if (!node) {
+          els.inspectorPanel.classList.add("hidden");
+          updateInspectorHeaderVisual(null);
           els.inspectorTitle.textContent = "Node";
           els.inspectorNodeId.textContent = "ID: -";
           els.inspectorBody.innerHTML = '<p class="text-text-secondary">Select node on canvas.</p>';
@@ -708,7 +1396,13 @@
           return;
         }
 
-        els.inspectorTitle.textContent = `${node.type.charAt(0).toUpperCase()}${node.type.slice(1)} Node`;
+        els.inspectorPanel.classList.remove("hidden");
+        updateInspectorHeaderVisual(node);
+        if (node.type === "message") {
+          els.inspectorTitle.textContent = "NPC Node Settings";
+        } else {
+          els.inspectorTitle.textContent = `${node.type.charAt(0).toUpperCase()}${node.type.slice(1)} Node`;
+        }
         els.inspectorNodeId.textContent = `ID: ${node.id}`;
         els.deleteNodeBtn.disabled = node.type === "start";
 
@@ -730,6 +1424,14 @@
         }
 
         if (node.type === "message") {
+          const selectedCharacterAsset = getMessageCharacterAsset(node);
+          const selectedCharacterImage = getMessageCharacterImageUrl(node);
+          const selectedCharacterName = selectedCharacterAsset?.title || "Not selected";
+          const messageTextValue = String(node.data?.text || "");
+          const messageChars = messageTextValue.length;
+          const speakerValue = String(node.data?.speakerName || "NPC");
+          const emotionState = getMessageEmotionState(node);
+
           const characterOptions = app.assetCatalog.character
             .map(
               (asset) =>
@@ -746,42 +1448,141 @@
                 }>${escapeHtml(asset.title || "Background")}</option>`
             )
             .join("");
+          const emotionButtonsMarkup = MESSAGE_EMOTION_STATES.map((emotion) => {
+            const selected = emotion.key === emotionState;
+            return `
+              <button
+                type="button"
+                data-message-emotion="${emotion.key}"
+                class="flex flex-col items-center gap-1.5 p-2 rounded-lg transition-all ${
+                  selected
+                    ? "border-2 border-primary bg-primary/5 text-primary"
+                    : "border border-slate-200 bg-white text-slate-500 hover:border-slate-300"
+                }"
+              >
+                <span class="material-symbols-outlined text-xl">${emotion.icon}</span>
+                <span class="text-[10px] font-bold">${emotion.label}</span>
+              </button>
+            `;
+          }).join("");
 
           els.inspectorBody.innerHTML = `
-            <label class="text-xs font-bold uppercase text-text-secondary tracking-wider">Speaker name</label>
-            <input id="fieldMessageSpeaker" class="w-full rounded-lg border-gray-300 bg-white text-sm" value="${node.data?.speakerName || "NPC"}" />
-            <label class="text-xs font-bold uppercase text-text-secondary tracking-wider mt-3">Message text</label>
-            <textarea id="fieldMessageText" class="w-full h-28 rounded-lg border-gray-300 bg-white text-sm">${node.data?.text || ""}</textarea>
-            <label class="text-xs font-bold uppercase text-text-secondary tracking-wider mt-3">Character asset</label>
-            <select id="fieldMessageCharacterAsset" class="w-full rounded-lg border-gray-300 bg-white text-sm">
-              <option value="">Not selected</option>
-              ${characterOptions}
-            </select>
-            <label class="text-xs font-bold uppercase text-text-secondary tracking-wider mt-3">Background asset</label>
-            <select id="fieldMessageBackgroundAsset" class="w-full rounded-lg border-gray-300 bg-white text-sm">
-              <option value="">Not selected</option>
-              ${backgroundOptions}
-            </select>
+            <div class="flex flex-col gap-2">
+              <label class="text-[11px] font-bold uppercase text-text-secondary tracking-widest">Selected Character</label>
+              <div class="relative group">
+                <select id="fieldMessageCharacterAsset" class="w-full bg-white border border-slate-200 rounded-lg pl-10 pr-8 py-2.5 text-sm text-text-primary font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary appearance-none cursor-pointer transition-all">
+                  <option value="">Not selected</option>
+                  ${characterOptions}
+                </select>
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg group-hover:text-primary">person</span>
+                <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
+              </div>
+              <div class="flex items-center gap-2 text-xs text-slate-500">
+                <div class="size-6 rounded-full bg-slate-100 overflow-hidden border border-slate-200 flex items-center justify-center">
+                  ${
+                    selectedCharacterImage
+                      ? `<img src="${escapeHtml(selectedCharacterImage)}" alt="${escapeHtml(
+                          selectedCharacterName
+                        )}" class="size-6 object-cover" />`
+                      : `<span class="material-symbols-outlined text-[14px] text-slate-400">smart_toy</span>`
+                  }
+                </div>
+                <span>${escapeHtml(selectedCharacterName)}</span>
+              </div>
+            </div>
+
+            <div class="flex flex-col gap-2 mt-1">
+              <label class="text-[11px] font-bold uppercase text-text-secondary tracking-widest">Speaker Name</label>
+              <input id="fieldMessageSpeaker" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-text-primary focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" value="${escapeHtml(
+                speakerValue
+              )}" />
+            </div>
+
+            <div class="flex flex-col gap-2">
+              <label class="text-[11px] font-bold uppercase text-text-secondary tracking-widest">Character Message</label>
+              <textarea id="fieldMessageText" class="w-full h-32 bg-white border border-slate-200 rounded-xl p-4 text-sm text-text-primary focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none placeholder-slate-400 leading-relaxed shadow-sm transition-all" placeholder="What should the NPC say?">${escapeHtml(
+                messageTextValue
+              )}</textarea>
+              <div class="flex justify-between items-center px-1">
+                <span id="fieldMessageTextCounter" class="text-[10px] text-slate-400">${messageChars} / 4000 characters</span>
+                <button id="fieldMessageInsertVar" type="button" class="text-[10px] text-primary font-bold uppercase hover:underline">Insert Variable</button>
+              </div>
+            </div>
+
+            <div class="flex flex-col gap-3">
+              <label class="text-[11px] font-bold uppercase text-text-secondary tracking-widest">Emotion State</label>
+              <div class="grid grid-cols-4 gap-2">
+                ${emotionButtonsMarkup}
+              </div>
+            </div>
+
+            <div class="flex flex-col gap-2">
+              <label class="text-[11px] font-bold uppercase text-text-secondary tracking-widest">Background Asset</label>
+              <div class="relative group">
+                <select id="fieldMessageBackgroundAsset" class="w-full bg-white border border-slate-200 rounded-lg pl-10 pr-8 py-2.5 text-sm text-text-primary font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary appearance-none cursor-pointer transition-all">
+                  <option value="">Not selected</option>
+                  ${backgroundOptions}
+                </select>
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg group-hover:text-primary">image</span>
+                <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
+              </div>
+            </div>
           `;
 
           const speaker = document.getElementById("fieldMessageSpeaker");
           const text = document.getElementById("fieldMessageText");
+          const textCounter = document.getElementById("fieldMessageTextCounter");
+          const insertVarBtn = document.getElementById("fieldMessageInsertVar");
           const characterSelect = document.getElementById("fieldMessageCharacterAsset");
           const backgroundSelect = document.getElementById("fieldMessageBackgroundAsset");
+          const emotionButtons = els.inspectorBody.querySelectorAll("[data-message-emotion]");
+
+          const updateTextCounter = () => {
+            if (!textCounter) return;
+            textCounter.textContent = `${String(text.value || "").length} / 4000 characters`;
+          };
+
           speaker.addEventListener("input", () => {
             node.data.speakerName = String(speaker.value || "").slice(0, 80);
-            setDirty(true);
-          });
-          text.addEventListener("input", () => {
-            node.data.text = String(text.value || "").slice(0, 4000);
             setDirty(true);
             renderNodes();
             renderEdges();
           });
+          text.addEventListener("input", () => {
+            node.data.text = String(text.value || "").slice(0, 4000);
+            setDirty(true);
+            updateTextCounter();
+            renderNodes();
+            renderEdges();
+          });
+          if (insertVarBtn) {
+            insertVarBtn.addEventListener("click", () => {
+              toast("Variables will be added in the next MVP iteration.", "warn");
+            });
+          }
           characterSelect.addEventListener("change", () => {
             const nextValue = String(characterSelect.value || "").trim();
             node.data.characterAssetId = nextValue || null;
             setDirty(true);
+            renderNodes();
+            renderEdges();
+            updateInspectorHeaderVisual(node);
+            if (app.selectedNodeId === node.id) {
+              renderInspector();
+            }
+          });
+          emotionButtons.forEach((button) => {
+            button.addEventListener("click", () => {
+              const nextEmotion = normalizeMessageEmotionState(button.dataset.messageEmotion);
+              node.data.emotionState = nextEmotion;
+              setDirty(true);
+              renderNodes();
+              renderEdges();
+              updateInspectorHeaderVisual(node);
+              if (app.selectedNodeId === node.id) {
+                renderInspector();
+              }
+            });
           });
           backgroundSelect.addEventListener("change", () => {
             const nextValue = String(backgroundSelect.value || "").trim();
@@ -885,12 +1686,31 @@
         renderNodes();
         renderEdges();
         renderInspector();
+        renderPhonePreview();
+        updateToolButtons();
         updateQuickAddUI();
         els.zoomLabel.textContent = `${app.graph?.viewport?.zoom || 100}%`;
       }
 
       function selectNode(nodeId) {
         app.selectedNodeId = nodeId;
+        app.quickAddMenuOpen = false;
+        app.responseAddMenuForId = null;
+        renderAll();
+      }
+
+      function clearSelectionByCanvasClick() {
+        if (
+          app.selectedNodeId === null &&
+          app.pendingConnectSourceId === null &&
+          !app.quickAddMenuOpen &&
+          app.responseAddMenuForId === null
+        ) {
+          return;
+        }
+
+        app.selectedNodeId = null;
+        app.pendingConnectSourceId = null;
         app.quickAddMenuOpen = false;
         app.responseAddMenuForId = null;
         renderAll();
@@ -913,6 +1733,10 @@
         return app.graph.edges.some((edge) => edge.source === sourceId);
       }
 
+      function hasStartOutgoingMessageEdge(sourceId) {
+        return app.graph.edges.some((edge) => edge.source === sourceId);
+      }
+
       function getDefaultNodeData(type) {
         if (type === "message") {
           return {
@@ -921,6 +1745,7 @@
             text: "",
             characterAssetId: null,
             backgroundAssetId: null,
+            emotionState: "neutral",
           };
         }
         if (type === "response") {
@@ -952,6 +1777,11 @@
 
         if (!isConnectionAllowed(source.type, target.type)) {
           toast(`Связь ${source.type} -> ${target.type} не разрешена.`, "warn");
+          return false;
+        }
+
+        if (source.type === "start" && hasStartOutgoingMessageEdge(sourceId)) {
+          toast("Из Start может быть только один Message.", "warn");
           return false;
         }
 
@@ -1062,6 +1892,11 @@
           return null;
         }
 
+        if (sourceNode.type === "start" && hasStartOutgoingMessageEdge(sourceNode.id)) {
+          toast("Из Start может быть только один Message.", "warn");
+          return null;
+        }
+
         if (!isConnectionAllowed(sourceNode.type, targetType)) {
           toast(`Для ${sourceNode.type} нельзя добавить ${targetType}.`, "warn");
           return null;
@@ -1108,9 +1943,30 @@
           return;
         }
 
-        const size = nodeSizeByType(selected.type);
-        const left = selected.position.x + Math.round(size.width / 2) - 20;
-        const top = selected.position.y + size.height + 18;
+        const quickAddButtonSize = els.quickAddBtn ? els.quickAddBtn.offsetWidth || 40 : 40;
+        const selectedNodeEl = els.nodesLayer.querySelector(`[data-node-id="${CSS.escape(selected.id)}"]`);
+        const canvasRect = els.canvasInner.getBoundingClientRect();
+
+        let left = 0;
+        let top = 0;
+        if (selectedNodeEl) {
+          const nodeRect = selectedNodeEl.getBoundingClientRect();
+          left =
+            nodeRect.left +
+            nodeRect.width / 2 -
+            canvasRect.left -
+            Math.round(quickAddButtonSize / 2);
+          top = nodeRect.bottom - canvasRect.top + 18;
+        } else {
+          // Fallback in graph coordinates if node DOM is not available yet.
+          const fallbackSize = nodeSizeByType(selected.type);
+          const scale = getZoomScale();
+          left =
+            (selected.position.x + Math.round(fallbackSize.width / 2)) * scale -
+            Math.round(quickAddButtonSize / 2);
+          top = (selected.position.y + fallbackSize.height) * scale + 18;
+        }
+
         els.quickAddWrap.style.left = `${left}px`;
         els.quickAddWrap.style.top = `${top}px`;
         els.quickAddWrap.classList.remove("hidden");
@@ -1125,11 +1981,15 @@
         optionButtons.forEach((button) => {
           const addType = button.dataset.addType;
           const allowedByType = isConnectionAllowed(selected.type, addType);
+          const blockedByStartLimit =
+            selected.type === "start" &&
+            addType === "message" &&
+            hasStartOutgoingMessageEdge(selected.id);
           const blockedByResponseLimit =
             selected.type === "response" &&
             (addType === "message" || addType === "end") &&
             hasResponseOutgoingEdge(selected.id);
-          const allowed = allowedByType && !blockedByResponseLimit;
+          const allowed = allowedByType && !blockedByStartLimit && !blockedByResponseLimit;
           button.disabled = !allowed;
           if (allowed) {
             button.classList.remove("opacity-50", "cursor-not-allowed");
@@ -1204,6 +2064,7 @@
           startY: event.clientY,
           originX: node.position.x,
           originY: node.position.y,
+          scale: getZoomScale(),
           moved: false,
         };
         nodeEl.classList.add("dragging");
@@ -1215,8 +2076,9 @@
         const nodeEl = els.nodesLayer.querySelector(`[data-node-id="${CSS.escape(app.dragging.nodeId)}"]`);
         if (!node || !nodeEl) return;
 
-        const dx = event.clientX - app.dragging.startX;
-        const dy = event.clientY - app.dragging.startY;
+        const scale = app.dragging.scale || getZoomScale();
+        const dx = (event.clientX - app.dragging.startX) / scale;
+        const dy = (event.clientY - app.dragging.startY) / scale;
         if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
           app.dragging.moved = true;
         }
@@ -1301,14 +2163,18 @@
       async function loadEditor() {
         const payload = await apiRequest(`/api/v1/builder/dialogs/${encodeURIComponent(app.dialogId)}/editor`);
         app.dialogName = payload.dialogName || "Scenario";
+        app.sceneType = normalizeSceneType(payload.sceneType);
+        app.phonePreview.selections = {};
+        app.phonePreview.open = false;
+        app.phonePreview.lastBubbleKeys = [];
+        app.phonePreview.awaitFirstChoice = true;
         app.scenarioVersionId = payload.scenarioVersionId || null;
         app.revision = payload.revision || null;
         app.graph = ensureGraph(payload.graph);
         els.dialogNameLabel.textContent = app.dialogName;
         document.title = `Scenario Editor - ${app.dialogName}`;
 
-        const start = app.graph.nodes.find((node) => node.type === "start");
-        app.selectedNodeId = start ? start.id : app.graph.nodes[0]?.id || null;
+        app.selectedNodeId = null;
         setDirty(false);
         renderAll();
       }
@@ -1367,6 +2233,20 @@
         els.toolSelectBtn.addEventListener("click", () => setTool("select"));
         els.toolAddBtn.addEventListener("click", addNodeByPrompt);
         els.toolConnectBtn.addEventListener("click", () => setTool("connect"));
+        if (els.toolPhonePreviewBtn) {
+          els.toolPhonePreviewBtn.addEventListener("click", togglePhonePreview);
+        }
+        if (els.phonePreviewCloseBtn) {
+          els.phonePreviewCloseBtn.addEventListener("click", () => {
+            setPhonePreviewOpen(false);
+            renderAll();
+          });
+        }
+        if (els.phonePreviewResetBtn) {
+          els.phonePreviewResetBtn.addEventListener("click", () => {
+            resetPhonePreviewConversation();
+          });
+        }
         els.deleteNodeBtn.addEventListener("click", deleteSelectedNode);
         els.saveGraphBtn.addEventListener("click", saveEditor);
         els.previewBtn.addEventListener("click", () => toast("Preview будет расширен на следующем этапе.", "warn"));
@@ -1399,6 +2279,21 @@
           createLinkedNode(sourceNode, addType);
         });
 
+        els.canvasInner.addEventListener("click", (event) => {
+          const clickedNode = event.target.closest("[data-node-id]");
+          if (clickedNode) return;
+
+          const insideQuickAdd = event.target.closest("#quickAddWrap");
+          if (insideQuickAdd) return;
+
+          const insideResponseAdd = event.target.closest(
+            "[data-response-add-btn], [data-response-add-menu], [data-response-add-type]"
+          );
+          if (insideResponseAdd) return;
+
+          clearSelectionByCanvasClick();
+        });
+
         document.addEventListener("click", (event) => {
           let changed = false;
 
@@ -1422,6 +2317,26 @@
             renderAll();
           }
         });
+
+        if (els.phonePreviewPanel) {
+          els.phonePreviewPanel.addEventListener("click", (event) => {
+            const choiceButton = event.target.closest("[data-phone-choice-id]");
+            if (!choiceButton) {
+              return;
+            }
+
+            const messageId = String(choiceButton.dataset.phoneMessageId || "").trim();
+            const responseId = String(choiceButton.dataset.phoneChoiceId || "").trim();
+            if (!messageId || !responseId) {
+              return;
+            }
+
+            app.phonePreview.awaitFirstChoice = false;
+            app.phonePreview.selections[messageId] = responseId;
+            renderPhonePreview();
+            updateToolButtons();
+          });
+        }
 
         els.zoomOutBtn.addEventListener("click", () => {
           app.graph.viewport.zoom = Math.max(25, (app.graph.viewport.zoom || 100) - 10);

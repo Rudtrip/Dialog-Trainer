@@ -362,11 +362,18 @@
         const resolution = item.width && item.height ? `${item.width}x${item.height}` : "unknown";
         const emotionsCount = Number(item?.metadata?.emotions_count || 0);
         const metaSecondary = state.activeTab === "character" && emotionsCount > 0 ? `${emotionsCount} emotions` : `${resolution}`;
+        const canEditCharacter = state.activeTab === "character";
+        const cardActionAttrs = canEditCharacter
+          ? `data-action="edit" data-id="${escapeHtml(item.id)}" role="button" tabindex="0"`
+          : "";
+        const editButton = canEditCharacter
+          ? `<button class="rounded-lg border border-indigo-200 px-2 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-50" data-action="edit" data-id="${escapeHtml(item.id)}">Edit</button>`
+          : "";
         const deleteButton = item.canDelete
           ? `<button class="rounded-lg border border-red-200 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-50" data-action="delete" data-id="${escapeHtml(item.id)}">Delete</button>`
           : "";
 
-        return `<article class="group flex min-h-[320px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg"><div class="relative aspect-[16/10] overflow-hidden bg-slate-100"><img class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" src="${escapeHtml(item.thumbnailUrl || item.fileUrl || "")}" alt="${escapeHtml(item.title)}" /><span class="absolute right-3 top-3 inline-flex rounded-md px-2 py-1 text-[10px] font-black uppercase tracking-wide ${item.source === "preinstalled" ? "bg-sky-100 text-sky-700" : "bg-indigo-100 text-indigo-700"}">${escapeHtml(sourceLabel)}</span></div><div class="flex flex-1 flex-col gap-3 p-4"><h3 class="line-clamp-2 text-lg font-bold leading-tight text-slate-900">${escapeHtml(item.title)}</h3><div class="flex flex-wrap items-center gap-2 text-xs text-slate-500"><span class="rounded bg-slate-100 px-2 py-1 font-semibold text-slate-700">${escapeHtml(format.toUpperCase())}</span><span>${escapeHtml(metaSecondary)}</span><span>${escapeHtml(formatBytes(item.fileSizeBytes))}</span></div><div class="mt-auto flex items-center justify-between gap-2"><span class="text-xs text-slate-500">Updated ${escapeHtml(formatDate(item.updatedAt || item.createdAt))}</span><div class="inline-flex gap-2"><button class="rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50" data-action="preview" data-url="${escapeHtml(item.fileUrl || "")}">Open</button>${deleteButton}</div></div></div></article>`;
+        return `<article class="group flex min-h-[320px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg ${canEditCharacter ? "cursor-pointer" : ""}" ${cardActionAttrs}><div class="relative aspect-[16/10] overflow-hidden bg-slate-100"><img class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" src="${escapeHtml(item.thumbnailUrl || item.fileUrl || "")}" alt="${escapeHtml(item.title)}" /><span class="absolute right-3 top-3 inline-flex rounded-md px-2 py-1 text-[10px] font-black uppercase tracking-wide ${item.source === "preinstalled" ? "bg-sky-100 text-sky-700" : "bg-indigo-100 text-indigo-700"}">${escapeHtml(sourceLabel)}</span></div><div class="flex flex-1 flex-col gap-3 p-4"><h3 class="line-clamp-2 text-lg font-bold leading-tight text-slate-900">${escapeHtml(item.title)}</h3><div class="flex flex-wrap items-center gap-2 text-xs text-slate-500"><span class="rounded bg-slate-100 px-2 py-1 font-semibold text-slate-700">${escapeHtml(format.toUpperCase())}</span><span>${escapeHtml(metaSecondary)}</span><span>${escapeHtml(formatBytes(item.fileSizeBytes))}</span></div><div class="mt-auto flex items-center justify-between gap-2"><span class="text-xs text-slate-500">Updated ${escapeHtml(formatDate(item.updatedAt || item.createdAt))}</span><div class="inline-flex gap-2">${editButton}<button class="rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50" data-action="preview" data-url="${escapeHtml(item.fileUrl || "")}">Open</button>${deleteButton}</div></div></div></article>`;
       }).join("");
 
       const addCardTitle = state.activeTab === "character" ? "Add New Character" : "Add New Background";
@@ -379,11 +386,14 @@
         const format = String(item.mimeType || "").split("/")[1] || "-";
         const sourceLabel = item.source === "preinstalled" ? "Preinstalled" : "My upload";
         const resolution = item.width && item.height ? `${item.width}x${item.height}` : "-";
+        const editButton = state.activeTab === "character"
+          ? `<button class="rounded-lg border border-indigo-200 px-2 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-50" data-action="edit" data-id="${escapeHtml(item.id)}">Edit</button>`
+          : "";
         const deleteButton = item.canDelete
           ? `<button class="rounded-lg border border-red-200 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-50" data-action="delete" data-id="${escapeHtml(item.id)}">Delete</button>`
           : "";
 
-        return `<tr class="hover:bg-slate-50"><td class="px-4 py-3"><img class="h-14 w-14 rounded-lg border border-slate-200 bg-slate-50 object-cover" src="${escapeHtml(item.thumbnailUrl || item.fileUrl || "")}" alt="${escapeHtml(item.title)}" /></td><td class="px-4 py-3"><div class="font-semibold text-slate-900">${escapeHtml(item.title)}</div></td><td class="px-4 py-3"><span class="inline-flex rounded-full border px-2 py-1 text-xs font-bold ${item.source === "preinstalled" ? "border-sky-200 bg-sky-50 text-sky-700" : "border-indigo-200 bg-indigo-50 text-indigo-700"}">${escapeHtml(sourceLabel)}</span></td><td class="px-4 py-3 text-slate-600">${escapeHtml(resolution)}</td><td class="px-4 py-3 text-slate-600">${escapeHtml(format.toUpperCase())}</td><td class="px-4 py-3 text-slate-600">${escapeHtml(formatBytes(item.fileSizeBytes))}</td><td class="px-4 py-3 text-slate-600">${escapeHtml(formatDate(item.updatedAt || item.createdAt))}</td><td class="px-4 py-3 text-right"><div class="inline-flex gap-2"><button class="rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50" data-action="preview" data-url="${escapeHtml(item.fileUrl || "")}">Open</button>${deleteButton}</div></td></tr>`;
+        return `<tr class="hover:bg-slate-50"><td class="px-4 py-3"><img class="h-14 w-14 rounded-lg border border-slate-200 bg-slate-50 object-cover" src="${escapeHtml(item.thumbnailUrl || item.fileUrl || "")}" alt="${escapeHtml(item.title)}" /></td><td class="px-4 py-3"><div class="font-semibold text-slate-900">${escapeHtml(item.title)}</div></td><td class="px-4 py-3"><span class="inline-flex rounded-full border px-2 py-1 text-xs font-bold ${item.source === "preinstalled" ? "border-sky-200 bg-sky-50 text-sky-700" : "border-indigo-200 bg-indigo-50 text-indigo-700"}">${escapeHtml(sourceLabel)}</span></td><td class="px-4 py-3 text-slate-600">${escapeHtml(resolution)}</td><td class="px-4 py-3 text-slate-600">${escapeHtml(format.toUpperCase())}</td><td class="px-4 py-3 text-slate-600">${escapeHtml(formatBytes(item.fileSizeBytes))}</td><td class="px-4 py-3 text-slate-600">${escapeHtml(formatDate(item.updatedAt || item.createdAt))}</td><td class="px-4 py-3 text-right"><div class="inline-flex gap-2">${editButton}<button class="rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50" data-action="preview" data-url="${escapeHtml(item.fileUrl || "")}">Open</button>${deleteButton}</div></td></tr>`;
       }).join("");
     }
 
@@ -560,6 +570,13 @@
         if (action === "preview") {
           const url = String(actionElement.dataset.url || "").trim();
           if (url) window.open(url, "_blank", "noopener");
+          return;
+        }
+        if (action === "edit") {
+          const id = String(actionElement.dataset.id || "").trim();
+          if (id && state.activeTab === "character") {
+            window.location.href = `/assets/characters/${encodeURIComponent(id)}`;
+          }
           return;
         }
         if (action === "delete") {

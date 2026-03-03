@@ -11,6 +11,26 @@ const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 dotenv.config({ path: path.resolve(process.cwd(), ".env.local"), quiet: true });
 dotenv.config({ quiet: true });
 
+function readOptionalEnv(name) {
+  const value = String(process.env[name] || "").trim();
+  if (!value) {
+    return "";
+  }
+
+  const upper = value.toUpperCase();
+  if (
+    upper === "REPLACE_ME" ||
+    upper.startsWith("REPLACE_WITH_") ||
+    upper === "CHANGE_ME" ||
+    upper === "CHANGEME" ||
+    upper === "YOUR_VALUE_HERE"
+  ) {
+    return "";
+  }
+
+  return value;
+}
+
 const app = express();
 const port = Number(process.env.PORT || 3000);
 
@@ -18,9 +38,9 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY;
 const PLAYER_BASE_URL = process.env.PLAYER_BASE_URL || "https://player.dialog-trainer.local";
 const AWS_REGION = process.env.AWS_REGION || "us-east-1";
-const S3_BUCKET = process.env.S3_BUCKET || "";
-const AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID || "";
-const AWS_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY || "";
+const S3_BUCKET = readOptionalEnv("S3_BUCKET");
+const AWS_ACCESS_KEY_ID = readOptionalEnv("AWS_ACCESS_KEY_ID");
+const AWS_SECRET_ACCESS_KEY = readOptionalEnv("AWS_SECRET_ACCESS_KEY");
 const ASSET_CHARACTER_MAX_BYTES = Number(process.env.ASSET_CHARACTER_MAX_BYTES || 2 * 1024 * 1024);
 const ASSET_BACKGROUND_MAX_BYTES = Number(process.env.ASSET_BACKGROUND_MAX_BYTES || 1 * 1024 * 1024);
 const ASSET_SIGNED_URL_TTL_SEC = Number(process.env.ASSET_SIGNED_URL_TTL_SEC || 3600);
@@ -33,6 +53,14 @@ const ASSET_ALLOWED_MIME = {
   character: new Set(["image/png", "image/svg+xml"]),
   background: new Set(["image/jpeg", "image/png", "image/webp"]),
 };
+
+const CHARACTER_EMOTION_STATES = new Set(["neutral", "happy", "concerned", "angry"]);
+const CHARACTER_EMOTION_ALLOWED_MIME = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/svg+xml",
+]);
 
 const ASSET_MIME_TO_EXT = {
   "image/png": "png",
@@ -72,6 +100,10 @@ function ensureJsonObject(payload) {
   return Boolean(payload && typeof payload === "object");
 }
 
+function ensurePlainObject(payload) {
+  return Boolean(payload && typeof payload === "object" && !Array.isArray(payload));
+}
+
 function sanitizeAssetType(value) {
   const normalized = String(value || "").trim().toLowerCase();
   return normalized === "character" || normalized === "background" ? normalized : null;
@@ -80,6 +112,11 @@ function sanitizeAssetType(value) {
 function sanitizeAssetTitle(value) {
   const title = String(value || "").trim().slice(0, 160);
   return title || null;
+}
+
+function sanitizeCharacterEmotionState(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  return CHARACTER_EMOTION_STATES.has(normalized) ? normalized : null;
 }
 
 function sanitizeWorkspaceId(value) {
@@ -202,6 +239,55 @@ function parseImageDimensions(buffer) {
   } catch (_error) {
     return { width: null, height: null };
   }
+}
+
+function resolveObjectKeyFromAssetUrl(value) {
+  const url = String(value || "").trim();
+  if (!isLocalAssetUrl(url)) {
+    return null;
+  }
+
+  return normalizeAssetObjectKey(url.replace(/^\/+/, ""));
+}
+
+function countEmotionImagesFromMetadata(metadataInput) {
+  if (!ensurePlainObject(metadataInput)) {
+    return 0;
+  }
+
+  const images = ensurePlainObject(metadataInput.emotionImages) ? metadataInput.emotionImages : {};
+  return Array.from(CHARACTER_EMOTION_STATES).reduce((count, state) => {
+    const value = String(images[state] || "").trim();
+    return value ? count + 1 : count;
+  }, 0);
+}
+
+function collectEmotionAssetRefs(metadataInput) {
+  if (!ensurePlainObject(metadataInput)) {
+    return [];
+  }
+
+  const imageUrls = ensurePlainObject(metadataInput.emotionImages) ? metadataInput.emotionImages : {};
+  const imageKeys = ensurePlainObject(metadataInput.emotionImageKeys) ? metadataInput.emotionImageKeys : {};
+  const refsByKey = new Map();
+
+  Array.from(CHARACTER_EMOTION_STATES).forEach((state) => {
+    const stateUrl = String(imageUrls[state] || "").trim();
+    const explicitKey = normalizeAssetObjectKey(imageKeys[state] || "");
+    const derivedKey = resolveObjectKeyFromAssetUrl(stateUrl);
+    const key = explicitKey || derivedKey;
+
+    if (!key) {
+      return;
+    }
+
+    refsByKey.set(key, {
+      key,
+      url: stateUrl || buildLocalAssetUrl(key) || "",
+    });
+  });
+
+  return Array.from(refsByKey.values());
 }
 
 async function resolveSignedAssetUrl(assetRow) {
@@ -482,6 +568,15 @@ async function listLibraryAssetsRows(token, workspaceId, type) {
   return supabaseRest(`/library_assets?${params.join("&")}`, { token });
 }
 
+async function getLibraryAssetRowById(token, assetId) {
+  const rows = await supabaseRest(
+    `/library_assets?select=id,type,title,source,file_url,thumbnail_url,mime_type,file_size_bytes,width,height,workspace_id,owner_id,is_active,s3_key,metadata_json,created_at,updated_at&id=eq.${encodeURIComponent(assetId)}&limit=1`,
+    { token }
+  );
+
+  return rows[0] || null;
+}
+
 function mapDialog(simulator, publication) {
   return {
     id: simulator.id,
@@ -506,6 +601,15 @@ function sanitizeDialogName(name) {
   }
 
   return value.slice(0, 140);
+}
+
+function sanitizeSceneType(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (normalized === "dialog") {
+    return "dialog";
+  }
+
+  return "messenger";
 }
 
 function buildExportArtifacts(publicationId, publicationKey) {
@@ -589,12 +693,19 @@ function sanitizeNodeDataByType(type, dataInput) {
   }
 
   if (type === "message") {
+    const emotionState = String(data.emotionState || "")
+      .trim()
+      .toLowerCase();
+
     return {
       speakerType: String(data.speakerType || "npc").trim().toLowerCase() === "system" ? "system" : "npc",
       speakerName: String(data.speakerName || "NPC").trim().slice(0, 80) || "NPC",
       text: String(data.text || "").trim().slice(0, 4000),
       characterAssetId: data.characterAssetId ? sanitizeNodeId(data.characterAssetId, "") : null,
       backgroundAssetId: data.backgroundAssetId ? sanitizeNodeId(data.backgroundAssetId, "") : null,
+      emotionState: ["neutral", "happy", "concerned", "angry"].includes(emotionState)
+        ? emotionState
+        : "neutral",
       mediaRef: data.mediaRef ? String(data.mediaRef).trim().slice(0, 120) : null,
     };
   }
@@ -1152,6 +1263,238 @@ app.post("/api/v1/assets", async (req, res) => {
   }
 });
 
+app.get("/api/v1/assets/:id", async (req, res) => {
+  const context = await requireUserContext(req, res);
+  if (!context) {
+    return;
+  }
+
+  const assetId = String(req.params.id || "").trim();
+  if (!assetId) {
+    return res.status(400).json({ error: "Asset id is required." });
+  }
+
+  try {
+    const row = await getLibraryAssetRowById(context.token, assetId);
+    if (!row || !row.is_active) {
+      return res.status(404).json({ error: "Asset not found." });
+    }
+
+    const item = await mapLibraryAsset(row);
+    return res.status(200).json({ item });
+  } catch (error) {
+    const payload = formatErrorPayload(error, "Unable to load asset.");
+    return res.status(error.status || 500).json(payload);
+  }
+});
+
+app.patch("/api/v1/assets/:id", async (req, res) => {
+  const context = await requireUserContext(req, res);
+  if (!context) {
+    return;
+  }
+
+  if (!ensureJsonObject(req.body)) {
+    return res.status(400).json({ error: "Request body must be a JSON object." });
+  }
+
+  const assetId = String(req.params.id || "").trim();
+  if (!assetId) {
+    return res.status(400).json({ error: "Asset id is required." });
+  }
+
+  try {
+    const row = await getLibraryAssetRowById(context.token, assetId);
+    if (!row || !row.is_active) {
+      return res.status(404).json({ error: "Asset not found." });
+    }
+
+    if (row.type !== "character") {
+      return res.status(400).json({ error: "Only character assets support profile editing." });
+    }
+
+    if (row.source !== "user_upload") {
+      return res.status(403).json({ error: "Preinstalled assets cannot be edited." });
+    }
+
+    const membership = await getMembershipForWorkspace(
+      context.token,
+      context.user.id,
+      row.workspace_id
+    );
+
+    if (!membership || (membership.role !== "owner" && membership.role !== "editor")) {
+      return res.status(403).json({ error: "No permission to edit this asset." });
+    }
+
+    const patch = {};
+    if (Object.prototype.hasOwnProperty.call(req.body, "title")) {
+      const title = sanitizeAssetTitle(req.body?.title);
+      if (!title) {
+        return res.status(400).json({ error: "Title is required." });
+      }
+      patch.title = title;
+    }
+
+    const metadata = ensurePlainObject(row.metadata_json) ? { ...row.metadata_json } : {};
+    let metadataChanged = false;
+
+    if (Object.prototype.hasOwnProperty.call(req.body, "specialization")) {
+      const value = String(req.body?.specialization || "").trim().slice(0, 120);
+      metadata.specialization = value || null;
+      metadataChanged = true;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(req.body, "description")) {
+      const value = String(req.body?.description || "").trim().slice(0, 2000);
+      metadata.description = value || null;
+      metadataChanged = true;
+    }
+
+    if (!patch.title && !metadataChanged) {
+      return res.status(400).json({ error: "No editable fields were provided." });
+    }
+
+    if (metadataChanged) {
+      metadata.emotions_count = countEmotionImagesFromMetadata(metadata);
+      patch.metadata_json = metadata;
+    }
+
+    const updatedRows = await supabaseRest(`/library_assets?id=eq.${encodeURIComponent(assetId)}`, {
+      method: "PATCH",
+      token: context.token,
+      prefer: "return=representation",
+      body: patch,
+    });
+
+    const updated = updatedRows[0] || row;
+    const item = await mapLibraryAsset(updated);
+    return res.status(200).json({ item });
+  } catch (error) {
+    const payload = formatErrorPayload(error, "Unable to update asset.");
+    return res.status(error.status || 500).json(payload);
+  }
+});
+
+app.post("/api/v1/assets/:id/emotions/:state", async (req, res) => {
+  const context = await requireUserContext(req, res);
+  if (!context) {
+    return;
+  }
+
+  const assetId = String(req.params.id || "").trim();
+  if (!assetId) {
+    return res.status(400).json({ error: "Asset id is required." });
+  }
+
+  const emotionState = sanitizeCharacterEmotionState(req.params.state);
+  if (!emotionState) {
+    return res.status(400).json({ error: "Unsupported emotion state." });
+  }
+
+  try {
+    await runAssetUploadMiddleware(req, res);
+  } catch (error) {
+    if (error instanceof multer.MulterError) {
+      if (error.code === "LIMIT_FILE_SIZE") {
+        return res.status(400).json({ error: "File is too large for upload." });
+      }
+      return res.status(400).json({ error: error.message || "Upload validation failed." });
+    }
+    return res.status(400).json({ error: "Unable to parse upload payload." });
+  }
+
+  const file = req.file;
+  if (!file) {
+    return res.status(400).json({ error: "File is required." });
+  }
+
+  const normalizedMime = String(file.mimetype || "").trim().toLowerCase();
+  if (!CHARACTER_EMOTION_ALLOWED_MIME.has(normalizedMime)) {
+    return res.status(400).json({ error: "Unsupported emotion image format." });
+  }
+
+  if (Number(file.size || 0) > ASSET_CHARACTER_MAX_BYTES) {
+    return res.status(400).json({
+      error: `File exceeds maximum allowed size (${ASSET_CHARACTER_MAX_BYTES} bytes).`,
+    });
+  }
+
+  try {
+    const row = await getLibraryAssetRowById(context.token, assetId);
+    if (!row || !row.is_active) {
+      return res.status(404).json({ error: "Asset not found." });
+    }
+
+    if (row.type !== "character") {
+      return res.status(400).json({ error: "Emotion uploads are allowed only for characters." });
+    }
+
+    if (row.source !== "user_upload") {
+      return res.status(403).json({ error: "Preinstalled assets cannot be edited." });
+    }
+
+    const membership = await getMembershipForWorkspace(
+      context.token,
+      context.user.id,
+      row.workspace_id
+    );
+
+    if (!membership || (membership.role !== "owner" && membership.role !== "editor")) {
+      return res.status(403).json({ error: "No permission to edit this asset." });
+    }
+
+    const extension = getUploadExtFromMime(normalizedMime);
+    const uploadId = crypto.randomUUID();
+    const objectKey = `${LOCAL_ASSET_PREFIX}/${row.workspace_id}/character-emotions/${row.id}/${emotionState}-${uploadId}.${extension}`;
+    const fileUrl = await putAssetObject(objectKey, file.buffer, normalizedMime);
+
+    const metadata = ensurePlainObject(row.metadata_json) ? { ...row.metadata_json } : {};
+    const emotionImages = ensurePlainObject(metadata.emotionImages) ? { ...metadata.emotionImages } : {};
+    const emotionImageKeys = ensurePlainObject(metadata.emotionImageKeys)
+      ? { ...metadata.emotionImageKeys }
+      : {};
+
+    const previousUrl = String(emotionImages[emotionState] || "").trim() || null;
+    const previousKey =
+      normalizeAssetObjectKey(emotionImageKeys[emotionState] || "") ||
+      resolveObjectKeyFromAssetUrl(previousUrl);
+
+    emotionImages[emotionState] = fileUrl;
+    emotionImageKeys[emotionState] = objectKey;
+
+    metadata.emotionImages = emotionImages;
+    metadata.emotionImageKeys = emotionImageKeys;
+    metadata.emotions_count = countEmotionImagesFromMetadata(metadata);
+
+    let updatedRows = [];
+    try {
+      updatedRows = await supabaseRest(`/library_assets?id=eq.${encodeURIComponent(assetId)}`, {
+        method: "PATCH",
+        token: context.token,
+        prefer: "return=representation",
+        body: {
+          metadata_json: metadata,
+        },
+      });
+    } catch (error) {
+      await deleteAssetObject(objectKey, fileUrl);
+      throw error;
+    }
+
+    if (previousKey && previousKey !== objectKey) {
+      await deleteAssetObject(previousKey, previousUrl || "");
+    }
+
+    const updated = updatedRows[0] || row;
+    const item = await mapLibraryAsset(updated);
+    return res.status(200).json({ item });
+  } catch (error) {
+    const payload = formatErrorPayload(error, "Unable to upload emotion image.");
+    return res.status(error.status || 500).json(payload);
+  }
+});
+
 app.delete("/api/v1/assets/:id", async (req, res) => {
   const context = await requireUserContext(req, res);
   if (!context) {
@@ -1166,7 +1509,7 @@ app.delete("/api/v1/assets/:id", async (req, res) => {
   try {
     const row = (
       await supabaseRest(
-        `/library_assets?select=id,source,workspace_id,s3_key,file_url,is_active&id=eq.${encodeURIComponent(assetId)}&limit=1`,
+        `/library_assets?select=id,source,workspace_id,s3_key,file_url,metadata_json,is_active&id=eq.${encodeURIComponent(assetId)}&limit=1`,
         { token: context.token }
       )
     )[0];
@@ -1200,6 +1543,11 @@ app.delete("/api/v1/assets/:id", async (req, res) => {
 
     if (row.s3_key) {
       await deleteAssetObject(row.s3_key, row.file_url);
+    }
+
+    const emotionRefs = collectEmotionAssetRefs(row.metadata_json);
+    for (const ref of emotionRefs) {
+      await deleteAssetObject(ref.key, ref.url);
     }
 
     return res.status(204).send();
@@ -1268,6 +1616,7 @@ app.post("/api/v1/builder/dialogs", async (req, res) => {
 
   try {
     const name = sanitizeDialogName(req.body?.name);
+    const sceneType = sanitizeSceneType(req.body?.sceneType);
     const requestedWorkspaceId = String(req.body?.workspaceId || "").trim();
 
     const memberships = await getWorkspaceMemberships(context.token, context.user.id);
@@ -1313,7 +1662,10 @@ app.post("/api/v1/builder/dialogs", async (req, res) => {
         title: name,
         locale: "ru-RU",
         start_step_key: "node_start",
-        metadata_json: { editor_graph: buildDefaultEditorGraph() },
+        metadata_json: {
+          editor_graph: buildDefaultEditorGraph(),
+          scene_type: sceneType,
+        },
         created_by: context.user.id,
       },
     });
@@ -1341,7 +1693,7 @@ app.post("/api/v1/builder/dialogs", async (req, res) => {
         scenario_version_id: scenarioVersion.id,
         theme_json: { theme: "light" },
         branding_json: {},
-        player_json: {},
+        player_json: { scene_type: sceneType },
       },
     });
 
@@ -1387,10 +1739,12 @@ app.get("/api/v1/builder/dialogs/:id/editor", async (req, res) => {
     }
 
     const graph = sanitizeEditorGraph(scenarioVersion?.metadata_json?.editor_graph || null);
+    const sceneType = sanitizeSceneType(scenarioVersion?.metadata_json?.scene_type);
 
     return res.status(200).json({
       dialogId: simulator.id,
       dialogName: simulator.name,
+      sceneType,
       scenarioVersionId: scenarioVersion.id,
       scenarioState: scenarioVersion.state,
       revision: scenarioVersion.updated_at || null,
@@ -1899,6 +2253,10 @@ app.get("/builder", (_req, res) => {
 
 app.get("/assets", (_req, res) => {
   res.sendFile(path.join(publicDir, "assets", "index.html"));
+});
+
+app.get("/assets/characters/:id", (_req, res) => {
+  res.sendFile(path.join(publicDir, "assets", "character-edit.html"));
 });
 
 app.get("/builder/dialog/:id", (_req, res) => {

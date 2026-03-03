@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+  <title>Edit Character</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: { primary: "#5250f7", "background-light": "#f5f5f8" },
+          fontFamily: { display: ["Inter"] },
+          borderRadius: { DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px" }
+        }
+      }
+    };
+  </script>
+</head>
+<body class="bg-background-light font-display text-slate-900">
+  <div class="flex min-h-screen w-full overflow-x-hidden">
+    <aside class="flex w-72 shrink-0 flex-col border-r border-slate-200 bg-white">
+      <div class="flex items-center gap-3 border-b border-slate-200 px-5 py-5">
+        <div class="size-10 rounded-full border-2 border-slate-200 bg-cover bg-center" style='background-image: url("https://images.unsplash.com/photo-1627161684458-a62da52b51c3?auto=format&fit=crop&w=96&q=80");'></div>
+        <div>
+          <p class="text-xl font-extrabold tracking-tight text-slate-900">SimBuilder</p>
+          <p class="text-xs font-medium text-slate-500">Workspace</p>
+        </div>
+      </div>
+      <nav class="flex-1 space-y-1 p-4">
+        <a class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900" href="/builder"><span class="material-symbols-outlined text-xl">folder_open</span><span>Projects</span></a>
+        <button class="flex w-full cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-400" type="button" disabled><span class="material-symbols-outlined text-xl">grid_view</span><span>Templates</span></button>
+        <a class="flex items-center gap-3 rounded-lg bg-primary/10 px-3 py-2.5 text-sm font-semibold text-primary" href="/assets"><span class="material-symbols-outlined text-xl">image</span><span>Assets</span></a>
+        <button class="flex w-full cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-400" type="button" disabled><span class="material-symbols-outlined text-xl">settings</span><span>Settings</span></button>
+      </nav>
+      <div class="space-y-1 border-t border-slate-200 p-4">
+        <button class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900" type="button"><span class="material-symbols-outlined text-xl">help</span><span>Help & Support</span></button>
+        <button id="signOutBtn" class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900" type="button"><span class="material-symbols-outlined text-xl">logout</span><span>Sign out</span></button>
+      </div>
+    </aside>
+
+    <main class="flex-1">
+      <div class="mx-auto w-full max-w-[1440px] px-8 py-8">
+        <div id="loadingState" class="rounded-xl border border-slate-200 bg-white p-10 text-center">
+          <div class="mx-auto mb-4 size-10 animate-spin rounded-full border-4 border-slate-200 border-t-primary"></div>
+          <p class="font-semibold text-slate-700">Loading character...</p>
+        </div>
+
+        <div id="authState" hidden class="rounded-xl border border-slate-200 bg-white p-10 text-center">
+          <p class="mb-4 font-semibold text-slate-700">Authorization is required.</p>
+          <a class="inline-flex h-11 items-center justify-center rounded-lg bg-primary px-5 text-sm font-bold text-white" href="/login">Go to login</a>
+        </div>
+
+        <div id="errorState" hidden class="rounded-xl border border-red-200 bg-red-50 p-10 text-center">
+          <p id="errorMessage" class="font-semibold text-red-700">Unable to load character.</p>
+          <div class="mt-4 inline-flex gap-2">
+            <button id="retryBtn" class="inline-flex h-10 items-center justify-center rounded-lg border border-red-300 bg-white px-4 text-sm font-semibold text-red-700">Retry</button>
+            <a href="/assets" class="inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700">Back to assets</a>
+          </div>
+        </div>
+
+        <section id="contentState" hidden>
+          <nav class="mb-5 flex items-center gap-2 text-sm text-slate-500">
+            <a class="hover:text-primary" href="/assets">Asset Library</a>
+            <span>/</span>
+            <a class="hover:text-primary" href="/assets">Characters</a>
+            <span>/</span>
+            <span id="crumbTitle" class="font-semibold text-slate-900">Character</span>
+          </nav>
+
+          <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <h1 id="pageTitle" class="text-3xl font-black tracking-tight text-slate-900">Edit Character</h1>
+              <p id="subtitle" class="mt-1 text-sm text-slate-500">Manage character profile and emotion images.</p>
+            </div>
+            <div class="inline-flex gap-2">
+              <button id="saveBtn" class="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-primary px-5 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:bg-primary/90">
+                <span class="material-symbols-outlined text-lg">save</span>
+                <span>Save Changes</span>
+              </button>
+              <button id="deleteBtn" class="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-5 text-sm font-bold text-red-700 transition hover:bg-red-50">
+                <span class="material-symbols-outlined text-lg">delete</span>
+                <span>Delete Character</span>
+              </button>
+            </div>
+          </div>
+
+          <div id="readOnlyBanner" hidden class="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            This is a preinstalled character. You can view its data, but editing and uploads are disabled.
+          </div>
+
+          <div class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
+            <section class="space-y-6">
+              <article class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+                  <h2 class="text-lg font-bold">Emotion Preview</h2>
+                  <span id="activeEmotionBadge" class="rounded bg-primary/10 px-2 py-1 text-xs font-bold text-primary">Neutral</span>
+                </div>
+                <div class="relative aspect-video w-full overflow-hidden bg-slate-100">
+                  <div class="absolute inset-0 opacity-20" style="background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 20px 20px;"></div>
+                  <img id="primaryPreviewImage" class="relative z-10 h-full w-full object-contain" alt="Character preview" />
+                </div>
+              </article>
+
+              <article class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <h3 class="mb-4 text-base font-bold text-slate-900">Emotion Slots</h3>
+                <div id="emotionSlots" class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"></div>
+              </article>
+            </section>
+
+            <aside class="space-y-6">
+              <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div class="mb-5 flex items-center gap-2">
+                  <span class="material-symbols-outlined text-primary">person_edit</span>
+                  <h3 class="text-lg font-bold text-slate-900">Character Info</h3>
+                </div>
+                <div class="space-y-4">
+                  <label class="block">
+                    <span class="mb-1 block text-sm font-semibold text-slate-700">Character Name</span>
+                    <input id="nameInput" class="w-full rounded-lg border-slate-300 text-sm" maxlength="160" />
+                  </label>
+                  <label class="block">
+                    <span class="mb-1 block text-sm font-semibold text-slate-700">Specialization</span>
+                    <select id="specializationInput" class="w-full rounded-lg border-slate-300 text-sm">
+                      <option value="">Not specified</option>
+                      <option>Medicine & Healthcare</option>
+                      <option>Corporate Office</option>
+                      <option>Technical Support</option>
+                      <option>Customer Service</option>
+                    </select>
+                  </label>
+                  <label class="block">
+                    <span class="mb-1 block text-sm font-semibold text-slate-700">Description</span>
+                    <textarea id="descriptionInput" class="w-full rounded-lg border-slate-300 text-sm" rows="6" maxlength="2000" placeholder="Describe this character..."></textarea>
+                  </label>
+                  <p id="formError" class="min-h-5 text-xs font-medium text-red-600"></p>
+                  <button id="savePanelBtn" class="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-bold text-white transition hover:bg-primary/90">
+                    <span class="material-symbols-outlined text-lg">save</span>
+                    <span>Save Character</span>
+                  </button>
+                </div>
+              </article>
+
+              <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                <h4 class="mb-4 text-xs font-bold uppercase tracking-widest text-slate-400">Statistics</h4>
+                <div class="flex items-center justify-between border-b border-slate-100 py-2">
+                  <span class="text-sm text-slate-500">Emotion images</span>
+                  <strong id="emotionCountStat">0</strong>
+                </div>
+                <div class="flex items-center justify-between py-2">
+                  <span class="text-sm text-slate-500">Source</span>
+                  <strong id="sourceStat">-</strong>
+                </div>
+              </article>
+            </aside>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <input id="emotionFileInput" type="file" accept=".png,.jpg,.jpeg,.webp,.svg,image/png,image/jpeg,image/webp,image/svg+xml" hidden />
+  <div id="toastContainer" class="fixed bottom-4 right-4 z-[90] flex max-w-sm flex-col gap-2"></div>
+
+  <script>
+    const storageKeys = { accessToken: "dialogTrainerAccessToken", session: "dialogTrainerSession" };
+    const EMOTION_STATES = [
+      { key: "neutral", label: "Neutral", icon: "sentiment_neutral" },
+      { key: "happy", label: "Happy", icon: "sentiment_satisfied" },
+      { key: "concerned", label: "Concerned", icon: "sentiment_dissatisfied" },
+      { key: "angry", label: "Angry", icon: "sentiment_very_dissatisfied" }
+    ];
+    const EMOTION_MAX_BYTES = 2 * 1024 * 1024;
+    const EMOTION_ALLOWED_MIME = new Set(["image/png", "image/jpeg", "image/webp", "image/svg+xml"]);
+
+    const state = {
+      token: "",
+      assetId: "",
+      asset: null,
+      previewEmotion: "neutral",
+      previewCandidates: [],
+      previewCandidateIndex: -1,
+      previewRequestId: 0,
+      pendingEmotionUpload: "",
+      uploadingEmotion: "",
+      isSaving: false,
+      isDeleting: false
+    };
+
+    const els = {
+      signOutBtn: document.getElementById("signOutBtn"),
+      loadingState: document.getElementById("loadingState"),
+      authState: document.getElementById("authState"),
+      errorState: document.getElementById("errorState"),
+      errorMessage: document.getElementById("errorMessage"),
+      retryBtn: document.getElementById("retryBtn"),
+      contentState: document.getElementById("contentState"),
+      crumbTitle: document.getElementById("crumbTitle"),
+      pageTitle: document.getElementById("pageTitle"),
+      subtitle: document.getElementById("subtitle"),
+      saveBtn: document.getElementById("saveBtn"),
+      deleteBtn: document.getElementById("deleteBtn"),
+      readOnlyBanner: document.getElementById("readOnlyBanner"),
+      activeEmotionBadge: document.getElementById("activeEmotionBadge"),
+      primaryPreviewImage: document.getElementById("primaryPreviewImage"),
+      emotionSlots: document.getElementById("emotionSlots"),
+      nameInput: document.getElementById("nameInput"),
+      specializationInput: document.getElementById("specializationInput"),
+      descriptionInput: document.getElementById("descriptionInput"),
+      formError: document.getElementById("formError"),
+      savePanelBtn: document.getElementById("savePanelBtn"),
+      emotionCountStat: document.getElementById("emotionCountStat"),
+      sourceStat: document.getElementById("sourceStat"),
+      emotionFileInput: document.getElementById("emotionFileInput"),
+      toastContainer: document.getElementById("toastContainer")
+    };
+
+    function showState(name) {
+      els.loadingState.hidden = name !== "loading";
+      els.authState.hidden = name !== "auth";
+      els.errorState.hidden = name !== "error";
+      els.contentState.hidden = name !== "content";
+    }
+
+    function toast(message, type) {
+      const node = document.createElement("div");
+      node.className = "rounded-lg border px-3 py-2 text-sm shadow " + (type === "error"
+        ? "border-red-200 bg-red-50 text-red-700"
+        : "border-indigo-200 bg-white text-indigo-700");
+      node.textContent = message;
+      els.toastContainer.appendChild(node);
+      setTimeout(() => node.remove(), 3200);
+    }
+
+    function getTokenFromStorage() {
+      const direct = localStorage.getItem(storageKeys.accessToken);
+      if (direct) return direct;
+      const raw = localStorage.getItem(storageKeys.session);
+      if (!raw) return "";
+      try {
+        const parsed = JSON.parse(raw);
+        return parsed?.access_token || "";
+      } catch (_error) {
+        return "";
+      }
+    }
+
+    function signOut() {
+      localStorage.removeItem(storageKeys.accessToken);
+      localStorage.removeItem(storageKeys.session);
+      window.location.href = "/login";
+    }
+
+    function getAssetIdFromPath() {
+      const parts = window.location.pathname.split("/").filter(Boolean);
+      if (parts.length < 3) return "";
+      return String(parts[2] || "").trim();
+    }
+
+    function normalizeEmotionImages(metadata) {
+      if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return {};
+      const candidate = metadata.emotionImages;
+      if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) return {};
+      const output = {};
+      EMOTION_STATES.forEach((emotion) => {
+        const url = String(candidate[emotion.key] || "").trim();
+        if (url) output[emotion.key] = url;
+      });
+      return output;
+    }
+
+    function normalizeAssetUrl(urlInput) {
+      const value = String(urlInput || "").trim();
+      if (!value) return "";
+      if (
+        value.startsWith("/") ||
+        value.startsWith("http://") ||
+        value.startsWith("https://") ||
+        value.startsWith("data:") ||
+        value.startsWith("blob:")
+      ) {
+        return value;
+      }
+      if (value.startsWith("//")) {
+        return `https:${value}`;
+      }
+      return `/${value.replace(/^\/+/, "")}`;
+    }
+
+    function countEmotionImages(asset) {
+      const images = normalizeEmotionImages(asset?.metadata);
+      return EMOTION_STATES.reduce((acc, emotion) => acc + (images[emotion.key] ? 1 : 0), 0);
+    }
+
+    function getEmotionImageUrl(emotionKey) {
+      if (!state.asset) return "";
+      const images = normalizeEmotionImages(state.asset.metadata);
+      return normalizeAssetUrl(images[emotionKey]);
+    }
+
+    function getPreviewCandidates() {
+      const unique = new Set();
+      const pushCandidate = (value) => {
+        const normalized = normalizeAssetUrl(value);
+        if (!normalized || unique.has(normalized)) return;
+        unique.add(normalized);
+      };
+
+      pushCandidate(getEmotionImageUrl(state.previewEmotion));
+      pushCandidate(state.asset?.fileUrl);
+      pushCandidate(state.asset?.thumbnailUrl);
+
+      const allEmotionImages = normalizeEmotionImages(state.asset?.metadata);
+      EMOTION_STATES.forEach((emotion) => {
+        pushCandidate(allEmotionImages[emotion.key]);
+      });
+
+      return Array.from(unique);
+    }
+
+    function applyPreviewCandidate(index, requestId) {
+      const candidate = state.previewCandidates[index] || "";
+      const normalizedRequestId = Number.isFinite(Number(requestId))
+        ? String(requestId)
+        : String(state.previewRequestId);
+
+      if (!candidate) {
+        state.previewCandidateIndex = -1;
+        els.primaryPreviewImage.dataset.requestId = normalizedRequestId;
+        els.primaryPreviewImage.hidden = true;
+        els.primaryPreviewImage.removeAttribute("src");
+        return;
+      }
+
+      state.previewCandidateIndex = index;
+      els.primaryPreviewImage.dataset.candidateIndex = String(index);
+      els.primaryPreviewImage.dataset.requestId = normalizedRequestId;
+      els.primaryPreviewImage.src = candidate;
+      els.primaryPreviewImage.hidden = false;
+    }
+
+    function setBusyState() {
+      const disabled = state.isSaving || state.isDeleting || Boolean(state.uploadingEmotion);
+      els.saveBtn.disabled = disabled;
+      els.savePanelBtn.disabled = disabled;
+      els.deleteBtn.disabled = disabled || !canDeleteAsset();
+      els.nameInput.disabled = disabled || isReadOnlyAsset();
+      els.specializationInput.disabled = disabled || isReadOnlyAsset();
+      els.descriptionInput.disabled = disabled || isReadOnlyAsset();
+    }
+
+    function isReadOnlyAsset() {
+      return state.asset?.source !== "user_upload";
+    }
+
+    function canDeleteAsset() {
+      return Boolean(state.asset?.canDelete);
+    }
+
+    function renderEmotionSlots() {
+      const readOnly = isReadOnlyAsset();
+      const slots = EMOTION_STATES.map((emotion) => {
+        const imageUrl = getEmotionImageUrl(emotion.key);
+        const active = state.previewEmotion === emotion.key;
+        const uploading = state.uploadingEmotion === emotion.key;
+        const hasImage = Boolean(imageUrl);
+        const slotClass = active
+          ? "border-primary shadow-[0_0_0_2px_rgba(82,80,247,0.15)]"
+          : "border-slate-200 hover:border-primary/60";
+
+        return `
+          <article class="rounded-xl border bg-white p-3 transition-colors ${slotClass}" data-emotion-state="${emotion.key}">
+            <button type="button" class="block w-full text-left" data-action="select-emotion" data-state="${emotion.key}">
+              <div class="mb-3 aspect-square overflow-hidden rounded-lg bg-slate-100">
+                ${hasImage
+                  ? `<img src="${imageUrl}" alt="${emotion.label}" class="h-full w-full object-cover" />`
+                  : `<div class="flex h-full w-full items-center justify-center border-2 border-dashed border-slate-200 text-slate-300"><span class="material-symbols-outlined text-4xl">add_photo_alternate</span></div>`}
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="inline-flex items-center gap-1 text-sm font-semibold text-slate-700"><span class="material-symbols-outlined text-base">${emotion.icon}</span>${emotion.label}</span>
+              </div>
+            </button>
+            <button type="button" data-action="upload-emotion" data-state="${emotion.key}" class="mt-2 inline-flex w-full items-center justify-center gap-1 rounded-lg border border-indigo-200 px-2 py-1.5 text-xs font-bold uppercase tracking-wide text-indigo-700 transition hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-60" ${readOnly ? "disabled" : ""}>
+              <span class="material-symbols-outlined text-sm">${uploading ? "hourglass_top" : "upload"}</span>
+              <span>${uploading ? "Uploading..." : hasImage ? "Update" : "Upload"}</span>
+            </button>
+          </article>
+        `;
+      }).join("");
+
+      els.emotionSlots.innerHTML = slots;
+    }
+
+    function renderPreview() {
+      state.previewCandidates = getPreviewCandidates();
+      state.previewRequestId += 1;
+      const emotion = EMOTION_STATES.find((item) => item.key === state.previewEmotion) || EMOTION_STATES[0];
+      els.activeEmotionBadge.textContent = emotion.label;
+      applyPreviewCandidate(0, state.previewRequestId);
+    }
+
+    function renderAsset() {
+      const asset = state.asset;
+      if (!asset) return;
+
+      const title = String(asset.title || "Untitled character");
+      const metadata = asset.metadata && typeof asset.metadata === "object" && !Array.isArray(asset.metadata)
+        ? asset.metadata
+        : {};
+
+      els.crumbTitle.textContent = title;
+      els.pageTitle.textContent = title;
+      els.subtitle.textContent = asset.source === "preinstalled"
+        ? "Preinstalled character (read-only)"
+        : "Edit profile and upload emotion images";
+
+      els.nameInput.value = title;
+
+      const specialization = String(metadata.specialization || "").trim();
+      if (specialization) {
+        const hasOption = Array.from(els.specializationInput.options).some((option) => option.value === specialization);
+        if (!hasOption) {
+          const dynamic = document.createElement("option");
+          dynamic.value = specialization;
+          dynamic.textContent = specialization;
+          els.specializationInput.appendChild(dynamic);
+        }
+        els.specializationInput.value = specialization;
+      } else {
+        els.specializationInput.value = "";
+      }
+
+      els.descriptionInput.value = String(metadata.description || "");
+      els.emotionCountStat.textContent = String(countEmotionImages(asset));
+      els.sourceStat.textContent = asset.source === "preinstalled" ? "Preinstalled" : "My upload";
+      els.readOnlyBanner.hidden = !isReadOnlyAsset();
+      els.deleteBtn.hidden = !canDeleteAsset();
+
+      if (!EMOTION_STATES.find((item) => item.key === state.previewEmotion)) {
+        state.previewEmotion = "neutral";
+      }
+
+      renderEmotionSlots();
+      renderPreview();
+      setBusyState();
+    }
+
+    async function apiRequest(pathname, options) {
+      const response = await fetch(pathname, {
+        method: options?.method || "GET",
+        headers: {
+          Authorization: `Bearer ${state.token}`,
+          ...(options?.body ? { "Content-Type": "application/json" } : {})
+        },
+        body: options?.body ? JSON.stringify(options.body) : undefined
+      });
+
+      const text = await response.text();
+      let data = {};
+      if (text) {
+        try { data = JSON.parse(text); } catch (_error) { data = {}; }
+      }
+
+      if (!response.ok) {
+        const error = new Error(data?.error || `Request failed: ${response.status}`);
+        error.status = response.status;
+        throw error;
+      }
+      return data;
+    }
+
+    async function uploadEmotion(emotionState, file) {
+      if (!file) return;
+      if (!EMOTION_ALLOWED_MIME.has(String(file.type || "").toLowerCase())) {
+        toast("Unsupported format. Use PNG/JPEG/WEBP/SVG.", "error");
+        return;
+      }
+      if (file.size > EMOTION_MAX_BYTES) {
+        toast("File is too large. Maximum is 2MB.", "error");
+        return;
+      }
+
+      state.uploadingEmotion = emotionState;
+      els.formError.textContent = "";
+      setBusyState();
+      renderEmotionSlots();
+
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const response = await fetch(`/api/v1/assets/${encodeURIComponent(state.assetId)}/emotions/${encodeURIComponent(emotionState)}`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${state.token}`
+          },
+          body: formData
+        });
+
+        const payloadText = await response.text();
+        let payload = {};
+        if (payloadText) {
+          try { payload = JSON.parse(payloadText); } catch (_error) { payload = {}; }
+        }
+
+        if (!response.ok) {
+          throw new Error(payload?.error || `Upload failed: ${response.status}`);
+        }
+
+        if (payload?.item) {
+          state.asset = payload.item;
+        }
+
+        state.previewEmotion = emotionState;
+        toast("Emotion image uploaded.");
+      } catch (error) {
+        toast(error.message || "Unable to upload emotion image.", "error");
+      } finally {
+        state.uploadingEmotion = "";
+        renderAsset();
+      }
+    }
+
+    async function saveCharacter() {
+      if (!state.asset || isReadOnlyAsset()) {
+        return;
+      }
+
+      const title = String(els.nameInput.value || "").trim();
+      const specialization = String(els.specializationInput.value || "").trim();
+      const description = String(els.descriptionInput.value || "").trim();
+
+      if (!title) {
+        els.formError.textContent = "Character name is required.";
+        return;
+      }
+
+      state.isSaving = true;
+      els.formError.textContent = "";
+      setBusyState();
+
+      try {
+        const payload = await apiRequest(`/api/v1/assets/${encodeURIComponent(state.assetId)}`, {
+          method: "PATCH",
+          body: {
+            title,
+            specialization,
+            description
+          }
+        });
+
+        if (payload?.item) {
+          state.asset = payload.item;
+        }
+        toast("Character saved.");
+      } catch (error) {
+        els.formError.textContent = error.message || "Unable to save character.";
+      } finally {
+        state.isSaving = false;
+        renderAsset();
+      }
+    }
+
+    async function deleteCharacter() {
+      if (!state.asset || !canDeleteAsset()) return;
+      const approved = window.confirm("Delete this character?");
+      if (!approved) return;
+
+      state.isDeleting = true;
+      setBusyState();
+      try {
+        await apiRequest(`/api/v1/assets/${encodeURIComponent(state.assetId)}`, { method: "DELETE" });
+        toast("Character deleted.");
+        window.location.href = "/assets";
+      } catch (error) {
+        toast(error.message || "Unable to delete character.", "error");
+        state.isDeleting = false;
+        setBusyState();
+      }
+    }
+
+    async function loadCharacter() {
+      showState("loading");
+      try {
+        const payload = await apiRequest(`/api/v1/assets/${encodeURIComponent(state.assetId)}`);
+        const item = payload?.item;
+
+        if (!item || item.type !== "character") {
+          throw new Error("Character not found.");
+        }
+
+        state.asset = item;
+        state.previewEmotion = "neutral";
+        renderAsset();
+        showState("content");
+      } catch (error) {
+        if (error.status === 401) {
+          showState("auth");
+          return;
+        }
+
+        els.errorMessage.textContent = error.message || "Unable to load character.";
+        showState("error");
+      }
+    }
+
+    function bindEvents() {
+      els.signOutBtn.addEventListener("click", signOut);
+      els.retryBtn.addEventListener("click", loadCharacter);
+      els.saveBtn.addEventListener("click", saveCharacter);
+      els.savePanelBtn.addEventListener("click", saveCharacter);
+      els.deleteBtn.addEventListener("click", deleteCharacter);
+
+      els.emotionSlots.addEventListener("click", (event) => {
+        const actionEl = event.target.closest("[data-action]");
+        if (!actionEl) return;
+        const action = actionEl.dataset.action;
+        const emotionState = String(actionEl.dataset.state || "").trim();
+        if (!emotionState) return;
+
+        if (action === "select-emotion") {
+          state.previewEmotion = emotionState;
+          renderPreview();
+          renderEmotionSlots();
+          return;
+        }
+
+        if (action === "upload-emotion") {
+          if (isReadOnlyAsset()) return;
+          state.pendingEmotionUpload = emotionState;
+          els.emotionFileInput.value = "";
+          els.emotionFileInput.click();
+        }
+      });
+
+      els.emotionFileInput.addEventListener("change", () => {
+        const file = els.emotionFileInput.files?.[0] || null;
+        const emotionState = state.pendingEmotionUpload;
+        state.pendingEmotionUpload = "";
+        if (!file || !emotionState) return;
+        uploadEmotion(emotionState, file);
+      });
+
+      els.primaryPreviewImage.addEventListener("error", () => {
+        const requestIdFromEvent = Number(els.primaryPreviewImage.dataset.requestId || "0");
+        if (!requestIdFromEvent || requestIdFromEvent !== state.previewRequestId) {
+          return;
+        }
+
+        const expectedSrc = state.previewCandidates[state.previewCandidateIndex] || "";
+        const actualSrc = normalizeAssetUrl(els.primaryPreviewImage.getAttribute("src"));
+        if (expectedSrc && actualSrc && expectedSrc !== actualSrc) {
+          return;
+        }
+
+        const currentIndex = Number(els.primaryPreviewImage.dataset.candidateIndex || "0");
+        const nextIndex = currentIndex + 1;
+        if (nextIndex < state.previewCandidates.length) {
+          applyPreviewCandidate(nextIndex, state.previewRequestId);
+          return;
+        }
+
+        els.primaryPreviewImage.hidden = true;
+        els.primaryPreviewImage.removeAttribute("src");
+      });
+
+      els.primaryPreviewImage.addEventListener("load", () => {
+        const requestIdFromEvent = Number(els.primaryPreviewImage.dataset.requestId || "0");
+        if (!requestIdFromEvent || requestIdFromEvent !== state.previewRequestId) {
+          return;
+        }
+        if (!els.primaryPreviewImage.getAttribute("src")) {
+          return;
+        }
+        els.primaryPreviewImage.hidden = false;
+      });
+    }
+
+    async function init() {
+      state.token = getTokenFromStorage();
+      if (!state.token) {
+        showState("auth");
+        return;
+      }
+
+      state.assetId = getAssetIdFromPath();
+      if (!state.assetId) {
+        els.errorMessage.textContent = "Character id is missing in URL.";
+        showState("error");
+        return;
+      }
+
+      bindEvents();
+      await loadCharacter();
+    }
+
+    init();
+  </script>
+</body>
+</html>

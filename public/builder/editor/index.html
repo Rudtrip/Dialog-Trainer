@@ -1,0 +1,1474 @@
+﻿
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Scenario Editor</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: "#514DF7",
+              "primary-hover": "#403bc9",
+              "background-light": "#f3f4f6",
+              "surface-light": "#ffffff",
+              "border-light": "#e5e7eb",
+              "text-primary": "#1f2937",
+              "text-secondary": "#6b7280",
+            },
+            fontFamily: {
+              display: ["Inter", "sans-serif"],
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #d1d5db;
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #9ca3af;
+      }
+
+      .node {
+        position: absolute;
+        cursor: grab;
+        user-select: none;
+      }
+
+      .node.dragging {
+        cursor: grabbing;
+      }
+
+      .node-selected {
+        box-shadow: 0 0 0 3px rgba(81, 77, 247, 0.22);
+      }
+
+      .tool-active {
+        background-color: rgba(81, 77, 247, 0.08);
+        color: #514df7;
+      }
+
+      .add-option-btn[disabled] {
+        opacity: 0.45;
+        pointer-events: none;
+      }
+
+      .response-add-option-btn[disabled] {
+        opacity: 0.45;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body class="bg-background-light font-display text-text-primary overflow-hidden h-screen flex flex-col">
+    <header
+      class="flex items-center justify-between whitespace-nowrap border-b border-solid border-border-light bg-surface-light px-6 py-3 shrink-0 z-20 shadow-sm"
+    >
+      <div class="flex items-center gap-4">
+        <button
+          id="backToBuilderBtn"
+          class="size-8 flex items-center justify-center rounded-lg bg-gray-100 text-text-secondary hover:bg-gray-200"
+          title="Назад к списку"
+        >
+          <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+        </button>
+        <div class="size-8 flex items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <span class="material-symbols-outlined">account_tree</span>
+        </div>
+        <div class="flex flex-col">
+          <h2 class="text-text-primary text-lg font-bold leading-tight tracking-[-0.015em]">Scenario Editor</h2>
+          <div class="flex items-center gap-2 text-xs text-text-secondary">
+            <span>Dialog Trainer</span>
+            <span class="material-symbols-outlined text-[10px]">chevron_right</span>
+            <span id="dialogNameLabel">Loading...</span>
+          </div>
+        </div>
+      </div>
+      <div class="flex gap-3">
+        <button
+          id="previewBtn"
+          class="flex items-center justify-center gap-2 rounded-lg h-9 px-4 bg-gray-100 text-text-primary hover:bg-gray-200 transition-colors text-sm font-semibold border border-gray-200"
+        >
+          <span class="material-symbols-outlined text-[18px]">visibility</span>
+          <span>Preview</span>
+        </button>
+        <button
+          id="publishBtn"
+          class="flex items-center justify-center gap-2 rounded-lg h-9 px-4 bg-primary text-white hover:bg-primary-hover transition-colors text-sm font-semibold shadow-md shadow-indigo-200"
+        >
+          <span class="material-symbols-outlined text-[18px]">publish</span>
+          <span>Publish</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden relative">
+      <aside
+        class="w-16 border-r border-border-light bg-surface-light flex flex-col items-center py-4 gap-4 z-10 shadow-[4px_0_24px_rgba(0,0,0,0.02)]"
+      >
+        <button
+          id="toolSelectBtn"
+          class="size-10 rounded-lg flex items-center justify-center text-text-secondary hover:bg-primary/5 hover:text-primary transition-colors tool-active"
+          title="Select"
+        >
+          <span class="material-symbols-outlined">near_me</span>
+        </button>
+        <button
+          id="toolAddBtn"
+          class="size-10 rounded-lg flex items-center justify-center text-text-secondary hover:bg-primary/5 hover:text-primary transition-colors"
+          title="Add Node"
+        >
+          <span class="material-symbols-outlined">add_box</span>
+        </button>
+        <button
+          id="toolConnectBtn"
+          class="size-10 rounded-lg flex items-center justify-center text-text-secondary hover:bg-primary/5 hover:text-primary transition-colors"
+          title="Connect"
+        >
+          <span class="material-symbols-outlined">cable</span>
+        </button>
+      </aside>
+
+      <main id="canvasViewport" class="flex-1 bg-background-light relative overflow-auto p-10">
+        <div
+          class="absolute inset-0 z-0 opacity-[0.4]"
+          style="background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 20px 20px"
+        ></div>
+        <div id="canvasInner" class="relative min-w-[1200px] min-h-[900px] z-0">
+          <svg id="edgesSvg" class="absolute inset-0 w-full h-full pointer-events-none z-0"></svg>
+          <div id="nodesLayer" class="absolute inset-0 z-10"></div>
+          <div id="quickAddWrap" class="absolute z-30 hidden">
+            <button
+              id="quickAddBtn"
+              class="size-10 rounded-full bg-primary hover:bg-primary-hover text-white shadow-lg shadow-indigo-200 flex items-center justify-center transition-all transform hover:scale-105 active:scale-95"
+            >
+              <span class="material-symbols-outlined">add</span>
+            </button>
+            <div id="quickAddMenu" class="absolute top-14 left-1/2 -translate-x-1/2 bg-white rounded-xl shadow-xl border border-gray-100 w-56 overflow-hidden hidden">
+              <div class="bg-gray-50 px-3 py-2 border-b border-gray-100">
+                <span class="text-[10px] font-bold uppercase text-gray-500 tracking-wider">Add Next Step</span>
+              </div>
+              <div class="p-1 flex flex-col gap-0.5">
+                <button data-add-type="message" class="add-option-btn flex items-center gap-3 w-full p-2 hover:bg-gray-50 rounded-lg text-left group transition-colors">
+                  <div class="size-8 rounded bg-blue-50 text-blue-600 flex items-center justify-center group-hover:bg-blue-100 transition-colors">
+                    <span class="material-symbols-outlined text-lg">smart_toy</span>
+                  </div>
+                  <div class="flex flex-col">
+                    <span class="text-sm font-medium text-gray-700">NPC Reply</span>
+                    <span class="text-[10px] text-gray-400">Bot creates dialogue</span>
+                  </div>
+                </button>
+                <button data-add-type="response" class="add-option-btn flex items-center gap-3 w-full p-2 hover:bg-gray-50 rounded-lg text-left group transition-colors">
+                  <div class="size-8 rounded bg-purple-50 text-purple-600 flex items-center justify-center group-hover:bg-purple-100 transition-colors">
+                    <span class="material-symbols-outlined text-lg">chat_bubble</span>
+                  </div>
+                  <div class="flex flex-col">
+                    <span class="text-sm font-medium text-gray-700">Student Response</span>
+                    <span class="text-[10px] text-gray-400">User selection choice</span>
+                  </div>
+                </button>
+                <button data-add-type="end" class="add-option-btn flex items-center gap-3 w-full p-2 hover:bg-gray-50 rounded-lg text-left group transition-colors">
+                  <div class="size-8 rounded bg-rose-50 text-rose-600 flex items-center justify-center group-hover:bg-rose-100 transition-colors">
+                    <span class="material-symbols-outlined text-lg">flag</span>
+                  </div>
+                  <div class="flex flex-col">
+                    <span class="text-sm font-medium text-gray-700">End</span>
+                    <span class="text-[10px] text-gray-400">Finalize branch</span>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="fixed bottom-8 left-24 flex items-center bg-white border border-gray-200 rounded-full shadow-lg p-1 z-20">
+          <button id="zoomOutBtn" class="p-2 hover:bg-gray-100 rounded-full text-text-secondary">
+            <span class="material-symbols-outlined text-[20px]">remove</span>
+          </button>
+          <span id="zoomLabel" class="px-2 text-xs font-medium text-text-primary w-12 text-center">100%</span>
+          <button id="zoomInBtn" class="p-2 hover:bg-gray-100 rounded-full text-text-secondary">
+            <span class="material-symbols-outlined text-[20px]">add</span>
+          </button>
+        </div>
+      </main>
+
+      <aside
+        class="w-[360px] bg-surface-light border-l border-border-light flex flex-col z-10 shadow-[-4px_0_24px_rgba(0,0,0,0.02)]"
+      >
+        <div class="p-4 border-b border-border-light flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="size-8 rounded bg-primary/10 text-primary flex items-center justify-center">
+              <span class="material-symbols-outlined">tune</span>
+            </div>
+            <div>
+              <h3 id="inspectorTitle" class="text-sm font-bold text-text-primary">Node</h3>
+              <p id="inspectorNodeId" class="text-xs text-text-secondary">ID: -</p>
+            </div>
+          </div>
+          <button id="deleteNodeBtn" class="text-gray-400 hover:text-red-500 transition-colors p-1 hover:bg-red-50 rounded">
+            <span class="material-symbols-outlined">delete</span>
+          </button>
+        </div>
+
+        <div id="inspectorBody" class="flex-1 overflow-y-auto p-6 flex flex-col gap-5 text-sm"></div>
+
+        <div class="p-4 border-t border-border-light bg-gray-50/50">
+          <div class="mb-2 text-xs text-text-secondary" id="saveStatusLabel">No changes</div>
+          <button
+            id="saveGraphBtn"
+            class="w-full py-2.5 bg-primary hover:bg-primary-hover text-white font-bold rounded-lg transition-colors text-sm shadow-md shadow-indigo-200"
+          >
+            Save Changes
+          </button>
+        </div>
+      </aside>
+    </div>
+
+    <div id="toastContainer" class="fixed right-4 bottom-4 z-50 flex flex-col gap-2"></div>
+
+    <script>
+      const storageKeys = {
+        accessToken: "dialogTrainerAccessToken",
+        session: "dialogTrainerSession",
+      };
+
+      const app = {
+        token: null,
+        dialogId: "",
+        dialogName: "",
+        scenarioVersionId: null,
+        revision: null,
+        tool: "select",
+        pendingConnectSourceId: null,
+        quickAddMenuOpen: false,
+        responseAddMenuForId: null,
+        dirty: false,
+        dragging: null,
+        assetCatalog: {
+          character: [],
+          background: [],
+        },
+        graph: { version: 1, viewport: { zoom: 100, x: 0, y: 0 }, nodes: [], edges: [] },
+        selectedNodeId: null,
+      };
+
+      const els = {
+        backToBuilderBtn: document.getElementById("backToBuilderBtn"),
+        dialogNameLabel: document.getElementById("dialogNameLabel"),
+        previewBtn: document.getElementById("previewBtn"),
+        publishBtn: document.getElementById("publishBtn"),
+        toolSelectBtn: document.getElementById("toolSelectBtn"),
+        toolAddBtn: document.getElementById("toolAddBtn"),
+        toolConnectBtn: document.getElementById("toolConnectBtn"),
+        canvasViewport: document.getElementById("canvasViewport"),
+        canvasInner: document.getElementById("canvasInner"),
+        edgesSvg: document.getElementById("edgesSvg"),
+        nodesLayer: document.getElementById("nodesLayer"),
+        quickAddWrap: document.getElementById("quickAddWrap"),
+        quickAddBtn: document.getElementById("quickAddBtn"),
+        quickAddMenu: document.getElementById("quickAddMenu"),
+        zoomOutBtn: document.getElementById("zoomOutBtn"),
+        zoomInBtn: document.getElementById("zoomInBtn"),
+        zoomLabel: document.getElementById("zoomLabel"),
+        inspectorTitle: document.getElementById("inspectorTitle"),
+        inspectorNodeId: document.getElementById("inspectorNodeId"),
+        deleteNodeBtn: document.getElementById("deleteNodeBtn"),
+        inspectorBody: document.getElementById("inspectorBody"),
+        saveStatusLabel: document.getElementById("saveStatusLabel"),
+        saveGraphBtn: document.getElementById("saveGraphBtn"),
+        toastContainer: document.getElementById("toastContainer"),
+      };
+
+      function toast(message, type) {
+        const item = document.createElement("div");
+        item.className =
+          "rounded-lg border px-3 py-2 text-xs shadow bg-white " +
+          (type === "error"
+            ? "border-red-200 text-red-700"
+            : type === "warn"
+              ? "border-yellow-200 text-yellow-700"
+              : "border-indigo-200 text-indigo-700");
+        item.textContent = message;
+        els.toastContainer.appendChild(item);
+        setTimeout(() => item.remove(), 2800);
+      }
+
+      function escapeHtml(value) {
+        return String(value || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function getToken() {
+        const direct = localStorage.getItem(storageKeys.accessToken);
+        if (direct) return direct;
+        const raw = localStorage.getItem(storageKeys.session);
+        if (!raw) return null;
+        try {
+          const session = JSON.parse(raw);
+          return session?.access_token || null;
+        } catch (_error) {
+          return null;
+        }
+      }
+
+      function getDialogIdFromPath() {
+        const parts = window.location.pathname.split("/").filter(Boolean);
+        return String(parts[parts.length - 1] || "").trim();
+      }
+
+      function createDefaultGraph() {
+        return {
+          version: 1,
+          viewport: { zoom: 100, x: 0, y: 0 },
+          nodes: [
+            {
+              id: "node_start",
+              type: "start",
+              position: { x: 520, y: 80 },
+              data: {
+                title: "Scenario Initialization",
+              },
+            },
+          ],
+          edges: [],
+        };
+      }
+      function ensureGraph(rawGraph) {
+        const fallback = createDefaultGraph();
+        const raw = rawGraph && typeof rawGraph === "object" ? rawGraph : {};
+
+        const nodes = Array.isArray(raw.nodes) ? raw.nodes : [];
+        const edges = Array.isArray(raw.edges) ? raw.edges : [];
+        const byId = new Map();
+        const normalizedNodes = [];
+
+        for (const node of nodes) {
+          if (!node || typeof node !== "object") continue;
+          const id = String(node.id || "").trim();
+          const type = String(node.type || "").trim().toLowerCase();
+          if (!id || !["start", "message", "response", "end"].includes(type)) continue;
+          if (byId.has(id)) continue;
+          const safeNode = {
+            id,
+            type,
+            position: {
+              x: Number.isFinite(Number(node?.position?.x)) ? Number(node.position.x) : 120,
+              y: Number.isFinite(Number(node?.position?.y)) ? Number(node.position.y) : 120,
+            },
+            data: node.data && typeof node.data === "object" ? { ...node.data } : {},
+          };
+          byId.set(id, safeNode);
+          normalizedNodes.push(safeNode);
+        }
+
+        const startNodes = normalizedNodes.filter((n) => n.type === "start");
+        if (startNodes.length === 0) {
+          normalizedNodes.unshift(fallback.nodes[0]);
+          byId.set(fallback.nodes[0].id, fallback.nodes[0]);
+        } else if (startNodes.length > 1) {
+          const keepId = startNodes[0].id;
+          for (let i = normalizedNodes.length - 1; i >= 0; i -= 1) {
+            if (normalizedNodes[i].type === "start" && normalizedNodes[i].id !== keepId) {
+              byId.delete(normalizedNodes[i].id);
+              normalizedNodes.splice(i, 1);
+            }
+          }
+        }
+
+        const normalizedEdges = [];
+        const edgeKeySet = new Set();
+        for (const edge of edges) {
+          if (!edge || typeof edge !== "object") continue;
+          const source = String(edge.source || "").trim();
+          const target = String(edge.target || "").trim();
+          if (!source || !target || source === target) continue;
+          const sourceNode = byId.get(source);
+          const targetNode = byId.get(target);
+          if (!sourceNode || !targetNode) continue;
+          if (sourceNode.type === "end" || targetNode.type === "start") continue;
+          const key = `${source}->${target}`;
+          if (edgeKeySet.has(key)) continue;
+          edgeKeySet.add(key);
+          normalizedEdges.push({
+            id: String(edge.id || `edge_${normalizedEdges.length + 1}`),
+            source,
+            target,
+          });
+        }
+
+        return {
+          version: 1,
+          viewport: { zoom: 100, x: 0, y: 0 },
+          nodes: normalizedNodes,
+          edges: normalizedEdges,
+        };
+      }
+
+      async function apiRequest(pathname, options) {
+        const response = await fetch(pathname, {
+          method: options?.method || "GET",
+          headers: {
+            Authorization: `Bearer ${app.token}`,
+            ...(options?.body ? { "Content-Type": "application/json" } : {}),
+          },
+          body: options?.body ? JSON.stringify(options.body) : undefined,
+        });
+
+        const text = await response.text();
+        let data = {};
+        if (text) {
+          try {
+            data = JSON.parse(text);
+          } catch (_error) {
+            data = {};
+          }
+        }
+
+        if (!response.ok) {
+          const error = new Error(data?.error || `Request failed: ${response.status}`);
+          error.status = response.status;
+          throw error;
+        }
+
+        return data;
+      }
+
+      async function loadAssetCatalog() {
+        try {
+          const [charactersPayload, backgroundsPayload] = await Promise.all([
+            apiRequest("/api/v1/assets?type=character"),
+            apiRequest("/api/v1/assets?type=background"),
+          ]);
+
+          app.assetCatalog.character = Array.isArray(charactersPayload?.items)
+            ? charactersPayload.items
+            : [];
+          app.assetCatalog.background = Array.isArray(backgroundsPayload?.items)
+            ? backgroundsPayload.items
+            : [];
+        } catch (_error) {
+          app.assetCatalog.character = [];
+          app.assetCatalog.background = [];
+        }
+      }
+
+      function getNodeById(nodeId) {
+        return app.graph.nodes.find((node) => node.id === nodeId) || null;
+      }
+
+      function setDirty(nextDirty) {
+        app.dirty = nextDirty;
+        els.saveStatusLabel.textContent = app.dirty ? "Unsaved changes" : "No changes";
+      }
+
+      function updateToolButtons() {
+        [els.toolSelectBtn, els.toolConnectBtn].forEach((btn) => btn.classList.remove("tool-active"));
+        if (app.tool === "select") els.toolSelectBtn.classList.add("tool-active");
+        if (app.tool === "connect") els.toolConnectBtn.classList.add("tool-active");
+      }
+
+      function nodeSizeByType(type) {
+        if (type === "start") return { width: 192, height: 98 };
+        if (type === "message") return { width: 320, height: 132 };
+        if (type === "response") return { width: 260, height: 122 };
+        return { width: 220, height: 96 };
+      }
+
+      function nodeClassByType(node) {
+        const base = "node rounded-xl bg-surface-light shadow-sm border transition-shadow hover:shadow-md";
+        if (node.type === "start") {
+          return `${base} border-2 border-green-500`;
+        }
+        if (node.type === "message") {
+          return `${base} border border-gray-200`;
+        }
+        if (node.type === "response") {
+          return `${base} border border-primary`;
+        }
+        return `${base} border-2 border-rose-400`;
+      }
+
+      function renderNodeContent(node) {
+        if (node.type === "start") {
+          return `
+            <div class="p-3">
+              <div class="flex items-center gap-2 mb-2">
+                <span class="material-symbols-outlined text-green-500 text-sm">play_circle</span>
+                <span class="text-xs font-bold uppercase tracking-wider text-text-secondary">Start</span>
+              </div>
+              <p class="text-sm font-medium text-text-primary">${node.data?.title || "Scenario Initialization"}</p>
+            </div>
+          `;
+        }
+
+        if (node.type === "message") {
+          return `
+            <div class="h-1.5 w-full bg-blue-500 rounded-t-xl"></div>
+            <div class="p-4">
+              <div class="flex items-center gap-2 mb-3">
+                <div class="size-6 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100">
+                  <span class="material-symbols-outlined text-xs">smart_toy</span>
+                </div>
+                <span class="text-xs font-bold uppercase tracking-wider text-text-secondary">Message</span>
+              </div>
+              <p class="text-sm text-text-primary">${(node.data?.text || "Empty message").slice(0, 120)}</p>
+            </div>
+          `;
+        }
+
+        if (node.type === "response") {
+          return `
+            <div class="p-3">
+              <div class="flex items-center gap-2 mb-2">
+                <span class="material-symbols-outlined text-primary text-sm">chat_bubble</span>
+                <span class="text-xs font-bold uppercase tracking-wider text-primary">Response</span>
+              </div>
+              <p class="text-sm font-medium text-text-primary">${(node.data?.responseText || "Empty response").slice(0, 120)}</p>
+              <div class="mt-2">
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600 border border-indigo-100 font-medium">
+                  ${Number(node.data?.scoreDelta || 0) >= 0 ? "+" : ""}${Number(node.data?.scoreDelta || 0)} pts
+                </span>
+              </div>
+            </div>
+          `;
+        }
+
+        return `
+          <div class="p-3">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="material-symbols-outlined text-rose-500 text-sm">flag</span>
+              <span class="text-xs font-bold uppercase tracking-wider text-rose-600">End</span>
+            </div>
+            <p class="text-sm font-medium text-text-primary">${(node.data?.title || "Outcome").slice(0, 120)}</p>
+          </div>
+        `;
+      }
+
+      function renderNodes() {
+        els.nodesLayer.innerHTML = "";
+
+        app.graph.nodes.forEach((node) => {
+          const size = nodeSizeByType(node.type);
+          const nodeEl = document.createElement("div");
+          nodeEl.className = nodeClassByType(node);
+          if (app.selectedNodeId === node.id) {
+            nodeEl.classList.add("node-selected");
+          }
+          nodeEl.style.left = `${node.position.x}px`;
+          nodeEl.style.top = `${node.position.y}px`;
+          nodeEl.style.width = `${size.width}px`;
+          nodeEl.style.minHeight = `${size.height}px`;
+          nodeEl.dataset.nodeId = node.id;
+          nodeEl.innerHTML = renderNodeContent(node);
+
+          const inDot = document.createElement("div");
+          inDot.className =
+            "absolute -top-1.5 left-1/2 -translate-x-1/2 size-3 bg-white rounded-full border-2 border-gray-300";
+          nodeEl.appendChild(inDot);
+
+          const outDot = document.createElement("div");
+          outDot.className =
+            "absolute -bottom-1.5 left-1/2 -translate-x-1/2 size-3 bg-white rounded-full border-2 border-primary";
+          nodeEl.appendChild(outDot);
+
+          if (node.type === "start") {
+            inDot.classList.add("hidden");
+            outDot.className =
+              "absolute -bottom-1.5 left-1/2 -translate-x-1/2 size-3 bg-white rounded-full border-2 border-green-500";
+          }
+          if (node.type === "end") {
+            outDot.classList.add("hidden");
+          }
+
+          if (node.type === "response") {
+            const hasOutgoing = hasResponseOutgoingEdge(node.id);
+            const menuVisible = app.responseAddMenuForId === node.id && !hasOutgoing;
+            const responseAddWrap = document.createElement("div");
+            responseAddWrap.className = "absolute left-1/2 -translate-x-1/2 -bottom-16 z-30";
+            responseAddWrap.innerHTML = `
+              <button
+                type="button"
+                data-response-add-btn="${node.id}"
+                class="size-10 rounded-full bg-primary hover:bg-primary-hover text-white shadow-lg shadow-indigo-200 flex items-center justify-center transition-all transform hover:scale-105 active:scale-95 ${
+                  hasOutgoing ? "opacity-50 cursor-not-allowed" : ""
+                }"
+                ${hasOutgoing ? "disabled" : ""}
+                title="${hasOutgoing ? "Следующий шаг уже задан" : "Добавить следующий шаг"}"
+              >
+                <span class="material-symbols-outlined">add</span>
+              </button>
+              <div
+                data-response-add-menu="${node.id}"
+                class="absolute top-12 left-1/2 -translate-x-1/2 bg-white rounded-xl shadow-xl border border-gray-100 w-52 overflow-hidden ${
+                  menuVisible ? "" : "hidden"
+                }"
+              >
+                <div class="bg-gray-50 px-3 py-2 border-b border-gray-100">
+                  <span class="text-[10px] font-bold uppercase text-gray-500 tracking-wider">Response Next Step</span>
+                </div>
+                <div class="p-1 flex flex-col gap-0.5">
+                  <button
+                    type="button"
+                    data-response-add-type="message"
+                    data-response-node-id="${node.id}"
+                    class="response-add-option-btn flex items-center gap-3 w-full p-2 hover:bg-gray-50 rounded-lg text-left group transition-colors"
+                  >
+                    <div class="size-8 rounded bg-blue-50 text-blue-600 flex items-center justify-center group-hover:bg-blue-100 transition-colors">
+                      <span class="material-symbols-outlined text-lg">smart_toy</span>
+                    </div>
+                    <div class="flex flex-col">
+                      <span class="text-sm font-medium text-gray-700">Message</span>
+                      <span class="text-[10px] text-gray-400">Continue dialogue</span>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    data-response-add-type="end"
+                    data-response-node-id="${node.id}"
+                    class="response-add-option-btn flex items-center gap-3 w-full p-2 hover:bg-gray-50 rounded-lg text-left group transition-colors"
+                  >
+                    <div class="size-8 rounded bg-rose-50 text-rose-600 flex items-center justify-center group-hover:bg-rose-100 transition-colors">
+                      <span class="material-symbols-outlined text-lg">flag</span>
+                    </div>
+                    <div class="flex flex-col">
+                      <span class="text-sm font-medium text-gray-700">End</span>
+                      <span class="text-[10px] text-gray-400">Finalize branch</span>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            `;
+            nodeEl.appendChild(responseAddWrap);
+          }
+
+          els.nodesLayer.appendChild(nodeEl);
+        });
+      }
+      function renderEdges() {
+        const rect = els.canvasInner.getBoundingClientRect();
+        const width = Math.max(els.canvasInner.scrollWidth, 1200);
+        const height = Math.max(els.canvasInner.scrollHeight, 900);
+        els.edgesSvg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+        els.edgesSvg.setAttribute("width", `${width}`);
+        els.edgesSvg.setAttribute("height", `${height}`);
+        els.edgesSvg.innerHTML = "";
+
+        app.graph.edges.forEach((edge) => {
+          const sourceEl = els.nodesLayer.querySelector(`[data-node-id="${CSS.escape(edge.source)}"]`);
+          const targetEl = els.nodesLayer.querySelector(`[data-node-id="${CSS.escape(edge.target)}"]`);
+          if (!sourceEl || !targetEl) return;
+
+          const sourceRect = sourceEl.getBoundingClientRect();
+          const targetRect = targetEl.getBoundingClientRect();
+
+          const sx = sourceRect.left + sourceRect.width / 2 - rect.left;
+          const sy = sourceRect.bottom - rect.top;
+          const tx = targetRect.left + targetRect.width / 2 - rect.left;
+          const ty = targetRect.top - rect.top;
+
+          const c1y = sy + 48;
+          const c2y = ty - 48;
+          const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          path.setAttribute("d", `M ${sx} ${sy} C ${sx} ${c1y}, ${tx} ${c2y}, ${tx} ${ty}`);
+          path.setAttribute("stroke", "#cbd5e1");
+          path.setAttribute("stroke-width", "2");
+          path.setAttribute("fill", "none");
+          els.edgesSvg.appendChild(path);
+        });
+      }
+
+      function renderInspector() {
+        const node = getNodeById(app.selectedNodeId);
+        if (!node) {
+          els.inspectorTitle.textContent = "Node";
+          els.inspectorNodeId.textContent = "ID: -";
+          els.inspectorBody.innerHTML = '<p class="text-text-secondary">Select node on canvas.</p>';
+          els.deleteNodeBtn.disabled = true;
+          return;
+        }
+
+        els.inspectorTitle.textContent = `${node.type.charAt(0).toUpperCase()}${node.type.slice(1)} Node`;
+        els.inspectorNodeId.textContent = `ID: ${node.id}`;
+        els.deleteNodeBtn.disabled = node.type === "start";
+
+        if (node.type === "start") {
+          els.inspectorBody.innerHTML = `
+            <label class="text-xs font-bold uppercase text-text-secondary tracking-wider">Title</label>
+            <input id="fieldStartTitle" class="w-full rounded-lg border-gray-300 bg-white text-sm" value="${node.data?.title || "Scenario Initialization"}" />
+            <p class="text-xs text-text-secondary">Start node is required and cannot be deleted.</p>
+          `;
+
+          const input = document.getElementById("fieldStartTitle");
+          input.addEventListener("input", () => {
+            node.data.title = String(input.value || "").slice(0, 120);
+            setDirty(true);
+            renderNodes();
+            renderEdges();
+          });
+          return;
+        }
+
+        if (node.type === "message") {
+          const characterOptions = app.assetCatalog.character
+            .map(
+              (asset) =>
+                `<option value="${escapeHtml(asset.id)}" ${
+                  node.data?.characterAssetId === asset.id ? "selected" : ""
+                }>${escapeHtml(asset.title || "Character")}</option>`
+            )
+            .join("");
+          const backgroundOptions = app.assetCatalog.background
+            .map(
+              (asset) =>
+                `<option value="${escapeHtml(asset.id)}" ${
+                  node.data?.backgroundAssetId === asset.id ? "selected" : ""
+                }>${escapeHtml(asset.title || "Background")}</option>`
+            )
+            .join("");
+
+          els.inspectorBody.innerHTML = `
+            <label class="text-xs font-bold uppercase text-text-secondary tracking-wider">Speaker name</label>
+            <input id="fieldMessageSpeaker" class="w-full rounded-lg border-gray-300 bg-white text-sm" value="${node.data?.speakerName || "NPC"}" />
+            <label class="text-xs font-bold uppercase text-text-secondary tracking-wider mt-3">Message text</label>
+            <textarea id="fieldMessageText" class="w-full h-28 rounded-lg border-gray-300 bg-white text-sm">${node.data?.text || ""}</textarea>
+            <label class="text-xs font-bold uppercase text-text-secondary tracking-wider mt-3">Character asset</label>
+            <select id="fieldMessageCharacterAsset" class="w-full rounded-lg border-gray-300 bg-white text-sm">
+              <option value="">Not selected</option>
+              ${characterOptions}
+            </select>
+            <label class="text-xs font-bold uppercase text-text-secondary tracking-wider mt-3">Background asset</label>
+            <select id="fieldMessageBackgroundAsset" class="w-full rounded-lg border-gray-300 bg-white text-sm">
+              <option value="">Not selected</option>
+              ${backgroundOptions}
+            </select>
+          `;
+
+          const speaker = document.getElementById("fieldMessageSpeaker");
+          const text = document.getElementById("fieldMessageText");
+          const characterSelect = document.getElementById("fieldMessageCharacterAsset");
+          const backgroundSelect = document.getElementById("fieldMessageBackgroundAsset");
+          speaker.addEventListener("input", () => {
+            node.data.speakerName = String(speaker.value || "").slice(0, 80);
+            setDirty(true);
+          });
+          text.addEventListener("input", () => {
+            node.data.text = String(text.value || "").slice(0, 4000);
+            setDirty(true);
+            renderNodes();
+            renderEdges();
+          });
+          characterSelect.addEventListener("change", () => {
+            const nextValue = String(characterSelect.value || "").trim();
+            node.data.characterAssetId = nextValue || null;
+            setDirty(true);
+          });
+          backgroundSelect.addEventListener("change", () => {
+            const nextValue = String(backgroundSelect.value || "").trim();
+            node.data.backgroundAssetId = nextValue || null;
+            setDirty(true);
+          });
+          return;
+        }
+
+        if (node.type === "response") {
+          const scoreValue = Number(node.data?.scoreDelta || 0);
+          els.inspectorBody.innerHTML = `
+            <label class="text-xs font-bold uppercase text-text-secondary tracking-wider">Response text</label>
+            <textarea id="fieldResponseText" class="w-full h-28 rounded-lg border-gray-300 bg-white text-sm">${node.data?.responseText || ""}</textarea>
+            <div class="grid grid-cols-2 gap-3 mt-2">
+              <div>
+                <label class="text-xs font-bold uppercase text-text-secondary tracking-wider">Points</label>
+                <input id="fieldResponseScore" type="number" class="w-full rounded-lg border-gray-300 bg-white text-sm" value="${scoreValue}" />
+              </div>
+              <div>
+                <label class="text-xs font-bold uppercase text-text-secondary tracking-wider">Feedback</label>
+                <select id="fieldResponseFeedback" class="w-full rounded-lg border-gray-300 bg-white text-sm">
+                  <option value="positive" ${node.data?.feedbackType === "positive" ? "selected" : ""}>Positive</option>
+                  <option value="neutral" ${node.data?.feedbackType !== "positive" && node.data?.feedbackType !== "negative" ? "selected" : ""}>Neutral</option>
+                  <option value="negative" ${node.data?.feedbackType === "negative" ? "selected" : ""}>Negative</option>
+                </select>
+              </div>
+            </div>
+            <label class="inline-flex items-center gap-2 mt-4">
+              <input id="fieldResponseHintEnabled" type="checkbox" ${node.data?.hintEnabled ? "checked" : ""} />
+              <span class="text-xs font-bold uppercase text-text-secondary tracking-wider">Hint enabled</span>
+            </label>
+            <textarea id="fieldResponseHintText" class="w-full h-20 rounded-lg border-gray-300 bg-white text-sm ${node.data?.hintEnabled ? "" : "opacity-60"}" ${
+              node.data?.hintEnabled ? "" : "disabled"
+            }>${node.data?.hintText || ""}</textarea>
+          `;
+
+          const responseText = document.getElementById("fieldResponseText");
+          const responseScore = document.getElementById("fieldResponseScore");
+          const responseFeedback = document.getElementById("fieldResponseFeedback");
+          const hintEnabled = document.getElementById("fieldResponseHintEnabled");
+          const hintText = document.getElementById("fieldResponseHintText");
+
+          responseText.addEventListener("input", () => {
+            node.data.responseText = String(responseText.value || "").slice(0, 4000);
+            setDirty(true);
+            renderNodes();
+            renderEdges();
+          });
+          responseScore.addEventListener("input", () => {
+            node.data.scoreDelta = Number.isFinite(Number(responseScore.value)) ? Number(responseScore.value) : 0;
+            setDirty(true);
+            renderNodes();
+            renderEdges();
+          });
+          responseFeedback.addEventListener("change", () => {
+            node.data.feedbackType = responseFeedback.value;
+            setDirty(true);
+          });
+          hintEnabled.addEventListener("change", () => {
+            node.data.hintEnabled = Boolean(hintEnabled.checked);
+            if (!node.data.hintEnabled) {
+              node.data.hintText = "";
+            }
+            setDirty(true);
+            renderInspector();
+          });
+          hintText.addEventListener("input", () => {
+            node.data.hintText = String(hintText.value || "").slice(0, 1200);
+            setDirty(true);
+          });
+          return;
+        }
+
+        els.inspectorBody.innerHTML = `
+          <label class="text-xs font-bold uppercase text-text-secondary tracking-wider">Ending title</label>
+          <input id="fieldEndTitle" class="w-full rounded-lg border-gray-300 bg-white text-sm" value="${node.data?.title || "Outcome"}" />
+          <label class="text-xs font-bold uppercase text-text-secondary tracking-wider mt-3">Ending type</label>
+          <select id="fieldEndType" class="w-full rounded-lg border-gray-300 bg-white text-sm">
+            <option value="success" ${node.data?.endingType === "success" ? "selected" : ""}>Success</option>
+            <option value="neutral" ${node.data?.endingType !== "success" && node.data?.endingType !== "fail" ? "selected" : ""}>Neutral</option>
+            <option value="fail" ${node.data?.endingType === "fail" ? "selected" : ""}>Fail</option>
+          </select>
+        `;
+
+        const endTitle = document.getElementById("fieldEndTitle");
+        const endType = document.getElementById("fieldEndType");
+        endTitle.addEventListener("input", () => {
+          node.data.title = String(endTitle.value || "").slice(0, 120);
+          setDirty(true);
+          renderNodes();
+          renderEdges();
+        });
+        endType.addEventListener("change", () => {
+          node.data.endingType = endType.value;
+          setDirty(true);
+        });
+      }
+
+      function renderAll() {
+        renderNodes();
+        renderEdges();
+        renderInspector();
+        updateQuickAddUI();
+        els.zoomLabel.textContent = `${app.graph?.viewport?.zoom || 100}%`;
+      }
+
+      function selectNode(nodeId) {
+        app.selectedNodeId = nodeId;
+        app.quickAddMenuOpen = false;
+        app.responseAddMenuForId = null;
+        renderAll();
+      }
+
+      function isConnectionAllowed(sourceType, targetType) {
+        if (sourceType === "start") {
+          return targetType === "message";
+        }
+        if (sourceType === "message") {
+          return targetType === "response" || targetType === "end";
+        }
+        if (sourceType === "response") {
+          return targetType === "message" || targetType === "end";
+        }
+        return false;
+      }
+
+      function hasResponseOutgoingEdge(sourceId) {
+        return app.graph.edges.some((edge) => edge.source === sourceId);
+      }
+
+      function getDefaultNodeData(type) {
+        if (type === "message") {
+          return {
+            speakerType: "npc",
+            speakerName: "NPC",
+            text: "",
+            characterAssetId: null,
+            backgroundAssetId: null,
+          };
+        }
+        if (type === "response") {
+          return {
+            responseText: "",
+            scoreDelta: 0,
+            feedbackType: "neutral",
+            hintEnabled: false,
+            hintText: "",
+            nextStepRef: null,
+          };
+        }
+        return { endingType: "neutral", title: "Outcome", description: "" };
+      }
+
+      function addEdge(sourceId, targetId) {
+        if (!sourceId || !targetId || sourceId === targetId) return false;
+        const source = getNodeById(sourceId);
+        const target = getNodeById(targetId);
+        if (!source || !target) return false;
+        if (source.type === "end") {
+          toast("Нельзя вести связь из End.", "warn");
+          return false;
+        }
+        if (target.type === "start") {
+          toast("Нельзя вести связь в Start.", "warn");
+          return false;
+        }
+
+        if (!isConnectionAllowed(source.type, target.type)) {
+          toast(`Связь ${source.type} -> ${target.type} не разрешена.`, "warn");
+          return false;
+        }
+
+        if (source.type === "response" && hasResponseOutgoingEdge(sourceId)) {
+          toast("У Response может быть только один следующий шаг (Message или End).", "warn");
+          return false;
+        }
+
+        const exists = app.graph.edges.some((edge) => edge.source === sourceId && edge.target === targetId);
+        if (exists) return false;
+
+        app.graph.edges.push({
+          id: `edge_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+          source: sourceId,
+          target: targetId,
+        });
+
+        if (source.type === "response") {
+          source.data.nextStepRef = targetId;
+        }
+
+        setDirty(true);
+        return true;
+      }
+
+      function deleteSelectedNode() {
+        const node = getNodeById(app.selectedNodeId);
+        if (!node) return;
+        if (node.type === "start") {
+          toast("Start удалить нельзя.", "warn");
+          return;
+        }
+
+        app.graph.nodes = app.graph.nodes.filter((item) => item.id !== node.id);
+        app.graph.edges = app.graph.edges.filter((edge) => edge.source !== node.id && edge.target !== node.id);
+        const start = app.graph.nodes.find((item) => item.type === "start");
+        app.selectedNodeId = start ? start.id : null;
+        app.quickAddMenuOpen = false;
+        setDirty(true);
+        renderAll();
+      }
+
+      function getSuggestedPosition() {
+        const scrollLeft = els.canvasViewport.scrollLeft;
+        const scrollTop = els.canvasViewport.scrollTop;
+        const viewWidth = els.canvasViewport.clientWidth;
+        const viewHeight = els.canvasViewport.clientHeight;
+        return {
+          x: Math.max(40, scrollLeft + Math.floor(viewWidth / 2) - 120 + Math.floor(Math.random() * 40)),
+          y: Math.max(40, scrollTop + Math.floor(viewHeight / 2) - 50 + Math.floor(Math.random() * 40)),
+        };
+      }
+
+      function getResponseSpawnPosition(messageNode) {
+        const outgoingResponses = app.graph.edges
+          .filter((edge) => edge.source === messageNode.id)
+          .map((edge) => getNodeById(edge.target))
+          .filter((node) => node && node.type === "response");
+
+        const baseX = messageNode.position.x + 30;
+        const index = outgoingResponses.length;
+        let offsetX = 0;
+        if (index > 0) {
+          const slot = Math.ceil(index / 2);
+          offsetX = (index % 2 === 1 ? -1 : 1) * slot * 300;
+        }
+
+        return {
+          x: Math.max(20, Math.min(3600, baseX + offsetX)),
+          y: Math.max(20, Math.min(3600, messageNode.position.y + 220)),
+        };
+      }
+
+      function getLinkedSpawnPosition(sourceNode, targetType) {
+        const outgoingSameType = app.graph.edges
+          .filter((edge) => edge.source === sourceNode.id)
+          .map((edge) => getNodeById(edge.target))
+          .filter((node) => node && node.type === targetType);
+
+        const sourceSize = nodeSizeByType(sourceNode.type);
+        const targetSize = nodeSizeByType(targetType);
+        const index = outgoingSameType.length;
+        let offsetX = 0;
+        if (index > 0) {
+          const slot = Math.ceil(index / 2);
+          offsetX = (index % 2 === 1 ? -1 : 1) * slot * 300;
+        }
+
+        return {
+          x: Math.max(
+            20,
+            Math.min(
+              3600,
+              sourceNode.position.x + Math.round((sourceSize.width - targetSize.width) / 2) + offsetX
+            )
+          ),
+          y: Math.max(20, Math.min(3600, sourceNode.position.y + sourceSize.height + 170)),
+        };
+      }
+
+      function createLinkedNode(sourceNode, targetType) {
+        if (!sourceNode || !["message", "response", "end"].includes(targetType)) {
+          return null;
+        }
+
+        if (sourceNode.type === "response" && hasResponseOutgoingEdge(sourceNode.id)) {
+          toast("Для Response уже задан следующий шаг.", "warn");
+          return null;
+        }
+
+        if (!isConnectionAllowed(sourceNode.type, targetType)) {
+          toast(`Для ${sourceNode.type} нельзя добавить ${targetType}.`, "warn");
+          return null;
+        }
+
+        const id = `node_${targetType}_${Date.now().toString(36)}`;
+        const position =
+          targetType === "response" && sourceNode.type === "message"
+            ? getResponseSpawnPosition(sourceNode)
+            : getLinkedSpawnPosition(sourceNode, targetType);
+
+        const node = {
+          id,
+          type: targetType,
+          position,
+          data: getDefaultNodeData(targetType),
+        };
+
+        app.graph.nodes.push(node);
+
+        const edgeCreated = addEdge(sourceNode.id, id);
+        if (!edgeCreated) {
+          app.graph.nodes = app.graph.nodes.filter((item) => item.id !== id);
+          return null;
+        }
+
+        const keepMessageContext = sourceNode.type === "message" && targetType === "response";
+        app.selectedNodeId = keepMessageContext ? sourceNode.id : id;
+        app.quickAddMenuOpen = keepMessageContext;
+        app.responseAddMenuForId = null;
+        setDirty(true);
+        renderAll();
+        return id;
+      }
+
+      function updateQuickAddUI() {
+        const selected = getNodeById(app.selectedNodeId);
+        const shouldShow = app.tool === "select" && selected && selected.type !== "end";
+
+        if (!shouldShow) {
+          els.quickAddWrap.classList.add("hidden");
+          els.quickAddMenu.classList.add("hidden");
+          app.quickAddMenuOpen = false;
+          return;
+        }
+
+        const size = nodeSizeByType(selected.type);
+        const left = selected.position.x + Math.round(size.width / 2) - 20;
+        const top = selected.position.y + size.height + 18;
+        els.quickAddWrap.style.left = `${left}px`;
+        els.quickAddWrap.style.top = `${top}px`;
+        els.quickAddWrap.classList.remove("hidden");
+
+        if (app.quickAddMenuOpen) {
+          els.quickAddMenu.classList.remove("hidden");
+        } else {
+          els.quickAddMenu.classList.add("hidden");
+        }
+
+        const optionButtons = els.quickAddMenu.querySelectorAll("[data-add-type]");
+        optionButtons.forEach((button) => {
+          const addType = button.dataset.addType;
+          const allowedByType = isConnectionAllowed(selected.type, addType);
+          const blockedByResponseLimit =
+            selected.type === "response" &&
+            (addType === "message" || addType === "end") &&
+            hasResponseOutgoingEdge(selected.id);
+          const allowed = allowedByType && !blockedByResponseLimit;
+          button.disabled = !allowed;
+          if (allowed) {
+            button.classList.remove("opacity-50", "cursor-not-allowed");
+          } else {
+            button.classList.add("opacity-50", "cursor-not-allowed");
+          }
+        });
+      }
+
+      function toggleQuickAddMenu() {
+        app.quickAddMenuOpen = !app.quickAddMenuOpen;
+        updateQuickAddUI();
+      }
+
+      function addNodeByPrompt() {
+        const type = String(window.prompt("Тип ноды: message | response | end", "message") || "")
+          .trim()
+          .toLowerCase();
+
+        if (!["message", "response", "end"].includes(type)) {
+          if (type) toast("Поддерживаются: message, response, end.", "warn");
+          return;
+        }
+
+        const sourceNode = getNodeById(app.selectedNodeId);
+        if (sourceNode) {
+          const created = createLinkedNode(sourceNode, type);
+          if (!created) return;
+          return;
+        }
+
+        if (type === "response") {
+          toast("Response можно создать только от Message.", "warn");
+          return;
+        }
+
+        const id = `node_${type}_${Date.now().toString(36)}`;
+        const node = {
+          id,
+          type,
+          position: getSuggestedPosition(),
+          data: getDefaultNodeData(type),
+        };
+        app.graph.nodes.push(node);
+        app.selectedNodeId = id;
+        app.quickAddMenuOpen = false;
+        setDirty(true);
+        renderAll();
+      }
+
+      function onNodePointerDown(event) {
+        if (app.tool !== "select") return;
+        if (event.target.closest("[data-response-add-btn], [data-response-add-menu], [data-response-add-type]")) {
+          return;
+        }
+        const nodeEl = event.target.closest("[data-node-id]");
+        if (!nodeEl) return;
+        const nodeId = nodeEl.dataset.nodeId;
+        const node = getNodeById(nodeId);
+        if (!node) return;
+
+        if (app.selectedNodeId !== nodeId) {
+          app.selectedNodeId = nodeId;
+          app.quickAddMenuOpen = false;
+          app.responseAddMenuForId = null;
+          renderAll();
+        }
+
+        app.dragging = {
+          nodeId,
+          startX: event.clientX,
+          startY: event.clientY,
+          originX: node.position.x,
+          originY: node.position.y,
+          moved: false,
+        };
+        nodeEl.classList.add("dragging");
+      }
+
+      function onNodePointerMove(event) {
+        if (!app.dragging) return;
+        const node = getNodeById(app.dragging.nodeId);
+        const nodeEl = els.nodesLayer.querySelector(`[data-node-id="${CSS.escape(app.dragging.nodeId)}"]`);
+        if (!node || !nodeEl) return;
+
+        const dx = event.clientX - app.dragging.startX;
+        const dy = event.clientY - app.dragging.startY;
+        if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
+          app.dragging.moved = true;
+        }
+        node.position.x = Math.max(20, Math.min(3800, app.dragging.originX + dx));
+        node.position.y = Math.max(20, Math.min(3800, app.dragging.originY + dy));
+        nodeEl.style.left = `${node.position.x}px`;
+        nodeEl.style.top = `${node.position.y}px`;
+        renderEdges();
+        updateQuickAddUI();
+      }
+
+      function onNodePointerUp() {
+        if (!app.dragging) return;
+        const drag = app.dragging;
+        const nodeEl = els.nodesLayer.querySelector(`[data-node-id="${CSS.escape(drag.nodeId)}"]`);
+        if (nodeEl) {
+          nodeEl.classList.remove("dragging");
+        }
+        app.dragging = null;
+        if (drag.moved) {
+          setDirty(true);
+          renderAll();
+        }
+      }
+
+      function onNodeClick(event) {
+        const responseAddBtn = event.target.closest("[data-response-add-btn]");
+        if (responseAddBtn) {
+          const responseNodeId = responseAddBtn.dataset.responseAddBtn;
+          const sourceNode = getNodeById(responseNodeId);
+          if (!sourceNode || sourceNode.type !== "response") return;
+          app.selectedNodeId = sourceNode.id;
+          app.quickAddMenuOpen = false;
+          app.responseAddMenuForId = app.responseAddMenuForId === sourceNode.id ? null : sourceNode.id;
+          renderAll();
+          return;
+        }
+
+        const responseAddOption = event.target.closest("[data-response-add-type]");
+        if (responseAddOption) {
+          const sourceNode = getNodeById(responseAddOption.dataset.responseNodeId);
+          const addType = responseAddOption.dataset.responseAddType;
+          if (!sourceNode || sourceNode.type !== "response") return;
+          if (!["message", "end"].includes(addType)) return;
+          app.responseAddMenuForId = null;
+          createLinkedNode(sourceNode, addType);
+          return;
+        }
+
+        const nodeEl = event.target.closest("[data-node-id]");
+        if (!nodeEl) return;
+        const nodeId = nodeEl.dataset.nodeId;
+
+        if (app.tool === "connect") {
+          if (!app.pendingConnectSourceId) {
+            app.pendingConnectSourceId = nodeId;
+            toast("Выберите целевую ноду для связи.");
+            selectNode(nodeId);
+            return;
+          }
+
+          const sourceId = app.pendingConnectSourceId;
+          app.pendingConnectSourceId = null;
+          const created = addEdge(sourceId, nodeId);
+          if (created) toast("Связь создана.");
+          renderAll();
+          return;
+        }
+
+        selectNode(nodeId);
+      }
+
+      function setTool(tool) {
+        app.tool = tool;
+        app.pendingConnectSourceId = null;
+        app.quickAddMenuOpen = false;
+        app.responseAddMenuForId = null;
+        updateToolButtons();
+        updateQuickAddUI();
+      }
+
+      async function loadEditor() {
+        const payload = await apiRequest(`/api/v1/builder/dialogs/${encodeURIComponent(app.dialogId)}/editor`);
+        app.dialogName = payload.dialogName || "Scenario";
+        app.scenarioVersionId = payload.scenarioVersionId || null;
+        app.revision = payload.revision || null;
+        app.graph = ensureGraph(payload.graph);
+        els.dialogNameLabel.textContent = app.dialogName;
+        document.title = `Scenario Editor - ${app.dialogName}`;
+
+        const start = app.graph.nodes.find((node) => node.type === "start");
+        app.selectedNodeId = start ? start.id : app.graph.nodes[0]?.id || null;
+        setDirty(false);
+        renderAll();
+      }
+
+      async function saveEditor() {
+        try {
+          els.saveGraphBtn.disabled = true;
+          els.saveGraphBtn.textContent = "Saving...";
+
+          const payload = await apiRequest(
+            `/api/v1/builder/dialogs/${encodeURIComponent(app.dialogId)}/editor`,
+            {
+              method: "PUT",
+              body: {
+                revision: app.revision,
+                graph: app.graph,
+              },
+            }
+          );
+
+          app.revision = payload.revision || app.revision;
+          app.graph = ensureGraph(payload.graph);
+          setDirty(false);
+          toast("Сценарий сохранен.");
+          renderAll();
+        } catch (error) {
+          toast(error.message || "Ошибка сохранения.", "error");
+          if (error.status === 409) {
+            await loadEditor();
+          }
+        } finally {
+          els.saveGraphBtn.disabled = false;
+          els.saveGraphBtn.textContent = "Save Changes";
+        }
+      }
+
+      async function publishDialog() {
+        try {
+          await saveEditor();
+          await apiRequest(`/api/v1/builder/dialogs/${encodeURIComponent(app.dialogId)}/publish`, {
+            method: "POST",
+          });
+          toast("Диалог опубликован.");
+        } catch (error) {
+          toast(error.message || "Ошибка публикации.", "error");
+        }
+      }
+      function registerEvents() {
+        els.backToBuilderBtn.addEventListener("click", () => {
+          if (app.dirty && !window.confirm("Есть несохраненные изменения. Вернуться в список?")) {
+            return;
+          }
+          window.location.href = "/builder";
+        });
+
+        els.toolSelectBtn.addEventListener("click", () => setTool("select"));
+        els.toolAddBtn.addEventListener("click", addNodeByPrompt);
+        els.toolConnectBtn.addEventListener("click", () => setTool("connect"));
+        els.deleteNodeBtn.addEventListener("click", deleteSelectedNode);
+        els.saveGraphBtn.addEventListener("click", saveEditor);
+        els.previewBtn.addEventListener("click", () => toast("Preview будет расширен на следующем этапе.", "warn"));
+        els.publishBtn.addEventListener("click", publishDialog);
+
+        els.nodesLayer.addEventListener("pointerdown", onNodePointerDown);
+        document.addEventListener("pointermove", onNodePointerMove);
+        document.addEventListener("pointerup", onNodePointerUp);
+        els.nodesLayer.addEventListener("click", onNodeClick);
+        window.addEventListener("resize", () => {
+          renderEdges();
+          updateQuickAddUI();
+        });
+        els.canvasViewport.addEventListener("scroll", () => {
+          renderEdges();
+          updateQuickAddUI();
+        });
+
+        els.quickAddBtn.addEventListener("click", (event) => {
+          event.stopPropagation();
+          toggleQuickAddMenu();
+        });
+
+        els.quickAddMenu.addEventListener("click", (event) => {
+          const option = event.target.closest("[data-add-type]");
+          if (!option) return;
+          const addType = option.dataset.addType;
+          const sourceNode = getNodeById(app.selectedNodeId);
+          if (!sourceNode) return;
+          createLinkedNode(sourceNode, addType);
+        });
+
+        document.addEventListener("click", (event) => {
+          let changed = false;
+
+          if (app.quickAddMenuOpen) {
+            const insideQuickAdd = event.target.closest("#quickAddWrap");
+            if (!insideQuickAdd) {
+              app.quickAddMenuOpen = false;
+              changed = true;
+            }
+          }
+
+          if (app.responseAddMenuForId) {
+            const insideResponseAdd = event.target.closest("[data-response-add-btn], [data-response-add-menu]");
+            if (!insideResponseAdd) {
+              app.responseAddMenuForId = null;
+              changed = true;
+            }
+          }
+
+          if (changed) {
+            renderAll();
+          }
+        });
+
+        els.zoomOutBtn.addEventListener("click", () => {
+          app.graph.viewport.zoom = Math.max(25, (app.graph.viewport.zoom || 100) - 10);
+          setDirty(true);
+          renderAll();
+        });
+        els.zoomInBtn.addEventListener("click", () => {
+          app.graph.viewport.zoom = Math.min(200, (app.graph.viewport.zoom || 100) + 10);
+          setDirty(true);
+          renderAll();
+        });
+
+        window.addEventListener("beforeunload", (event) => {
+          if (!app.dirty) return;
+          event.preventDefault();
+          event.returnValue = "";
+        });
+      }
+
+      async function init() {
+        app.token = getToken();
+        if (!app.token) {
+          window.location.href = "/login";
+          return;
+        }
+
+        app.dialogId = getDialogIdFromPath();
+        if (!app.dialogId) {
+          window.location.href = "/builder";
+          return;
+        }
+
+        registerEvents();
+        updateToolButtons();
+
+        try {
+          await loadAssetCatalog();
+          await loadEditor();
+        } catch (error) {
+          toast(error.message || "Не удалось загрузить editor.", "error");
+          if (error.status === 401) {
+            window.location.href = "/login";
+          }
+        }
+      }
+
+      init();
+    </script>
+  </body>
+</html>

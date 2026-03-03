@@ -1,0 +1,26 @@
+{
+  "name": "dialog-trainer",
+  "version": "1.0.0",
+  "description": "Phase 1 bootstrap for a stack-agnostic dialog simulator builder.",
+  "main": "src/server.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "echo \"No tests configured\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1000.0",
+    "@aws-sdk/s3-request-presigner": "^3.1000.0",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "image-size": "^2.0.2",
+    "multer": "^2.1.0"
+  }
+}

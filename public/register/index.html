@@ -1,0 +1,444 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Builder Registration Screen</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            primary: "#5250f7",
+            "background-light": "#f5f5f8",
+            "background-dark": "#101022"
+          },
+          fontFamily: {
+            display: ["Lexend", "sans-serif"]
+          },
+          borderRadius: {
+            DEFAULT: "0.25rem",
+            lg: "0.5rem",
+            xl: "0.75rem",
+            full: "9999px"
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="bg-background-light font-display antialiased text-slate-900 min-h-screen flex flex-col">
+  <header class="w-full px-6 py-4 flex items-center justify-between border-b border-slate-200 bg-white/80 backdrop-blur-md sticky top-0 z-50">
+    <div class="flex items-center gap-3">
+      <div class="size-8 rounded-lg bg-primary flex items-center justify-center text-white">
+        <span class="material-symbols-outlined" style="font-size:20px;">school</span>
+      </div>
+      <h2 class="text-slate-900 text-lg font-bold tracking-tight">Reezonly Builder</h2>
+    </div>
+    <div class="hidden sm:flex items-center gap-4 text-sm font-medium">
+      <span class="text-slate-500">У Вас уже есть аккаунт?</span>
+      <a class="text-primary hover:text-primary/80 transition-colors" href="/login">Войти</a>
+    </div>
+  </header>
+
+  <main class="flex-grow flex items-center justify-center p-4 sm:p-8">
+    <div class="w-full max-w-[1000px] bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col md:flex-row min-h-[600px] border border-slate-100">
+      <div class="w-full md:w-1/2 p-8 sm:p-12 flex flex-col justify-center">
+        <div class="max-w-sm mx-auto w-full">
+          <div class="mb-8">
+            <h1 class="text-3xl font-black text-slate-900 tracking-tight mb-2">Создайте свой аккаунт</h1>
+            <p class="text-slate-500"> Начните создавать захватывающие образовательные диалоги уже сегодня</p>
+          </div>
+
+          <div id="formNotice" class="hidden mb-4 rounded-lg border p-3 text-sm"></div>
+
+          <form id="registerForm" class="space-y-5" novalidate>
+            <div class="space-y-1.5">
+              <label class="block text-sm font-semibold text-slate-700" for="name">Имя </label>
+              <div class="relative">
+                <input id="name" name="name" type="text" placeholder="Jane Doe" class="block w-full rounded-lg border-slate-200 bg-slate-50 p-3 pl-10 text-sm focus:border-primary focus:ring-primary transition-all placeholder:text-slate-400" />
+                <span class="material-symbols-outlined absolute left-3 top-3 text-slate-400" style="font-size:20px;">person</span>
+              </div>
+              <p id="nameError" class="hidden text-xs text-red-600 font-medium"></p>
+            </div>
+
+            <div class="space-y-1.5">
+              <label class="block text-sm font-semibold text-slate-700" for="email"> Рабочая почта </label>
+              <div class="relative">
+                <input id="email" name="email" type="email" placeholder="name@company.com" class="block w-full rounded-lg border-slate-200 bg-slate-50 p-3 pl-10 text-sm focus:border-primary focus:ring-primary transition-all placeholder:text-slate-400" />
+                <span class="material-symbols-outlined absolute left-3 top-3 text-slate-400" style="font-size:20px;">mail</span>
+                <span id="emailStatusIcon" class="material-symbols-outlined absolute right-3 top-3 text-slate-300" style="font-size:20px;">alternate_email</span>
+              </div>
+              <p id="emailError" class="hidden text-xs text-red-600 font-medium">Please enter a valid email address.</p>
+            </div>
+
+            <div class="space-y-1.5">
+              <label class="block text-sm font-semibold text-slate-700" for="password">Пароль </label>
+              <div class="relative">
+                <input id="password" name="password" type="password" placeholder="Min. 8 characters" class="block w-full rounded-lg border-slate-200 bg-slate-50 p-3 pl-10 pr-10 text-sm focus:border-primary focus:ring-primary transition-all placeholder:text-slate-400" />
+                <span class="material-symbols-outlined absolute left-3 top-3 text-slate-400" style="font-size:20px;">lock</span>
+                <button id="togglePassword" class="absolute right-3 top-3 text-slate-400 hover:text-slate-600 transition-colors" type="button" aria-label="Toggle password visibility">
+                  <span id="togglePasswordIcon" class="material-symbols-outlined" style="font-size:20px;">visibility_off</span>
+                </button>
+              </div>
+              <div class="flex gap-1 mt-2 h-1" aria-hidden="true">
+                <div data-strength-bar="0" class="flex-1 rounded-full bg-slate-200"></div>
+                <div data-strength-bar="1" class="flex-1 rounded-full bg-slate-200"></div>
+                <div data-strength-bar="2" class="flex-1 rounded-full bg-slate-200"></div>
+                <div data-strength-bar="3" class="flex-1 rounded-full bg-slate-200"></div>
+              </div>
+              <p id="passwordHint" class="text-xs text-slate-500 mt-1"> Используйте 8 и более символов, включая буквы, цифры и знаки препинания</p>
+              <p id="passwordError" class="hidden text-xs text-red-600 font-medium">Password must be at least 8 characters.</p>
+            </div>
+
+            <div class="flex items-start gap-3 mt-4">
+              <div class="flex h-5 items-center">
+                <input id="terms" name="terms" type="checkbox" class="size-4 rounded border-slate-300 bg-white text-primary focus:ring-primary" />
+              </div>
+              <div class="text-sm">
+                <label class="font-medium text-slate-700" for="terms">I agree to the <a class="text-primary hover:underline" href="#">Terms of Service</a> and <a class="text-primary hover:underline" href="#">Privacy Policy</a></label>
+                <p id="termsError" class="hidden text-xs text-red-600 font-medium mt-1">You must accept terms to continue.</p>
+              </div>
+            </div>
+
+            <button id="submitButton" class="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-white font-bold py-3.5 px-4 rounded-lg transition-all shadow-lg shadow-primary/25 mt-2 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed" type="submit">
+              <span id="submitText"> Создать аккаунт</span>
+              <span class="material-symbols-outlined" style="font-size:20px;">arrow_forward</span>
+            </button>
+
+            <div class="relative my-6">
+              <div class="absolute inset-0 flex items-center">
+                <div class="w-full border-t border-slate-200"></div>
+              </div>
+              <div class="relative flex justify-center text-sm">
+                <span class="bg-white px-2 text-slate-500">Or continue with</span>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <button type="button" class="flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-700 font-medium py-2.5 px-4 rounded-lg hover:bg-slate-50 transition-colors">
+                <img class="w-5 h-5" alt="Google" src="https://lh3.googleusercontent.com/aida-public/AB6AXuANrkeX3OYk5H4AiwPg8B-o8sxbgvUq8BsdWCMmu9lAFiPeRF4MZfGC5cG7rCDjKN1or0pA6kMF_1EuMSB2ghRJW9qyqFvGu-bx1Jk4AizuVdV71I-A4x5sn1OEtVTCBzCkxFPb_uvpDSMLoTI3YFpe5jM2g-oomAE-NoyRSErI1GgOSbRSVXP-K4kQ_CSsSvQfzGnc6X1sAV6kxlEkBtYcvGqnx7gU3ZfIj191kAkizIsRRIFFnbdbSR8kdWSzpig9M5BKIM_Pq94" />
+                <span>Google</span>
+              </button>
+              <button type="button" class="flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-700 font-medium py-2.5 px-4 rounded-lg hover:bg-slate-50 transition-colors">
+                <img class="w-5 h-5" alt="Microsoft" src="https://lh3.googleusercontent.com/aida-public/AB6AXuApweKjvrMgPPmcuz9H3Vhq53XKTmmFoCZLdK5UBDTP4TCbZSIxxgi3r7jDgiNEKSWS8zytsu6YZwqZ3wvoMDjlXUs6DEmnUj3BfODWqI_jY0xDjSOayUTRQc_8VIBYfVnqhkILKkbaFAhpug-iDmTE5AUDGjFHwDsaQM7SOJu_AF6pUYAepOvhW-X-_htM5tJ-sPDHjpDyQVkimq9o7CMw7gtUviFCkgQJ7fyhcmNxtfMNRFFuqIVk6ztXXSqguMfP7d4CvXn74lo" />
+                <span>Microsoft</span>
+              </button>
+            </div>
+          </form>
+
+          <p class="mt-8 text-center text-sm text-slate-500 sm:hidden">
+            Already have an account?
+            <a class="font-semibold text-primary hover:text-primary/80" href="/login">Log In</a>
+          </p>
+        </div>
+      </div>
+
+      <div class="hidden md:flex w-1/2 bg-slate-50 relative overflow-hidden flex-col justify-between p-12">
+        <div class="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 rounded-full bg-primary/10 blur-3xl"></div>
+        <div class="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 rounded-full bg-primary/20 blur-3xl"></div>
+
+        <div class="relative z-10">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/60 backdrop-blur-sm border border-white/20 mb-6 w-fit">
+            <span class="flex h-2 w-2 rounded-full bg-green-500"></span>
+            <span class="text-xs font-semibold text-slate-600 uppercase tracking-wider">New Features Live</span>
+          </div>
+          <h2 class="text-3xl font-bold text-slate-900 mb-4 leading-tight">
+            Build smarter scenarios,<br />
+            <span class="text-primary">faster than ever.</span>
+          </h2>
+          <p class="text-slate-600 text-lg">
+            Join 10,000+ educators creating interactive role-play simulations without writing a single line of code.
+          </p>
+        </div>
+
+        <div class="relative z-10 mt-12 bg-white p-6 rounded-xl shadow-lg border border-slate-100 backdrop-blur-sm">
+          <div class="flex gap-1 mb-3 text-yellow-400">
+            <span class="material-symbols-outlined" style="font-size:18px;font-variation-settings:'FILL' 1;">star</span>
+            <span class="material-symbols-outlined" style="font-size:18px;font-variation-settings:'FILL' 1;">star</span>
+            <span class="material-symbols-outlined" style="font-size:18px;font-variation-settings:'FILL' 1;">star</span>
+            <span class="material-symbols-outlined" style="font-size:18px;font-variation-settings:'FILL' 1;">star</span>
+            <span class="material-symbols-outlined" style="font-size:18px;font-variation-settings:'FILL' 1;">star</span>
+          </div>
+          <p class="text-slate-700 text-sm mb-4 leading-relaxed">
+            "The EdSimulator builder saved our department hundreds of hours. The branching logic visualizer is intuitive and powerful."
+          </p>
+          <div class="flex items-center gap-3">
+            <img class="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm" alt="Sarah Jenkins" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDdnej1sVZCdo1i0dpPXuIclqkv-JOjfxOSg1z3WzqDmdy8syz9W7uHvMtmq6GgSOEr7EH1NqzmHtvQpXc7TmEDz-OxRsq2qqtxaFhAVAOmMCXXF1uu1boRgfpVDcozh1eZ_oVqvpf_NaR_2lyLKuAu3YXe7mCarkzuy0cySuHMayetqs0hFLCF89MfPgpXHNCouUt_cjbPXni62A_x8T-1Wte5H21O7Ovs5pQfLbj4yRfbFPaMMMwYu7lwSJH7bNvZWOcVDfZZ3jU" />
+            <div>
+              <p class="text-sm font-bold text-slate-900">Sarah Jenkins</p>
+              <p class="text-xs text-slate-500">Head of L&D, TechFlow</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="absolute bottom-12 right-12 opacity-50 pointer-events-none transform translate-x-1/4 translate-y-1/4">
+          <div class="grid grid-cols-2 gap-4 w-64 rotate-12">
+            <div class="h-32 rounded-2xl bg-primary/10 border border-primary/20"></div>
+            <div class="h-24 rounded-2xl bg-primary/20 border border-primary/30 mt-8"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="fixed bottom-4 left-0 w-full text-center text-xs text-slate-400 pointer-events-none md:hidden">
+      © 2026 EdSimulator Inc.
+    </div>
+  </main>
+
+  <script>
+    const registerForm = document.getElementById("registerForm");
+    const nameInput = document.getElementById("name");
+    const emailInput = document.getElementById("email");
+    const passwordInput = document.getElementById("password");
+    const termsInput = document.getElementById("terms");
+    const togglePasswordButton = document.getElementById("togglePassword");
+    const togglePasswordIcon = document.getElementById("togglePasswordIcon");
+    const emailStatusIcon = document.getElementById("emailStatusIcon");
+    const submitButton = document.getElementById("submitButton");
+    const submitText = document.getElementById("submitText");
+    const formNotice = document.getElementById("formNotice");
+
+    const nameError = document.getElementById("nameError");
+    const emailError = document.getElementById("emailError");
+    const passwordError = document.getElementById("passwordError");
+    const passwordHint = document.getElementById("passwordHint");
+    const termsError = document.getElementById("termsError");
+
+    const strengthBars = Array.from(document.querySelectorAll("[data-strength-bar]"));
+
+    function isEmailValid(email) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+    }
+
+    function getPasswordStrength(password) {
+      let score = 0;
+
+      if (password.length >= 8) {
+        score += 1;
+      }
+      if (/[a-z]/.test(password) && /[A-Z]/.test(password)) {
+        score += 1;
+      }
+      if (/\d/.test(password)) {
+        score += 1;
+      }
+      if (/[^A-Za-z0-9]/.test(password)) {
+        score += 1;
+      }
+
+      if (score <= 1) {
+        return { level: 1, color: "bg-red-400", textClass: "text-red-600", message: "Weak password." };
+      }
+
+      if (score === 2) {
+        return { level: 2, color: "bg-yellow-400", textClass: "text-yellow-600", message: "Fair password." };
+      }
+
+      if (score === 3) {
+        return { level: 3, color: "bg-blue-500", textClass: "text-blue-600", message: "Good password." };
+      }
+
+      return { level: 4, color: "bg-green-500", textClass: "text-green-600", message: "Strong password." };
+    }
+
+    function markInput(input, isValid) {
+      input.classList.remove("border-slate-200", "bg-slate-50", "border-red-300", "bg-red-50");
+
+      if (isValid) {
+        input.classList.add("border-slate-200", "bg-slate-50");
+      } else {
+        input.classList.add("border-red-300", "bg-red-50");
+      }
+    }
+
+    function validateName() {
+      const valid = nameInput.value.trim().length >= 2;
+      markInput(nameInput, valid || nameInput.value.length === 0);
+
+      if (!valid && nameInput.value.length > 0) {
+        nameError.textContent = "Name should be at least 2 characters.";
+        nameError.classList.remove("hidden");
+      } else {
+        nameError.classList.add("hidden");
+      }
+
+      return valid;
+    }
+
+    function validateEmail() {
+      const value = emailInput.value.trim();
+      const valid = isEmailValid(value);
+      const empty = value.length === 0;
+
+      markInput(emailInput, valid || empty);
+
+      emailStatusIcon.classList.remove("text-slate-300", "text-red-500", "text-green-500");
+
+      if (empty) {
+        emailStatusIcon.textContent = "alternate_email";
+        emailStatusIcon.classList.add("text-slate-300");
+        emailError.classList.add("hidden");
+      } else if (!valid) {
+        emailStatusIcon.textContent = "error";
+        emailStatusIcon.classList.add("text-red-500");
+        emailError.classList.remove("hidden");
+      } else {
+        emailStatusIcon.textContent = "check_circle";
+        emailStatusIcon.classList.add("text-green-500");
+        emailError.classList.add("hidden");
+      }
+
+      return valid;
+    }
+
+    function updatePasswordUi() {
+      const password = passwordInput.value;
+      const strength = getPasswordStrength(password);
+      const valid = password.length >= 8;
+
+      markInput(passwordInput, valid || password.length === 0);
+
+      strengthBars.forEach((bar, index) => {
+        bar.className = "flex-1 rounded-full";
+        if (index < strength.level && password.length > 0) {
+          bar.classList.add(strength.color);
+        } else {
+          bar.classList.add("bg-slate-200");
+        }
+      });
+
+      passwordHint.className = `text-xs mt-1 ${password.length === 0 ? "text-slate-500" : strength.textClass}`;
+      passwordHint.textContent = password.length === 0 ? "Используйте 8 и более символов, включая буквы, цифры и знаки препинания" : strength.message;
+
+      if (password.length > 0 && !valid) {
+        passwordError.classList.remove("hidden");
+      } else {
+        passwordError.classList.add("hidden");
+      }
+
+      return valid;
+    }
+
+    function validateTerms() {
+      if (!termsInput.checked) {
+        termsError.classList.remove("hidden");
+        return false;
+      }
+
+      termsError.classList.add("hidden");
+      return true;
+    }
+
+    function showNotice(type, message) {
+      formNotice.classList.remove("hidden", "border-green-200", "bg-green-50", "text-green-700", "border-red-200", "bg-red-50", "text-red-700");
+
+      if (type === "success") {
+        formNotice.classList.add("border-green-200", "bg-green-50", "text-green-700");
+      } else {
+        formNotice.classList.add("border-red-200", "bg-red-50", "text-red-700");
+      }
+
+      formNotice.textContent = message;
+    }
+
+    togglePasswordButton.addEventListener("click", () => {
+      const isHidden = passwordInput.type === "password";
+      passwordInput.type = isHidden ? "text" : "password";
+      togglePasswordIcon.textContent = isHidden ? "visibility" : "visibility_off";
+    });
+
+    nameInput.addEventListener("input", validateName);
+    emailInput.addEventListener("input", validateEmail);
+    passwordInput.addEventListener("input", updatePasswordUi);
+    termsInput.addEventListener("change", validateTerms);
+
+    registerForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      validateName();
+      validateEmail();
+      updatePasswordUi();
+      termsError.classList.add("hidden");
+
+      submitButton.disabled = true;
+      submitText.textContent = "Создание...";
+      formNotice.classList.add("hidden");
+
+      try {
+        const response = await fetch("/api/v1/auth/register", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            fullName: nameInput.value.trim(),
+            email: emailInput.value.trim(),
+            password: passwordInput.value,
+            acceptTerms: termsInput.checked,
+          }),
+        });
+
+        const payload = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          const details =
+            Array.isArray(payload.details) && payload.details.length > 0
+              ? ` ${payload.details.join(" ")}`
+              : "";
+
+          showNotice("error", `${payload.error || "Не удалось зарегистрировать аккаунт."}${details}`);
+          return;
+        }
+
+        const confirmationMessage = payload.emailConfirmationRequired
+          ? "Аккаунт создан. Проверьте почту и подтвердите email перед входом."
+          : "Аккаунт создан. Можно входить в систему.";
+        showNotice("success", confirmationMessage);
+
+        registerForm.reset();
+        [nameInput, emailInput, passwordInput].forEach((input) => markInput(input, true));
+        [nameError, emailError, passwordError, termsError].forEach((node) => node.classList.add("hidden"));
+        emailStatusIcon.textContent = "alternate_email";
+        emailStatusIcon.classList.remove("text-red-500", "text-green-500");
+        emailStatusIcon.classList.add("text-slate-300");
+        passwordHint.className = "text-xs text-slate-500 mt-1";
+        passwordHint.textContent = "Используйте 8 и более символов, включая буквы, цифры и знаки препинания";
+        strengthBars.forEach((bar) => {
+          bar.className = "flex-1 rounded-full bg-slate-200";
+        });
+      } catch (error) {
+        showNotice("error", "Ошибка сети. Проверьте backend и повторите попытку.");
+      } finally {
+        submitButton.disabled = false;
+        submitText.textContent = "Создать аккаунт";
+      }
+    });
+  </script>
+</body>
+</html>

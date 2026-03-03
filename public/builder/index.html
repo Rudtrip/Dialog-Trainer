@@ -1,0 +1,1503 @@
+﻿
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dialog Trainer Builder</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@200..700"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f4f7fb;
+        --panel: #ffffff;
+        --panel-soft: #f8fafc;
+        --line: #d8e1ec;
+        --line-soft: #e3e9f2;
+        --text: #0f172a;
+        --muted: #64748b;
+        --primary: #3b82f6;
+        --primary-hover: #2563eb;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        font-family: "Manrope", sans-serif;
+        background: radial-gradient(circle at top left, #eef5ff 0%, var(--bg) 40%);
+        color: var(--text);
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      .material-symbols-outlined {
+        font-variation-settings: "FILL" 0, "wght" 500, "GRAD" 0, "opsz" 24;
+      }
+
+      .app-shell {
+        min-height: 100vh;
+        display: grid;
+        grid-template-columns: 252px 1fr;
+      }
+
+      .sidebar {
+        background: var(--panel);
+        border-right: 1px solid var(--line);
+        display: flex;
+        flex-direction: column;
+        position: sticky;
+        top: 0;
+        height: 100vh;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 24px 20px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .brand-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 999px;
+        background: center / cover no-repeat
+          url("https://images.unsplash.com/photo-1627161684458-a62da52b51c3?auto=format&fit=crop&w=96&q=80");
+        border: 2px solid #dce6f4;
+      }
+
+      .brand-title {
+        margin: 0;
+        font-weight: 800;
+        font-size: 26px;
+        line-height: 1.1;
+      }
+
+      .brand-subtitle {
+        margin: 2px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .sidebar-nav {
+        padding: 20px 14px;
+        display: grid;
+        gap: 8px;
+      }
+
+      .nav-item {
+        border: 0;
+        background: transparent;
+        color: #4b5f79;
+        width: 100%;
+        font: inherit;
+        text-align: left;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 11px 12px;
+        border-radius: 10px;
+        text-decoration: none;
+      }
+
+      .nav-item.active {
+        background: #eaf3ff;
+        color: var(--primary);
+        font-weight: 700;
+      }
+
+      .sidebar-footer {
+        margin-top: auto;
+        border-top: 1px solid var(--line);
+        padding: 18px 14px 24px;
+        display: grid;
+        gap: 8px;
+      }
+
+      .main {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .topbar {
+        padding: 24px 30px 18px;
+        border-bottom: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.88);
+        backdrop-filter: blur(6px);
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 18px;
+      }
+
+      .topbar h1 {
+        margin: 0;
+        font-size: clamp(30px, 2.8vw, 46px);
+        line-height: 1.05;
+        letter-spacing: -0.03em;
+      }
+
+      .topbar p {
+        margin: 8px 0 0;
+        color: var(--muted);
+      }
+
+      .btn {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        font: inherit;
+        color: #1e293b;
+        background: #f8fafc;
+        padding: 10px 14px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        text-decoration: none;
+      }
+
+      .btn:hover {
+        background: #f1f5f9;
+      }
+
+      .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      .btn-primary {
+        border-color: var(--primary);
+        background: linear-gradient(180deg, #4a91ff 0%, #3b82f6 100%);
+        box-shadow: 0 8px 20px rgba(59, 130, 246, 0.2);
+        font-weight: 700;
+        color: #eff6ff;
+      }
+
+      .btn-primary:hover {
+        background: linear-gradient(180deg, #357ef5 0%, #2563eb 100%);
+      }
+
+      .toolbar {
+        padding: 18px 30px 22px;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 16px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .search-wrap {
+        position: relative;
+        max-width: 560px;
+      }
+
+      .search-wrap .material-symbols-outlined {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #7288a3;
+      }
+
+      .search-input {
+        width: 100%;
+        border-radius: 10px;
+        border: 1px solid var(--line);
+        background: #ffffff;
+        color: var(--text);
+        padding: 11px 12px 11px 42px;
+        font: inherit;
+      }
+
+      .search-input:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+      }
+
+      .filters {
+        display: inline-flex;
+        align-items: center;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: #ffffff;
+        overflow: hidden;
+      }
+
+      .filter-btn {
+        border: 0;
+        background: transparent;
+        color: #64748b;
+        font: inherit;
+        padding: 10px 18px;
+        cursor: pointer;
+      }
+
+      .filter-btn.active {
+        background: #eaf2ff;
+        color: #1d4ed8;
+        font-weight: 700;
+      }
+
+      .content {
+        padding: 28px 30px 38px;
+        flex: 1;
+      }
+
+      .state-panel {
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: var(--panel);
+        padding: 28px;
+        text-align: center;
+      }
+
+      .state-panel h2 {
+        margin: 12px 0 8px;
+      }
+
+      .state-panel p {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      .spinner {
+        width: 30px;
+        height: 30px;
+        border-radius: 999px;
+        border: 3px solid rgba(59, 130, 246, 0.2);
+        border-top-color: var(--primary);
+        margin: 0 auto;
+        animation: spin 0.8s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 20px;
+      }
+
+      .project-card,
+      .project-create {
+        border-radius: 14px;
+        border: 1px solid var(--line-soft);
+        background: #ffffff;
+        overflow: hidden;
+      }
+
+      .project-card {
+        transition: transform 0.16s ease, box-shadow 0.16s ease;
+        display: flex;
+        flex-direction: column;
+        min-height: 280px;
+      }
+
+      .project-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
+      }
+
+      .project-cover {
+        height: 124px;
+        position: relative;
+        border-bottom: 1px solid var(--line-soft);
+        background-size: cover;
+        background-position: center;
+      }
+
+      .status-badge {
+        position: absolute;
+        right: 10px;
+        top: 10px;
+        border-radius: 8px;
+        padding: 4px 10px;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        backdrop-filter: blur(6px);
+      }
+
+      .status-badge.published {
+        background: rgba(16, 185, 129, 0.17);
+        color: #059669;
+      }
+
+      .status-badge.draft {
+        background: rgba(217, 119, 6, 0.16);
+        color: #b45309;
+      }
+
+      .status-badge.archived {
+        background: rgba(100, 116, 139, 0.18);
+        color: #475569;
+      }
+
+      .project-body {
+        padding: 14px 14px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        flex: 1;
+      }
+
+      .project-title {
+        margin: 0;
+        font-size: 28px;
+        line-height: 1.2;
+      }
+
+      .project-meta {
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .project-description {
+        margin: 0;
+        color: #52647b;
+        font-size: 13px;
+        line-height: 1.4;
+        min-height: 34px;
+      }
+
+      .project-actions {
+        margin-top: auto;
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 6px;
+      }
+
+      .icon-btn {
+        border: 1px solid #d6e0ec;
+        background: #f8fafc;
+        color: #334155;
+        border-radius: 8px;
+        padding: 7px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+      }
+
+      .icon-btn:hover {
+        border-color: #94a3b8;
+        color: #0f172a;
+      }
+
+      .icon-btn.danger:hover {
+        border-color: #fca5a5;
+        color: #dc2626;
+      }
+
+      .project-create {
+        min-height: 280px;
+        border-style: dashed;
+        border-width: 2px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        background: #fcfdff;
+        cursor: pointer;
+      }
+
+      .project-create:hover {
+        border-color: #93c5fd;
+        background: #f4f8ff;
+      }
+
+      .project-create .plus {
+        width: 66px;
+        height: 66px;
+        border-radius: 999px;
+        margin: 0 auto 12px;
+        display: grid;
+        place-items: center;
+        background: #ecf4ff;
+        color: #2563eb;
+      }
+
+      .no-results {
+        border: 1px dashed #cbd5e1;
+        border-radius: 14px;
+        background: #f8fafc;
+        padding: 24px;
+        text-align: center;
+        color: var(--muted);
+      }
+
+      .modal {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        background: rgba(15, 23, 42, 0.35);
+        backdrop-filter: blur(5px);
+        z-index: 40;
+        padding: 20px;
+      }
+
+      .modal-card {
+        width: min(560px, 100%);
+        border-radius: 16px;
+        border: 1px solid var(--line);
+        overflow: hidden;
+        background: #ffffff;
+      }
+
+      .modal-header-image {
+        height: 170px;
+        background: center / cover no-repeat
+          url("https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1280&q=80");
+        position: relative;
+      }
+
+      .modal-header-image::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.15) 10%, rgba(255, 255, 255, 0.9) 100%);
+      }
+
+      .modal-content {
+        padding: 18px;
+      }
+
+      .modal-topline {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .modal-title {
+        margin: 0;
+        font-size: 24px;
+      }
+
+      .close-btn {
+        border: 1px solid var(--line);
+        background: #f8fafc;
+        color: #334155;
+        border-radius: 8px;
+        padding: 4px 7px;
+        cursor: pointer;
+      }
+
+      .close-btn:hover {
+        background: #eef2f7;
+      }
+
+      .modal-text {
+        color: var(--muted);
+        margin: 8px 0 16px;
+      }
+
+      .field-label {
+        display: block;
+        font-size: 13px;
+        margin-bottom: 6px;
+        color: #334155;
+      }
+
+      .field-help {
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .field-input,
+      .field-area {
+        width: 100%;
+        border-radius: 10px;
+        border: 1px solid var(--line);
+        background: #ffffff;
+        color: var(--text);
+        padding: 11px 12px;
+        font: inherit;
+      }
+
+      .field-input:focus,
+      .field-area:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+      }
+
+      .image-preview-wrap {
+        margin-top: 8px;
+        border-radius: 10px;
+        border: 1px solid var(--line);
+        background: #f8fafc;
+        overflow: hidden;
+      }
+
+      .image-preview {
+        width: 100%;
+        max-height: 160px;
+        object-fit: cover;
+        display: block;
+      }
+
+      .field-error {
+        min-height: 18px;
+        margin-top: 7px;
+        font-size: 12px;
+        color: #dc2626;
+      }
+
+      .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      .export-block {
+        margin-top: 12px;
+      }
+
+      .export-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 6px;
+        font-size: 13px;
+      }
+
+      .field-area {
+        min-height: 86px;
+        resize: vertical;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 12px;
+      }
+
+      .toast-stack {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        display: grid;
+        gap: 8px;
+        z-index: 90;
+      }
+
+      .toast {
+        border: 1px solid #c4d8f2;
+        background: #eef6ff;
+        color: #1e3a8a;
+        border-radius: 10px;
+        padding: 10px 12px;
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+        font-size: 13px;
+      }
+
+      .toast.error {
+        border-color: #fecaca;
+        background: #fef2f2;
+        color: #991b1b;
+      }
+
+      @media (max-width: 980px) {
+        .app-shell {
+          grid-template-columns: 1fr;
+        }
+
+        .sidebar {
+          height: auto;
+          position: static;
+        }
+
+        .topbar,
+        .toolbar,
+        .content {
+          padding-inline: 16px;
+        }
+
+        .toolbar {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-avatar" aria-hidden="true"></div>
+          <div>
+            <p class="brand-title">SimBuilder</p>
+            <p class="brand-subtitle" id="workspaceLabel">Workspace</p>
+          </div>
+        </div>
+
+        <nav class="sidebar-nav" aria-label="Навигация">
+          <a class="nav-item active" href="/builder">
+            <span class="material-symbols-outlined">folder_open</span>
+            <span>Projects</span>
+          </a>
+          <button class="nav-item" type="button" disabled>
+            <span class="material-symbols-outlined">grid_view</span>
+            <span>Templates</span>
+          </button>
+          <a class="nav-item" href="/assets">
+            <span class="material-symbols-outlined">image</span>
+            <span>Assets</span>
+          </a>
+          <button class="nav-item" type="button" disabled>
+            <span class="material-symbols-outlined">settings</span>
+            <span>Settings</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-footer">
+          <button class="nav-item" type="button">
+            <span class="material-symbols-outlined">help</span>
+            <span>Help & Support</span>
+          </button>
+          <button class="nav-item" id="signOutBtn" type="button">
+            <span class="material-symbols-outlined">logout</span>
+            <span>Sign Out</span>
+          </button>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <h1>My Projects</h1>
+            <p>Manage your dialogue simulations and course scenarios.</p>
+          </div>
+          <button class="btn btn-primary" id="openCreateModalBtn" type="button">
+            <span class="material-symbols-outlined">add</span>
+            <span>Create New Project</span>
+          </button>
+        </header>
+
+        <section class="toolbar" id="toolbar">
+          <label class="search-wrap">
+            <span class="material-symbols-outlined">search</span>
+            <input
+              class="search-input"
+              id="searchInput"
+              type="search"
+              placeholder="Search projects by name..."
+            />
+          </label>
+
+          <div class="filters" id="filterGroup">
+            <button class="filter-btn active" data-filter="all" type="button">All</button>
+            <button class="filter-btn" data-filter="published" type="button">Published</button>
+            <button class="filter-btn" data-filter="draft" type="button">Drafts</button>
+          </div>
+        </section>
+
+        <section class="content">
+          <div class="state-panel" id="loadingState">
+            <div class="spinner" aria-hidden="true"></div>
+            <h2>Loading projects</h2>
+            <p>Секунду, загружаем список диалогов.</p>
+          </div>
+
+          <div class="state-panel" id="authState" hidden>
+            <span class="material-symbols-outlined" style="font-size: 42px">lock</span>
+            <h2>Нужна авторизация</h2>
+            <p>Выполните вход, чтобы управлять проектами.</p>
+            <div style="margin-top: 14px">
+              <a class="btn btn-primary" href="/login">Открыть /login</a>
+            </div>
+          </div>
+          <div class="state-panel" id="errorState" hidden>
+            <span class="material-symbols-outlined" style="font-size: 42px">error</span>
+            <h2>Не удалось загрузить данные</h2>
+            <p id="errorMessage">Проверьте соединение и повторите попытку.</p>
+            <div style="margin-top: 14px">
+              <button class="btn" id="retryBtn" type="button">Повторить</button>
+            </div>
+          </div>
+
+          <div class="state-panel" id="emptyState" hidden>
+            <span class="material-symbols-outlined" style="font-size: 48px">forum</span>
+            <h2>Проектов пока нет</h2>
+            <p>Создайте первый диалоговый тренажёр, чтобы начать работу.</p>
+            <div style="margin-top: 14px">
+              <button class="btn btn-primary" id="emptyCreateBtn" type="button">Создать проект</button>
+            </div>
+          </div>
+
+          <div id="gridState" hidden>
+            <div class="grid" id="dialogGrid"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div class="modal" id="createModal" hidden>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="createDialogTitle">
+        <div class="modal-header-image" aria-hidden="true"></div>
+        <div class="modal-content">
+          <div class="modal-topline">
+            <h2 class="modal-title" id="createDialogTitle">Create New Project</h2>
+            <button class="close-btn" id="closeCreateModalBtn" type="button">
+              <span class="material-symbols-outlined">close</span>
+            </button>
+          </div>
+          <p class="modal-text">Выберите название. Остальные параметры можно настроить позже в редакторе.</p>
+
+          <form id="createForm">
+            <label class="field-label" for="createNameInput">Project name</label>
+            <input
+              class="field-input"
+              id="createNameInput"
+              name="name"
+              maxlength="140"
+              placeholder="Например: Customer Service 101"
+              required
+            />
+
+            <div style="height: 10px"></div>
+            <label class="field-label" for="createImageUrlInput">Image URL (optional)</label>
+            <input
+              class="field-input"
+              id="createImageUrlInput"
+              name="imageUrl"
+              type="url"
+              placeholder="https://example.com/cover.jpg"
+            />
+            <p class="field-help">Или загрузите свою картинку файлом.</p>
+
+            <div style="height: 10px"></div>
+            <label class="field-label" for="createImageFileInput">Upload image (optional)</label>
+            <input class="field-input" id="createImageFileInput" name="imageFile" type="file" accept="image/*" />
+
+            <div class="image-preview-wrap" id="createImagePreviewWrap" hidden>
+              <img class="image-preview" id="createImagePreview" alt="Предпросмотр картинки проекта" />
+            </div>
+
+            <div class="field-error" id="createFormError"></div>
+            <div class="modal-actions">
+              <button class="btn" id="cancelCreateBtn" type="button">Cancel</button>
+              <button class="btn btn-primary" id="submitCreateBtn" type="submit">Create</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal" id="exportModal" hidden>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="exportDialogTitle">
+        <div class="modal-content">
+          <div class="modal-topline">
+            <h2 class="modal-title" id="exportDialogTitle">Export & Embed</h2>
+            <button class="close-btn" id="closeExportModalBtn" type="button">
+              <span class="material-symbols-outlined">close</span>
+            </button>
+          </div>
+          <p class="modal-text" id="exportSubtitle">Загрузка кодов экспорта…</p>
+
+          <div class="export-block">
+            <div class="export-head">
+              <span>iframe snippet</span>
+              <button class="btn" data-copy-target="iframeOutput" type="button">Copy</button>
+            </div>
+            <textarea class="field-area" id="iframeOutput" readonly></textarea>
+          </div>
+
+          <div class="export-block">
+            <div class="export-head">
+              <span>script embed</span>
+              <button class="btn" data-copy-target="scriptOutput" type="button">Copy</button>
+            </div>
+            <textarea class="field-area" id="scriptOutput" readonly></textarea>
+          </div>
+
+          <div class="export-block">
+            <div class="export-head">
+              <span>Self-contained HTML URL</span>
+              <button class="btn" data-copy-target="htmlOutput" type="button">Copy</button>
+            </div>
+            <textarea class="field-area" id="htmlOutput" readonly></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="true"></div>
+
+    <script>
+      const storageKeys = {
+        session: "dialogTrainerSession",
+        accessToken: "dialogTrainerAccessToken",
+        coverMap: "dialogTrainerProjectCovers",
+      };
+
+      const coverImages = [
+        "https://images.unsplash.com/photo-1573164574230-db1d5e960238?auto=format&fit=crop&w=900&q=80",
+        "https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=900&q=80",
+        "https://images.unsplash.com/photo-1521791136064-7986c2920216?auto=format&fit=crop&w=900&q=80",
+        "https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=900&q=80",
+        "https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&w=900&q=80",
+        "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=900&q=80",
+      ];
+
+      const state = {
+        token: null,
+        dialogs: [],
+        filter: "all",
+        search: "",
+        customCoverByDialogId: {},
+      };
+
+      const elements = {
+        loadingState: document.getElementById("loadingState"),
+        authState: document.getElementById("authState"),
+        errorState: document.getElementById("errorState"),
+        emptyState: document.getElementById("emptyState"),
+        gridState: document.getElementById("gridState"),
+        dialogGrid: document.getElementById("dialogGrid"),
+        errorMessage: document.getElementById("errorMessage"),
+        searchInput: document.getElementById("searchInput"),
+        filterGroup: document.getElementById("filterGroup"),
+        createModal: document.getElementById("createModal"),
+        openCreateModalBtn: document.getElementById("openCreateModalBtn"),
+        emptyCreateBtn: document.getElementById("emptyCreateBtn"),
+        closeCreateModalBtn: document.getElementById("closeCreateModalBtn"),
+        cancelCreateBtn: document.getElementById("cancelCreateBtn"),
+        createForm: document.getElementById("createForm"),
+        createNameInput: document.getElementById("createNameInput"),
+        createImageUrlInput: document.getElementById("createImageUrlInput"),
+        createImageFileInput: document.getElementById("createImageFileInput"),
+        createImagePreviewWrap: document.getElementById("createImagePreviewWrap"),
+        createImagePreview: document.getElementById("createImagePreview"),
+        createFormError: document.getElementById("createFormError"),
+        submitCreateBtn: document.getElementById("submitCreateBtn"),
+        exportModal: document.getElementById("exportModal"),
+        closeExportModalBtn: document.getElementById("closeExportModalBtn"),
+        exportSubtitle: document.getElementById("exportSubtitle"),
+        iframeOutput: document.getElementById("iframeOutput"),
+        scriptOutput: document.getElementById("scriptOutput"),
+        htmlOutput: document.getElementById("htmlOutput"),
+        toastStack: document.getElementById("toastStack"),
+        retryBtn: document.getElementById("retryBtn"),
+        workspaceLabel: document.getElementById("workspaceLabel"),
+        signOutBtn: document.getElementById("signOutBtn"),
+      };
+
+      function getTokenFromStorage() {
+        const directToken = localStorage.getItem(storageKeys.accessToken);
+        if (directToken) return directToken;
+
+        const sessionRaw = localStorage.getItem(storageKeys.session);
+        if (!sessionRaw) return null;
+
+        try {
+          const session = JSON.parse(sessionRaw);
+          return session?.access_token || null;
+        } catch (_error) {
+          return null;
+        }
+      }
+
+      function clearSessionAndGoToLogin() {
+        localStorage.removeItem(storageKeys.accessToken);
+        localStorage.removeItem(storageKeys.session);
+        window.location.href = "/login";
+      }
+
+      function loadCoverMapFromStorage() {
+        const raw = localStorage.getItem(storageKeys.coverMap);
+        if (!raw) {
+          return {};
+        }
+
+        try {
+          const parsed = JSON.parse(raw);
+          if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+            return {};
+          }
+          return parsed;
+        } catch (_error) {
+          return {};
+        }
+      }
+
+      function persistCoverMapToStorage() {
+        localStorage.setItem(storageKeys.coverMap, JSON.stringify(state.customCoverByDialogId));
+      }
+
+      function setCreateImagePreview(src) {
+        if (!src) {
+          elements.createImagePreviewWrap.hidden = true;
+          elements.createImagePreview.removeAttribute("src");
+          return;
+        }
+
+        elements.createImagePreview.src = src;
+        elements.createImagePreviewWrap.hidden = false;
+      }
+
+      function normalizeCoverUrl(rawValue) {
+        const value = String(rawValue || "").trim();
+        if (!value) {
+          return null;
+        }
+
+        try {
+          const parsed = new URL(value);
+          if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+            return null;
+          }
+          return parsed.toString();
+        } catch (_error) {
+          return null;
+        }
+      }
+
+      async function readFileAsDataUrl(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : null);
+          reader.onerror = () => reject(new Error("Не удалось прочитать файл."));
+          reader.readAsDataURL(file);
+        });
+      }
+
+      async function getPendingCoverImage() {
+        const imageUrlValue = String(elements.createImageUrlInput.value || "").trim();
+        const selectedFile = elements.createImageFileInput.files?.[0] || null;
+
+        if (selectedFile) {
+          if (selectedFile.size > 2 * 1024 * 1024) {
+            throw new Error("Файл слишком большой. Максимум 2MB.");
+          }
+          return await readFileAsDataUrl(selectedFile);
+        }
+
+        if (!imageUrlValue) {
+          return null;
+        }
+
+        const normalized = normalizeCoverUrl(imageUrlValue);
+        if (!normalized) {
+          throw new Error("Некорректный URL картинки. Используйте http:// или https://.");
+        }
+
+        return normalized;
+      }
+
+      function setDialogCover(dialogId, coverValue) {
+        if (!dialogId) {
+          return;
+        }
+
+        if (!coverValue) {
+          delete state.customCoverByDialogId[dialogId];
+        } else {
+          state.customCoverByDialogId[dialogId] = coverValue;
+        }
+
+        persistCoverMapToStorage();
+      }
+
+      function showToast(message, type) {
+        const toast = document.createElement("div");
+        toast.className = `toast${type === "error" ? " error" : ""}`;
+        toast.textContent = message;
+        elements.toastStack.appendChild(toast);
+        window.setTimeout(() => {
+          toast.remove();
+        }, 3200);
+      }
+
+      function showState(name) {
+        elements.loadingState.hidden = name !== "loading";
+        elements.authState.hidden = name !== "auth";
+        elements.errorState.hidden = name !== "error";
+        elements.emptyState.hidden = name !== "empty";
+        elements.gridState.hidden = name !== "grid";
+
+        const isContentVisible = name === "grid";
+        elements.searchInput.disabled = !isContentVisible;
+        elements.filterGroup.querySelectorAll(".filter-btn").forEach((button) => {
+          button.disabled = !isContentVisible;
+        });
+      }
+
+      function escapeHtml(value) {
+        return String(value || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function formatRelative(dateString) {
+        if (!dateString) return "Updated recently";
+
+        const source = new Date(dateString).getTime();
+        if (!Number.isFinite(source)) return "Updated recently";
+
+        const diff = Date.now() - source;
+        if (diff < 60 * 1000) return "Updated now";
+
+        const minutes = Math.floor(diff / (60 * 1000));
+        if (minutes < 60) return `Updated ${minutes}m ago`;
+
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `Updated ${hours}h ago`;
+
+        const days = Math.floor(hours / 24);
+        return `Updated ${days}d ago`;
+      }
+
+      function getCoverForDialog(dialog) {
+        const customCover = state.customCoverByDialogId[String(dialog.id || "")];
+        if (customCover) {
+          return customCover;
+        }
+
+        const key = String(dialog.id || dialog.name || "seed");
+        const hash = [...key].reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        return coverImages[hash % coverImages.length];
+      }
+
+      function getStatusMeta(dialog) {
+        if (dialog.published) return { className: "published", label: "Published" };
+        if (dialog.status === "archived") return { className: "archived", label: "Archived" };
+        return { className: "draft", label: "Draft" };
+      }
+      function getFilteredDialogs() {
+        const query = state.search.trim().toLowerCase();
+
+        return state.dialogs.filter((dialog) => {
+          if (state.filter === "published" && !dialog.published) return false;
+          if (state.filter === "draft" && dialog.published) return false;
+
+          if (!query) return true;
+
+          const haystack = `${dialog.name || ""} ${dialog.description || ""}`.toLowerCase();
+          return haystack.includes(query);
+        });
+      }
+
+      function renderFilterButtons() {
+        elements.filterGroup.querySelectorAll(".filter-btn").forEach((button) => {
+          button.classList.toggle("active", button.dataset.filter === state.filter);
+        });
+      }
+
+      function renderGrid() {
+        const filtered = getFilteredDialogs();
+
+        if (state.dialogs.length === 0) {
+          showState("empty");
+          return;
+        }
+
+        showState("grid");
+
+        const cards = filtered
+          .map((dialog) => {
+            const statusMeta = getStatusMeta(dialog);
+
+            return `
+              <article class="project-card" data-action="open" data-id="${escapeHtml(dialog.id)}" role="button" tabindex="0">
+                <div class="project-cover" style="background-image:url('${escapeHtml(getCoverForDialog(dialog))}')">
+                  <span class="status-badge ${statusMeta.className}">${statusMeta.label}</span>
+                </div>
+                <div class="project-body">
+                  <h3 class="project-title">${escapeHtml(dialog.name || "Untitled")}</h3>
+                  <div class="project-meta">${formatRelative(dialog.updatedAt)}</div>
+                  <p class="project-description">${escapeHtml(dialog.description || "Dialogue simulator scenario.")}</p>
+                  <div class="project-actions">
+                    <button class="icon-btn" data-action="open" data-id="${escapeHtml(dialog.id)}" title="Open" type="button">
+                      <span class="material-symbols-outlined">edit</span>
+                    </button>
+                    <button class="icon-btn" data-action="duplicate" data-id="${escapeHtml(dialog.id)}" title="Duplicate" type="button">
+                      <span class="material-symbols-outlined">content_copy</span>
+                    </button>
+                    <button class="icon-btn" data-action="${dialog.published ? "unpublish" : "publish"}" data-id="${escapeHtml(dialog.id)}" title="${dialog.published ? "Unpublish" : "Publish"}" type="button">
+                      <span class="material-symbols-outlined">${dialog.published ? "cloud_off" : "cloud_upload"}</span>
+                    </button>
+                    <button class="icon-btn" data-action="export" data-id="${escapeHtml(dialog.id)}" title="Export" type="button">
+                      <span class="material-symbols-outlined">code</span>
+                    </button>
+                    <button class="icon-btn danger" data-action="delete" data-id="${escapeHtml(dialog.id)}" title="Delete" type="button">
+                      <span class="material-symbols-outlined">delete</span>
+                    </button>
+                  </div>
+                </div>
+              </article>
+            `;
+          })
+          .join("");
+
+        const noResults = filtered.length
+          ? ""
+          : `
+            <div class="no-results">
+              Ничего не найдено. Измените фильтр или строку поиска.
+            </div>
+          `;
+
+        const createTile = `
+          <button class="project-create" data-action="open-create" type="button">
+            <div>
+              <div class="plus">
+                <span class="material-symbols-outlined" style="font-size:34px">add</span>
+              </div>
+              <div style="font-weight:700">Create New Project</div>
+            </div>
+          </button>
+        `;
+
+        elements.dialogGrid.innerHTML = `${cards}${noResults}${createTile}`;
+      }
+
+      async function apiRequest(pathname, options) {
+        const response = await fetch(pathname, {
+          method: options?.method || "GET",
+          headers: {
+            Authorization: `Bearer ${state.token}`,
+            ...(options?.body ? { "Content-Type": "application/json" } : {}),
+          },
+          body: options?.body ? JSON.stringify(options.body) : undefined,
+        });
+
+        const text = await response.text();
+        let data = {};
+        if (text) {
+          try {
+            data = JSON.parse(text);
+          } catch (_error) {
+            data = {};
+          }
+        }
+
+        if (!response.ok) {
+          const message = data?.error || `Request failed with status ${response.status}`;
+          const error = new Error(message);
+          error.status = response.status;
+          throw error;
+        }
+
+        return data;
+      }
+
+      async function fetchProfile() {
+        try {
+          const payload = await apiRequest("/api/v1/auth/me");
+          const email = payload?.user?.email || "Workspace";
+          elements.workspaceLabel.textContent = email;
+        } catch (error) {
+          if (error.status === 401) {
+            showToast("Сессия истекла, нужно войти снова.", "error");
+            clearSessionAndGoToLogin();
+          }
+        }
+      }
+
+      async function loadDialogs() {
+        showState("loading");
+        try {
+          const payload = await apiRequest("/api/v1/builder/dialogs");
+          state.dialogs = Array.isArray(payload.items) ? payload.items : [];
+          renderFilterButtons();
+          renderGrid();
+        } catch (error) {
+          if (error.status === 401) {
+            showState("auth");
+            return;
+          }
+
+          elements.errorMessage.textContent = error.message || "Неизвестная ошибка.";
+          showState("error");
+        }
+      }
+
+      function openCreateModal() {
+        elements.createFormError.textContent = "";
+        elements.createNameInput.value = "";
+        elements.createImageUrlInput.value = "";
+        elements.createImageFileInput.value = "";
+        setCreateImagePreview("");
+        elements.createModal.hidden = false;
+        elements.createNameInput.focus();
+      }
+
+      function closeCreateModal() {
+        elements.createModal.hidden = true;
+      }
+
+      function openExportModal() {
+        elements.exportSubtitle.textContent = "Загрузка кодов экспорта…";
+        elements.iframeOutput.value = "";
+        elements.scriptOutput.value = "";
+        elements.htmlOutput.value = "";
+        elements.exportModal.hidden = false;
+      }
+
+      function closeExportModal() {
+        elements.exportModal.hidden = true;
+      }
+
+      async function handleCreate(event) {
+        event.preventDefault();
+        const name = elements.createNameInput.value.trim();
+
+        if (name.length < 2) {
+          elements.createFormError.textContent = "Минимум 2 символа.";
+          return;
+        }
+
+        elements.submitCreateBtn.disabled = true;
+
+        try {
+          const pendingCover = await getPendingCoverImage();
+
+          const payload = await apiRequest("/api/v1/builder/dialogs", {
+            method: "POST",
+            body: { name },
+          });
+
+          const createdId = payload?.item?.id || null;
+          if (createdId && pendingCover) {
+            setDialogCover(createdId, pendingCover);
+          }
+
+          if (createdId) {
+            window.location.href = `/builder/dialog/${encodeURIComponent(createdId)}`;
+            return;
+          }
+
+          closeCreateModal();
+          showToast("Проект создан.");
+          await loadDialogs();
+        } catch (error) {
+          elements.createFormError.textContent = error.message || "Не удалось создать проект.";
+        } finally {
+          elements.submitCreateBtn.disabled = false;
+        }
+      }
+      async function handleGridAction(event) {
+        const button = event.target.closest("[data-action]");
+        if (!button) return;
+
+        const action = button.dataset.action;
+        const id = button.dataset.id;
+
+        if (action === "open-create") {
+          openCreateModal();
+          return;
+        }
+
+        if (!id && action !== "open-create") return;
+
+        if (action === "open") {
+          window.location.href = `/builder/dialog/${encodeURIComponent(id)}`;
+          return;
+        }
+
+        if (action === "duplicate") {
+          try {
+            await apiRequest(`/api/v1/builder/dialogs/${encodeURIComponent(id)}/duplicate`, {
+              method: "POST",
+            });
+            showToast("Проект дублирован.");
+            await loadDialogs();
+          } catch (error) {
+            showToast(error.message || "Не удалось дублировать проект.", "error");
+          }
+          return;
+        }
+
+        if (action === "publish" || action === "unpublish") {
+          try {
+            await apiRequest(`/api/v1/builder/dialogs/${encodeURIComponent(id)}/${action}`, {
+              method: "POST",
+            });
+            showToast(action === "publish" ? "Проект опубликован." : "Публикация снята.");
+            await loadDialogs();
+          } catch (error) {
+            showToast(error.message || "Не удалось изменить статус.", "error");
+          }
+          return;
+        }
+
+        if (action === "export") {
+          openExportModal();
+          try {
+            const payload = await apiRequest(`/api/v1/builder/dialogs/${encodeURIComponent(id)}/export`);
+            elements.exportSubtitle.textContent = `Publication key: ${payload.publicationKey}`;
+            elements.iframeOutput.value = payload.iframe || "";
+            elements.scriptOutput.value = payload.script || "";
+            elements.htmlOutput.value = payload.htmlUrl || "";
+          } catch (error) {
+            elements.exportSubtitle.textContent = error.message || "Не удалось получить export-данные.";
+          }
+          return;
+        }
+
+        if (action === "delete") {
+          const approved = window.confirm("Удалить проект без возможности восстановления?");
+          if (!approved) return;
+
+          try {
+            await apiRequest(`/api/v1/builder/dialogs/${encodeURIComponent(id)}`, {
+              method: "DELETE",
+            });
+            showToast("Проект удалён.");
+            await loadDialogs();
+          } catch (error) {
+            showToast(error.message || "Не удалось удалить проект.", "error");
+          }
+        }
+      }
+
+      async function copyFromField(id) {
+        const target = document.getElementById(id);
+        const value = target?.value || "";
+        if (!value) {
+          showToast("Пустое значение для копирования.", "error");
+          return;
+        }
+
+        try {
+          await navigator.clipboard.writeText(value);
+          showToast("Скопировано.");
+        } catch (_error) {
+          showToast("Не удалось скопировать.", "error");
+        }
+      }
+
+      function setupEvents() {
+        elements.searchInput.addEventListener("input", (event) => {
+          state.search = String(event.target.value || "");
+          renderGrid();
+        });
+
+        elements.filterGroup.addEventListener("click", (event) => {
+          const button = event.target.closest(".filter-btn");
+          if (!button) return;
+          state.filter = button.dataset.filter;
+          renderFilterButtons();
+          renderGrid();
+        });
+
+        elements.openCreateModalBtn.addEventListener("click", openCreateModal);
+        elements.emptyCreateBtn.addEventListener("click", openCreateModal);
+        elements.closeCreateModalBtn.addEventListener("click", closeCreateModal);
+        elements.cancelCreateBtn.addEventListener("click", closeCreateModal);
+        elements.createModal.addEventListener("click", (event) => {
+          if (event.target === elements.createModal) closeCreateModal();
+        });
+        elements.createForm.addEventListener("submit", handleCreate);
+
+        elements.createImageUrlInput.addEventListener("input", () => {
+          if (elements.createImageFileInput.files?.length) {
+            return;
+          }
+
+          const normalized = normalizeCoverUrl(elements.createImageUrlInput.value);
+          if (normalized) {
+            setCreateImagePreview(normalized);
+            return;
+          }
+
+          if (!String(elements.createImageUrlInput.value || "").trim()) {
+            setCreateImagePreview("");
+          }
+        });
+
+        elements.createImageFileInput.addEventListener("change", async () => {
+          const file = elements.createImageFileInput.files?.[0] || null;
+          if (!file) {
+            const normalized = normalizeCoverUrl(elements.createImageUrlInput.value);
+            setCreateImagePreview(normalized || "");
+            return;
+          }
+
+          elements.createImageUrlInput.value = "";
+
+          if (file.size > 2 * 1024 * 1024) {
+            elements.createFormError.textContent = "Файл слишком большой. Максимум 2MB.";
+            elements.createImageFileInput.value = "";
+            setCreateImagePreview("");
+            return;
+          }
+
+          elements.createFormError.textContent = "";
+          try {
+            const preview = await readFileAsDataUrl(file);
+            setCreateImagePreview(preview);
+          } catch (error) {
+            elements.createFormError.textContent = error.message || "Не удалось прочитать файл.";
+            setCreateImagePreview("");
+          }
+        });
+
+        elements.dialogGrid.addEventListener("click", handleGridAction);
+
+        elements.retryBtn.addEventListener("click", () => {
+          loadDialogs();
+        });
+
+        elements.signOutBtn.addEventListener("click", clearSessionAndGoToLogin);
+
+        elements.closeExportModalBtn.addEventListener("click", closeExportModal);
+        elements.exportModal.addEventListener("click", (event) => {
+          if (event.target === elements.exportModal) closeExportModal();
+        });
+
+        elements.exportModal.addEventListener("click", (event) => {
+          const copyBtn = event.target.closest("[data-copy-target]");
+          if (!copyBtn) return;
+          copyFromField(copyBtn.dataset.copyTarget);
+        });
+
+        document.addEventListener("keydown", (event) => {
+          if (event.key !== "Escape") return;
+          if (!elements.createModal.hidden) closeCreateModal();
+          if (!elements.exportModal.hidden) closeExportModal();
+        });
+      }
+
+      async function init() {
+        state.customCoverByDialogId = loadCoverMapFromStorage();
+        setupEvents();
+
+        state.token = getTokenFromStorage();
+        if (!state.token) {
+          showState("auth");
+          return;
+        }
+
+        await fetchProfile();
+        await loadDialogs();
+      }
+
+      init();
+    </script>
+  </body>
+</html>

@@ -653,6 +653,11 @@
         font-size: 12px;
       }
 
+      .field-area-plain {
+        font-family: inherit;
+        font-size: inherit;
+      }
+
       .toast-stack {
         position: fixed;
         right: 16px;
@@ -835,6 +840,17 @@
               required
             />
 
+            <div style="height: 10px"></div>
+            <label class="field-label" for="createDescriptionInput">Описание</label>
+            <textarea
+              class="field-area field-area-plain"
+              id="createDescriptionInput"
+              name="description"
+              maxlength="1200"
+              rows="3"
+              placeholder="Кратко опишите сценарий проекта"
+            ></textarea>
+
             <div style="height: 12px"></div>
             <label class="field-label">Тип сцены</label>
             <div class="scene-type-grid" role="radiogroup" aria-label="Тип сцены">
@@ -853,17 +869,6 @@
                 </span>
               </label>
             </div>
-
-            <div style="height: 10px"></div>
-            <label class="field-label" for="createImageUrlInput">Image URL (optional)</label>
-            <input
-              class="field-input"
-              id="createImageUrlInput"
-              name="imageUrl"
-              type="url"
-              placeholder="https://example.com/cover.jpg"
-            />
-            <p class="field-help">Или загрузите свою картинку файлом.</p>
 
             <div style="height: 10px"></div>
             <label class="field-label" for="createImageFileInput">Upload image (optional)</label>
@@ -964,8 +969,8 @@
         cancelCreateBtn: document.getElementById("cancelCreateBtn"),
         createForm: document.getElementById("createForm"),
         createNameInput: document.getElementById("createNameInput"),
+        createDescriptionInput: document.getElementById("createDescriptionInput"),
         createSceneTypeInputs: Array.from(document.querySelectorAll('input[name="sceneType"]')),
-        createImageUrlInput: document.getElementById("createImageUrlInput"),
         createImageFileInput: document.getElementById("createImageFileInput"),
         createImagePreviewWrap: document.getElementById("createImagePreviewWrap"),
         createImagePreview: document.getElementById("createImagePreview"),
@@ -1036,23 +1041,6 @@
         elements.createImagePreviewWrap.hidden = false;
       }
 
-      function normalizeCoverUrl(rawValue) {
-        const value = String(rawValue || "").trim();
-        if (!value) {
-          return null;
-        }
-
-        try {
-          const parsed = new URL(value);
-          if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-            return null;
-          }
-          return parsed.toString();
-        } catch (_error) {
-          return null;
-        }
-      }
-
       async function readFileAsDataUrl(file) {
         return new Promise((resolve, reject) => {
           const reader = new FileReader();
@@ -1063,7 +1051,6 @@
       }
 
       async function getPendingCoverImage() {
-        const imageUrlValue = String(elements.createImageUrlInput.value || "").trim();
         const selectedFile = elements.createImageFileInput.files?.[0] || null;
 
         if (selectedFile) {
@@ -1073,16 +1060,7 @@
           return await readFileAsDataUrl(selectedFile);
         }
 
-        if (!imageUrlValue) {
-          return null;
-        }
-
-        const normalized = normalizeCoverUrl(imageUrlValue);
-        if (!normalized) {
-          throw new Error("Некорректный URL картинки. Используйте http:// или https://.");
-        }
-
-        return normalized;
+        return null;
       }
 
       function setCreateSceneType(value) {
@@ -1220,7 +1198,7 @@
                 <div class="project-body">
                   <h3 class="project-title">${escapeHtml(dialog.name || "Untitled")}</h3>
                   <div class="project-meta">${formatRelative(dialog.updatedAt)}</div>
-                  <p class="project-description">${escapeHtml(dialog.description || "Dialogue simulator scenario.")}</p>
+                  <p class="project-description">${escapeHtml(dialog.description || "")}</p>
                   <div class="project-actions">
                     <button class="icon-btn" data-action="open" data-id="${escapeHtml(dialog.id)}" title="Open" type="button">
                       <span class="material-symbols-outlined">edit</span>
@@ -1330,8 +1308,8 @@
       function openCreateModal() {
         elements.createFormError.textContent = "";
         elements.createNameInput.value = "";
+        elements.createDescriptionInput.value = "";
         setCreateSceneType("messenger");
-        elements.createImageUrlInput.value = "";
         elements.createImageFileInput.value = "";
         setCreateImagePreview("");
         elements.createModal.hidden = false;
@@ -1357,6 +1335,7 @@
       async function handleCreate(event) {
         event.preventDefault();
         const name = elements.createNameInput.value.trim();
+        const description = String(elements.createDescriptionInput.value || "").trim().slice(0, 1200);
         const sceneType = getCreateSceneType();
 
         if (name.length < 2) {
@@ -1371,7 +1350,7 @@
 
           const payload = await apiRequest("/api/v1/builder/dialogs", {
             method: "POST",
-            body: { name, sceneType },
+            body: { name, description, sceneType },
           });
 
           const createdId = payload?.item?.id || null;
@@ -1507,31 +1486,12 @@
         });
         elements.createForm.addEventListener("submit", handleCreate);
 
-        elements.createImageUrlInput.addEventListener("input", () => {
-          if (elements.createImageFileInput.files?.length) {
-            return;
-          }
-
-          const normalized = normalizeCoverUrl(elements.createImageUrlInput.value);
-          if (normalized) {
-            setCreateImagePreview(normalized);
-            return;
-          }
-
-          if (!String(elements.createImageUrlInput.value || "").trim()) {
-            setCreateImagePreview("");
-          }
-        });
-
         elements.createImageFileInput.addEventListener("change", async () => {
           const file = elements.createImageFileInput.files?.[0] || null;
           if (!file) {
-            const normalized = normalizeCoverUrl(elements.createImageUrlInput.value);
-            setCreateImagePreview(normalized || "");
+            setCreateImagePreview("");
             return;
           }
-
-          elements.createImageUrlInput.value = "";
 
           if (file.size > 2 * 1024 * 1024) {
             elements.createFormError.textContent = "Файл слишком большой. Максимум 2MB.";

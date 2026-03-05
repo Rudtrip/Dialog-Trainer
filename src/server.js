@@ -603,6 +603,10 @@ function sanitizeDialogName(name) {
   return value.slice(0, 140);
 }
 
+function sanitizeDialogDescription(description) {
+  return String(description || "").trim().slice(0, 1200);
+}
+
 function sanitizeSceneType(value) {
   const normalized = String(value || "").trim().toLowerCase();
   if (normalized === "dialog") {
@@ -1616,6 +1620,7 @@ app.post("/api/v1/builder/dialogs", async (req, res) => {
 
   try {
     const name = sanitizeDialogName(req.body?.name);
+    const description = sanitizeDialogDescription(req.body?.description);
     const sceneType = sanitizeSceneType(req.body?.sceneType);
     const requestedWorkspaceId = String(req.body?.workspaceId || "").trim();
 
@@ -1643,6 +1648,7 @@ app.post("/api/v1/builder/dialogs", async (req, res) => {
       body: {
         workspace_id: workspaceId,
         name,
+        description: description || null,
         status: "draft",
         created_by: context.user.id,
       },

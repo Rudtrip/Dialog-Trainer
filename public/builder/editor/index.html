@@ -3158,6 +3158,38 @@
           toast(error.message || "Ошибка публикации.", "error");
         }
       }
+
+      async function openRuntimePreview() {
+        try {
+          if (app.dirty) {
+            await saveEditor();
+            if (app.dirty) {
+              toast("Сначала исправьте ошибку сохранения перед предпросмотром.", "warn");
+              return;
+            }
+          }
+
+          const payload = await apiRequest(
+            `/api/v1/builder/dialogs/${encodeURIComponent(app.dialogId)}/preview/link`,
+            { method: "POST" }
+          );
+
+          const previewUrl = String(payload?.previewUrl || payload?.previewPath || "").trim();
+          if (!previewUrl) {
+            throw new Error("Preview URL is empty.");
+          }
+
+          const win = window.open(previewUrl, "_blank", "noopener,noreferrer");
+          if (!win) {
+            toast("Браузер заблокировал окно. Разрешите pop-up для этого сайта.", "warn");
+            return;
+          }
+
+          toast("Открыт runtime preview.");
+        } catch (error) {
+          toast(error.message || "Не удалось открыть preview.", "error");
+        }
+      }
       function registerEvents() {
         els.backToBuilderBtn.addEventListener("click", () => {
           if (app.dirty && !window.confirm("Есть несохраненные изменения. Вернуться в список?")) {
@@ -3199,7 +3231,7 @@
         }
         els.deleteNodeBtn.addEventListener("click", deleteSelectedNode);
         els.saveGraphBtn.addEventListener("click", saveEditor);
-        els.previewBtn.addEventListener("click", () => toast("Preview будет расширен на следующем этапе.", "warn"));
+        els.previewBtn.addEventListener("click", openRuntimePreview);
         els.publishBtn.addEventListener("click", publishDialog);
 
         els.nodesLayer.addEventListener("pointerdown", onNodePointerDown);

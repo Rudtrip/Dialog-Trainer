@@ -1,0 +1,722 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dialog Preview</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: "#514DF7",
+              "primary-hover": "#403bc9",
+            },
+            fontFamily: {
+              display: ["Inter", "sans-serif"],
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+      }
+      .phone-shell {
+        width: min(360px, 92vw);
+        height: min(760px, calc(100vh - 132px));
+        border-radius: 3rem;
+        background: #fff;
+        overflow: hidden;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        border: 8px solid #111827;
+        box-shadow:
+          0 0 0 12px #1a1a1a,
+          0 0 0 14px #333,
+          0 24px 60px rgba(0, 0, 0, 0.25);
+      }
+      .phone-notch {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 96px;
+        height: 20px;
+        background: #000;
+        border-bottom-left-radius: 12px;
+        border-bottom-right-radius: 12px;
+        z-index: 2;
+      }
+      .phone-bubble-left,
+      .phone-bubble-right {
+        max-width: 82%;
+        border-radius: 16px;
+        padding: 8px 12px;
+        font-size: 13px;
+        line-height: 1.35;
+      }
+      .phone-bubble-left {
+        align-self: flex-start;
+        background: #f3f4f6;
+        color: #1f2937;
+        border-bottom-left-radius: 4px;
+      }
+      .phone-bubble-right {
+        align-self: flex-end;
+        background: #514df7;
+        color: #fff;
+        border-bottom-right-radius: 4px;
+      }
+      .runtime-choice-btn {
+        width: 100%;
+        border-radius: 12px;
+        border: 1px solid #514df7;
+        padding: 10px 12px;
+        font-size: 14px;
+        font-weight: 600;
+        text-align: left;
+        color: #514df7;
+        background: #fff;
+        transition: all 0.15s ease;
+        word-break: break-word;
+      }
+      .runtime-choice-btn:hover {
+        background: #514df7;
+        color: #fff;
+      }
+      .runtime-choice-btn.active {
+        background: #514df7;
+        color: #fff;
+      }
+      .dialog-stage {
+        box-shadow:
+          inset 0 0 0 1px rgba(255, 255, 255, 0.4),
+          0 16px 28px rgba(15, 23, 42, 0.1);
+      }
+
+      @media (max-width: 640px) {
+        .phone-shell {
+          width: min(360px, 96vw);
+          height: min(760px, calc(100vh - 100px));
+          border-width: 6px;
+          border-radius: 2.25rem;
+          box-shadow:
+            0 0 0 8px #1a1a1a,
+            0 0 0 10px #333,
+            0 14px 28px rgba(0, 0, 0, 0.2);
+        }
+
+        .phone-notch {
+          width: 84px;
+          height: 18px;
+        }
+
+        .phone-bubble-left,
+        .phone-bubble-right {
+          font-size: 12px;
+          padding: 7px 10px;
+        }
+
+        .runtime-choice-btn {
+          font-size: 13px;
+          padding: 9px 10px;
+        }
+      }
+    </style>
+  </head>
+  <body class="bg-slate-100 min-h-screen">
+    <div id="app" class="min-h-screen"></div>
+
+    <script>
+      const MESSAGE_EMOTION_STATES = [
+        { key: "neutral", label: "Neutral", icon: "sentiment_neutral" },
+        { key: "happy", label: "Happy", icon: "sentiment_satisfied" },
+        { key: "concerned", label: "Concerned", icon: "sentiment_dissatisfied" },
+        { key: "angry", label: "Angry", icon: "sentiment_very_dissatisfied" },
+      ];
+
+      const state = {
+        token: "",
+        data: null,
+        selections: {},
+        awaitFirstChoice: true,
+        loading: true,
+        error: "",
+      };
+
+      const appEl = document.getElementById("app");
+
+      function escapeHtml(value) {
+        return String(value || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function normalizeSceneType(value) {
+        return String(value || "").trim().toLowerCase() === "dialog" ? "dialog" : "messenger";
+      }
+
+      function normalizeEmotionState(value) {
+        const normalized = String(value || "").trim().toLowerCase();
+        return MESSAGE_EMOTION_STATES.some((item) => item.key === normalized) ? normalized : "neutral";
+      }
+
+      function parseOptionalInteger(value, min, max) {
+        if (value === null || value === undefined || value === "") return null;
+        const parsed = Number(value);
+        if (!Number.isFinite(parsed)) return null;
+        const normalized = Math.trunc(parsed);
+        if (normalized < min || normalized > max) return null;
+        return normalized;
+      }
+
+      function getTokenFromPath() {
+        const parts = window.location.pathname.split("/").filter(Boolean);
+        return String(parts[parts.length - 1] || "").trim();
+      }
+
+      function sortNodesByX(nodes) {
+        return (Array.isArray(nodes) ? nodes.slice() : []).sort((a, b) => {
+          const ax = Number(a?.position?.x || 0);
+          const bx = Number(b?.position?.x || 0);
+          return ax - bx;
+        });
+      }
+
+      function getNodeById(nodeId) {
+        return (state.data?.graph?.nodes || []).find((node) => node.id === nodeId) || null;
+      }
+
+      function getOutgoingNodes(sourceId, targetType) {
+        if (!sourceId) return [];
+        const edges = Array.isArray(state.data?.graph?.edges) ? state.data.graph.edges : [];
+        const outgoing = edges
+          .filter((edge) => edge.source === sourceId)
+          .map((edge) => getNodeById(edge.target))
+          .filter((node) => Boolean(node));
+
+        if (!targetType) return outgoing;
+        return outgoing.filter((node) => node.type === targetType);
+      }
+
+      function resolveAssetMediaUrl(value) {
+        if (!value) return "";
+        if (typeof value === "string") return value.trim();
+        if (typeof value === "object") {
+          return String(value.thumbnailUrl || value.fileUrl || value.url || value.src || "").trim();
+        }
+        return "";
+      }
+
+      function getAssetById(type, assetId) {
+        const normalizedType = type === "background" ? "background" : "character";
+        const list = state.data?.assetCatalog?.[normalizedType];
+        if (!Array.isArray(list) || !assetId) return null;
+        return list.find((asset) => String(asset.id || "") === String(assetId || "")) || null;
+      }
+
+      function resolveCharacterEmotionImageUrl(asset, emotionState) {
+        if (!asset) return "";
+        const metadata = asset.metadata && typeof asset.metadata === "object" ? asset.metadata : {};
+        const stateKey = normalizeEmotionState(emotionState);
+
+        const fromEmotionImages =
+          metadata.emotionImages && typeof metadata.emotionImages === "object"
+            ? resolveAssetMediaUrl(metadata.emotionImages[stateKey])
+            : "";
+        if (fromEmotionImages) return fromEmotionImages;
+
+        const fromEmotionMap =
+          metadata.emotions && !Array.isArray(metadata.emotions) && typeof metadata.emotions === "object"
+            ? resolveAssetMediaUrl(metadata.emotions[stateKey])
+            : "";
+        if (fromEmotionMap) return fromEmotionMap;
+
+        if (Array.isArray(metadata.emotions)) {
+          const fromArray = metadata.emotions.find((item) => {
+            const itemKey = String(item?.key || item?.state || item?.emotion || "")
+              .trim()
+              .toLowerCase();
+            return itemKey === stateKey;
+          });
+          const fromArrayUrl = resolveAssetMediaUrl(fromArray);
+          if (fromArrayUrl) return fromArrayUrl;
+        }
+
+        const fromFlatKeys =
+          resolveAssetMediaUrl(metadata[`${stateKey}Url`]) ||
+          resolveAssetMediaUrl(metadata[`${stateKey}_url`]) ||
+          resolveAssetMediaUrl(metadata[`emotion_${stateKey}`]) ||
+          resolveAssetMediaUrl(metadata[`emotion_${stateKey}_url`]);
+        if (fromFlatKeys) return fromFlatKeys;
+
+        return asset.thumbnailUrl || asset.fileUrl || "";
+      }
+
+      function buildRuntimeState() {
+        const graph = state.data?.graph || { nodes: [], edges: [] };
+        const nodes = Array.isArray(graph.nodes) ? graph.nodes : [];
+        const startNode = nodes.find((node) => node.type === "start") || null;
+        const passScore = parseOptionalInteger(startNode?.data?.passScore, 0, 100000);
+
+        const baseState = {
+          sceneType: normalizeSceneType(state.data?.sceneType),
+          dialogName: String(state.data?.dialogName || "Preview").trim() || "Preview",
+          empty: true,
+          bubbles: [],
+          choices: [],
+          activeMessageId: null,
+          activeSpeakerName: "NPC",
+          activeMessageText: "",
+          activeCharacterImageUrl: "",
+          activeCharacterTitle: "NPC",
+          activeBackgroundImageUrl: "",
+          activeEmotionLabel: "Neutral",
+          activeEmotionIcon: "sentiment_neutral",
+          totalScore: 0,
+          passScore,
+          finished: false,
+          passed: true,
+          finishLabel: "Finish",
+        };
+
+        const firstMessageFromStart = sortNodesByX(getOutgoingNodes(startNode?.id, "message"))[0] || null;
+        const fallbackMessage = nodes.find((node) => node.type === "message") || null;
+        let currentMessage = firstMessageFromStart || fallbackMessage;
+
+        if (!currentMessage) {
+          return baseState;
+        }
+
+        const bubbles = [];
+        let choices = [];
+        let activeMessageId = null;
+        let totalScore = 0;
+        let finished = false;
+        let finishNode = null;
+        let activeMeta = null;
+        let activeBackgroundImageUrl = "";
+        const visited = new Set();
+        let depth = 0;
+
+        while (currentMessage && depth < 24) {
+          const revisited = visited.has(currentMessage.id);
+          visited.add(currentMessage.id);
+          depth += 1;
+
+          const speakerName = String(currentMessage.data?.speakerName || "NPC").trim() || "NPC";
+          const messageText = String(currentMessage.data?.text || "").trim() || "Empty message";
+          const emotionState = normalizeEmotionState(currentMessage.data?.emotionState);
+          const emotionMeta =
+            MESSAGE_EMOTION_STATES.find((emotion) => emotion.key === emotionState) || MESSAGE_EMOTION_STATES[0];
+
+          const characterAsset = getAssetById("character", currentMessage.data?.characterAssetId);
+          const characterImageUrl = resolveCharacterEmotionImageUrl(characterAsset, emotionState);
+          const backgroundAsset = getAssetById("background", currentMessage.data?.backgroundAssetId);
+          const backgroundUrl = resolveAssetMediaUrl(
+            backgroundAsset?.fileUrl || backgroundAsset?.thumbnailUrl
+          );
+          if (backgroundUrl) {
+            activeBackgroundImageUrl = backgroundUrl;
+          }
+
+          activeMeta = {
+            speakerName,
+            messageText,
+            characterImageUrl,
+            characterTitle: String(characterAsset?.title || speakerName || "NPC"),
+            emotionLabel: emotionMeta?.label || "Neutral",
+            emotionIcon: emotionMeta?.icon || "sentiment_neutral",
+          };
+
+          bubbles.push({ key: `m_${currentMessage.id}`, side: "left", text: messageText });
+
+          const responseNodes = sortNodesByX(getOutgoingNodes(currentMessage.id, "response"));
+          if (responseNodes.length === 0) {
+            choices = [];
+            activeMessageId = null;
+            break;
+          }
+
+          activeMessageId = currentMessage.id;
+          choices = responseNodes.map((responseNode) => ({
+            id: responseNode.id,
+            text: String(responseNode.data?.responseText || "").trim() || "Empty response",
+          }));
+
+          if (state.awaitFirstChoice) {
+            break;
+          }
+          if (revisited) {
+            break;
+          }
+
+          const selectedResponseId = String(state.selections[currentMessage.id] || "").trim();
+          if (!selectedResponseId) {
+            break;
+          }
+
+          const selectedResponse = responseNodes.find((responseNode) => responseNode.id === selectedResponseId);
+          if (!selectedResponse) {
+            delete state.selections[currentMessage.id];
+            break;
+          }
+
+          const scoreDelta = Number(selectedResponse.data?.scoreDelta);
+          totalScore += Number.isFinite(scoreDelta) ? scoreDelta : 0;
+
+          bubbles.push({
+            key: `r_${selectedResponse.id}`,
+            side: "right",
+            text: String(selectedResponse.data?.responseText || "").trim() || "Empty response",
+          });
+
+          const nextMessage = sortNodesByX(getOutgoingNodes(selectedResponse.id, "message"))[0] || null;
+          if (nextMessage) {
+            currentMessage = nextMessage;
+            continue;
+          }
+
+          finishNode = sortNodesByX(getOutgoingNodes(selectedResponse.id, "end"))[0] || {
+            id: "finish_auto",
+            data: { endingType: "neutral", title: "Finish" },
+          };
+          finished = true;
+          choices = [];
+          activeMessageId = null;
+          break;
+        }
+
+        let passed = true;
+        if (finished) {
+          if (passScore !== null) {
+            passed = totalScore >= passScore;
+          } else {
+            const endingType = String(finishNode?.data?.endingType || "").trim().toLowerCase();
+            passed = endingType !== "fail";
+          }
+        }
+
+        return {
+          sceneType: normalizeSceneType(state.data?.sceneType),
+          dialogName: String(state.data?.dialogName || "Preview").trim() || "Preview",
+          empty: bubbles.length === 0,
+          bubbles,
+          choices,
+          activeMessageId,
+          activeSpeakerName: activeMeta?.speakerName || "NPC",
+          activeMessageText: activeMeta?.messageText || "",
+          activeCharacterImageUrl: activeMeta?.characterImageUrl || "",
+          activeCharacterTitle: activeMeta?.characterTitle || "NPC",
+          activeBackgroundImageUrl,
+          activeEmotionLabel: activeMeta?.emotionLabel || "Neutral",
+          activeEmotionIcon: activeMeta?.emotionIcon || "sentiment_neutral",
+          totalScore,
+          passScore,
+          finished,
+          passed,
+          finishLabel: String(finishNode?.data?.title || "").trim() || "Finish",
+        };
+      }
+
+      function renderMessenger(preview) {
+        const bubblesMarkup = preview.bubbles
+          .map((bubble) => {
+            const bubbleClass = bubble.side === "right" ? "phone-bubble-right" : "phone-bubble-left";
+            return `<div class="${bubbleClass}">${escapeHtml(bubble.text)}</div>`;
+          })
+          .join("");
+
+        const selectedId = String(state.selections[preview.activeMessageId] || "");
+        const choicesMarkup = preview.finished
+          ? renderFinishCard(preview)
+          : preview.choices
+            .map(
+              (choice) => `
+              <button
+                type="button"
+                class="runtime-choice-btn ${selectedId === choice.id ? "active" : ""}"
+                data-choice-id="${escapeHtml(choice.id)}"
+                data-message-id="${escapeHtml(preview.activeMessageId || "")}"
+              >
+                ${escapeHtml(choice.text)}
+              </button>
+            `
+            )
+            .join("");
+
+        const backgroundStyle = preview.activeBackgroundImageUrl
+          ? `style="background-image:linear-gradient(rgba(255,255,255,0.94), rgba(255,255,255,0.94)),url('${escapeHtml(
+              preview.activeBackgroundImageUrl
+            )}');background-size:cover;background-position:center;"`
+          : "";
+
+        return `
+          <div class="min-h-screen bg-slate-100 flex flex-col">
+            <header class="border-b border-slate-200 bg-white flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-2">
+              <div class="font-semibold text-sm sm:text-base text-slate-800">${escapeHtml(preview.dialogName)}</div>
+              <div class="flex items-center gap-3">
+                <div class="text-xs font-semibold text-slate-500">PTS: <span class="text-primary">${escapeHtml(
+                  String(preview.totalScore)
+                )}</span></div>
+                <button id="resetBtn" class="h-8 rounded-full border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 hover:text-primary">Сбросить</button>
+              </div>
+            </header>
+            <main class="flex-1 flex items-center justify-center p-3 sm:p-6">
+              <div class="phone-shell">
+                <div class="phone-notch"></div>
+                <div class="bg-white border-b border-gray-100 pt-8 pb-3 px-4 flex items-center gap-3">
+                  <span class="material-symbols-outlined text-gray-400 text-lg">chevron_left</span>
+                  <div class="size-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center overflow-hidden">
+                    ${
+                      preview.activeCharacterImageUrl
+                        ? `<img src="${escapeHtml(preview.activeCharacterImageUrl)}" alt="${escapeHtml(preview.activeCharacterTitle)}" class="size-8 object-cover" />`
+                        : `<span class="material-symbols-outlined text-sm">person</span>`
+                    }
+                  </div>
+                  <div class="flex flex-col min-w-0">
+                    <span class="text-xs font-bold truncate">${escapeHtml(preview.activeSpeakerName || "NPC")}</span>
+                    <span class="text-[10px] text-green-500 font-medium">Active now</span>
+                  </div>
+                  <div class="ml-auto flex gap-1">
+                    <span class="material-symbols-outlined text-primary text-base">call</span>
+                    <span class="material-symbols-outlined text-primary text-base">videocam</span>
+                  </div>
+                </div>
+                <div class="flex-1 min-h-0 p-4 flex flex-col gap-2 overflow-y-auto bg-white" ${backgroundStyle}>
+                  ${bubblesMarkup || '<div class="text-xs text-slate-400">Нет сообщений.</div>'}
+                </div>
+                <div class="p-3 border-t border-gray-100 bg-white pb-6 flex flex-col gap-3">
+                  <div class="flex flex-col gap-2">${choicesMarkup}</div>
+                  <div class="w-full h-8 bg-gray-100 rounded-full px-3 flex items-center">
+                    <span class="text-[10px] text-gray-400">Aa</span>
+                  </div>
+                </div>
+                <div class="absolute bottom-1 left-1/2 -translate-x-1/2 w-20 h-1 bg-gray-300 rounded-full"></div>
+              </div>
+            </main>
+          </div>
+        `;
+      }
+
+      function renderDialog(preview) {
+        const choicesMarkup = preview.finished
+          ? renderFinishCard(preview)
+          : preview.choices
+            .map((choice) => {
+              const selectedId = String(state.selections[preview.activeMessageId] || "");
+              return `
+                <button
+                  type="button"
+                  class="runtime-choice-btn ${selectedId === choice.id ? "active" : ""}"
+                  data-choice-id="${escapeHtml(choice.id)}"
+                  data-message-id="${escapeHtml(preview.activeMessageId || "")}"
+                >
+                  ${escapeHtml(choice.text)}
+                </button>
+              `;
+            })
+            .join("");
+
+        const stageBackground = preview.activeBackgroundImageUrl
+          ? `style="background-image:url('${escapeHtml(
+              preview.activeBackgroundImageUrl
+            )}');background-size:cover;background-position:center;"`
+          : "";
+
+        return `
+          <div class="min-h-screen bg-slate-100 p-2 sm:p-4 md:p-6">
+            <div class="dialog-stage relative min-h-[calc(100vh-1rem)] sm:min-h-[calc(100vh-2rem)] rounded-2xl overflow-hidden border border-slate-200 bg-slate-50" ${stageBackground}>
+              <div class="absolute inset-0 bg-white/35"></div>
+              <div class="relative z-10 flex h-full flex-col">
+                <header class="border-b border-slate-200 bg-white/90 backdrop-blur-sm flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-2">
+                  <div class="font-semibold text-sm sm:text-base text-slate-800">${escapeHtml(preview.dialogName)}</div>
+                  <div class="flex items-center gap-3">
+                    <div class="text-xs font-semibold text-slate-500">PTS: <span class="text-primary">${escapeHtml(
+                      String(preview.totalScore)
+                    )}</span></div>
+                    <button id="resetBtn" class="h-8 rounded-full border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 hover:text-primary">Сбросить</button>
+                  </div>
+                </header>
+                <main class="flex-1 flex flex-col md:flex-row items-stretch md:items-end justify-between gap-3 md:gap-6 px-2 sm:px-4 md:px-8 pb-2 md:pb-0 pt-3">
+                  <div class="w-full md:w-[42%] h-auto md:h-full self-end flex items-end justify-center order-2 md:order-1">
+                    <div class="relative w-full max-w-[300px] sm:max-w-[340px] md:max-w-[420px] h-[34vh] sm:h-[42vh] md:h-[72vh] max-h-[300px] sm:max-h-[420px] md:max-h-[calc(100vh-180px)] flex items-end justify-center">
+                      ${
+                        preview.activeCharacterImageUrl
+                          ? `<img src="${escapeHtml(preview.activeCharacterImageUrl)}" alt="${escapeHtml(
+                              preview.activeCharacterTitle
+                            )}" class="h-full w-auto max-w-full object-contain object-bottom drop-shadow-2xl" />`
+                          : `<div class="h-[70%] w-full rounded-2xl border border-dashed border-slate-300 bg-white/70 text-slate-500 flex items-center justify-center text-sm font-medium">Character not selected</div>`
+                      }
+                      ${
+                        preview.activeCharacterImageUrl
+                          ? `<div class="absolute bottom-0 md:bottom-24 left-1/2 -translate-x-1/2 translate-y-full md:translate-y-0 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl flex items-center gap-2 shadow border border-white">
+                              <span class="material-symbols-outlined text-primary text-[18px]">${escapeHtml(
+                                preview.activeEmotionIcon
+                              )}</span>
+                              <span class="text-[10px] font-bold text-slate-700 uppercase tracking-widest">${escapeHtml(
+                                preview.activeEmotionLabel
+                              )}</span>
+                            </div>`
+                          : ""
+                      }
+                    </div>
+                  </div>
+                  <div class="w-full md:w-[58%] flex flex-col gap-3 md:gap-4 mb-0 md:mb-4 max-w-none md:max-w-3xl order-1 md:order-2">
+                    <div class="bg-white rounded-2xl p-4 sm:p-5 md:p-7 border border-slate-100 shadow-lg shadow-slate-200/40 relative min-h-[110px] sm:min-h-[140px]">
+                      <div class="absolute -top-3.5 left-4 sm:left-6 bg-primary text-white px-3 sm:px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow">
+                        ${escapeHtml(preview.activeSpeakerName || "NPC")}
+                      </div>
+                      <span class="material-symbols-outlined text-slate-100 text-5xl sm:text-6xl absolute right-4 sm:right-6 top-3 sm:top-5 select-none">format_quote</span>
+                      <p class="relative z-10 text-slate-800 text-lg sm:text-xl md:text-2xl font-medium leading-relaxed">${escapeHtml(
+                        preview.activeMessageText || "Add a Message node to see preview."
+                      )}</p>
+                    </div>
+                    <div class="flex flex-col gap-2.5">${choicesMarkup}</div>
+                  </div>
+                </main>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderFinishCard(preview) {
+        return `
+          <div class="rounded-xl border px-4 py-3 text-sm ${
+            preview.passed
+              ? "border-green-200 bg-green-50 text-green-700"
+              : "border-rose-200 bg-rose-50 text-rose-700"
+          }">
+            <div class="font-semibold">${preview.passed ? "Тест пройден" : "Тест провален"}</div>
+            <div class="mt-1">PTS: <b>${escapeHtml(String(preview.totalScore))}</b>${
+              preview.passScore === null
+                ? ""
+                : `, проходной: <b>${escapeHtml(String(preview.passScore))}</b>`
+            }</div>
+            <div class="mt-1 text-xs opacity-80">Finish: ${escapeHtml(preview.finishLabel || "Finish")}</div>
+          </div>
+        `;
+      }
+
+      function renderError(message) {
+        appEl.innerHTML = `
+          <div class="min-h-screen flex items-center justify-center p-6">
+            <div class="max-w-xl w-full rounded-xl border border-rose-200 bg-rose-50 p-5 text-rose-700">
+              <div class="font-semibold mb-1">Не удалось открыть предпросмотр</div>
+              <div class="text-sm">${escapeHtml(message || "Unknown error.")}</div>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderLoading() {
+        appEl.innerHTML = `
+          <div class="min-h-screen flex items-center justify-center p-6">
+            <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm">
+              Загружаем предпросмотр...
+            </div>
+          </div>
+        `;
+      }
+
+      function render() {
+        if (state.loading) {
+          renderLoading();
+          return;
+        }
+        if (state.error) {
+          renderError(state.error);
+          return;
+        }
+        if (!state.data) {
+          renderError("Пустые данные предпросмотра.");
+          return;
+        }
+
+        const preview = buildRuntimeState();
+        appEl.innerHTML =
+          preview.sceneType === "dialog" ? renderDialog(preview) : renderMessenger(preview);
+      }
+
+      async function loadPreview() {
+        state.loading = true;
+        state.error = "";
+        render();
+
+        try {
+          const response = await fetch(`/api/v1/preview/${encodeURIComponent(state.token)}`, {
+            method: "GET",
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            throw new Error(payload?.error || `Request failed: ${response.status}`);
+          }
+
+          state.data = payload;
+          document.title = `${payload?.dialogName || "Dialog"} - Preview`;
+          state.loading = false;
+          state.error = "";
+          render();
+        } catch (error) {
+          state.loading = false;
+          state.error = error?.message || "Не удалось загрузить runtime preview.";
+          render();
+        }
+      }
+
+      function resetConversation() {
+        state.selections = {};
+        state.awaitFirstChoice = true;
+        render();
+      }
+
+      appEl.addEventListener("click", (event) => {
+        const resetBtn = event.target.closest("#resetBtn");
+        if (resetBtn) {
+          resetConversation();
+          return;
+        }
+
+        const choiceBtn = event.target.closest("[data-choice-id]");
+        if (!choiceBtn) return;
+
+        const messageId = String(choiceBtn.dataset.messageId || "").trim();
+        const choiceId = String(choiceBtn.dataset.choiceId || "").trim();
+        if (!messageId || !choiceId) return;
+
+        state.awaitFirstChoice = false;
+        state.selections[messageId] = choiceId;
+        render();
+      });
+
+      function init() {
+        state.token = getTokenFromPath();
+        if (!state.token) {
+          state.loading = false;
+          state.error = "Не найден preview token в URL.";
+          render();
+          return;
+        }
+        loadPreview();
+      }
+
+      init();
+    </script>
+  </body>
+</html>

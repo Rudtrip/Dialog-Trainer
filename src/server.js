@@ -48,6 +48,7 @@ const LOCAL_ASSET_PREFIX = String(process.env.LOCAL_ASSET_PREFIX || "uploads/lib
   .trim()
   .replace(/\\/g, "/")
   .replace(/^\/+|\/+$/g, "") || "uploads/library-assets";
+const TEMP_PREVIEW_TTL_SEC = Number(process.env.TEMP_PREVIEW_TTL_SEC || 1800);
 
 const ASSET_ALLOWED_MIME = {
   character: new Set(["image/png", "image/svg+xml"]),
@@ -87,6 +88,8 @@ const assetUpload = multer({
     fileSize: Math.max(ASSET_CHARACTER_MAX_BYTES, ASSET_BACKGROUND_MAX_BYTES),
   },
 });
+
+const tempPreviewSessions = new Map();
 
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: false }));
@@ -642,6 +645,83 @@ function buildExportArtifacts(publicationId, publicationKey) {
       content_hash: crypto.createHash("sha1").update(htmlUrl).digest("hex"),
     },
   ];
+}
+
+function cleanupExpiredTempPreviewSessions() {
+  const now = Date.now();
+  tempPreviewSessions.forEach((session, token) => {
+    const expiresAtMs = Number(session?.expiresAtMs || 0);
+    if (!Number.isFinite(expiresAtMs) || expiresAtMs <= now) {
+      tempPreviewSessions.delete(token);
+    }
+  });
+}
+
+function createTempPreviewToken() {
+  return crypto.randomBytes(24).toString("hex");
+}
+
+function collectPreviewAssetIds(graph) {
+  const characterIds = new Set();
+  const backgroundIds = new Set();
+  const nodes = Array.isArray(graph?.nodes) ? graph.nodes : [];
+
+  nodes.forEach((node) => {
+    if (!node || node.type !== "message") {
+      return;
+    }
+
+    const characterId = String(node?.data?.characterAssetId || "").trim();
+    const backgroundId = String(node?.data?.backgroundAssetId || "").trim();
+
+    if (characterId) {
+      characterIds.add(characterId);
+    }
+    if (backgroundId) {
+      backgroundIds.add(backgroundId);
+    }
+  });
+
+  return {
+    characterIds: Array.from(characterIds),
+    backgroundIds: Array.from(backgroundIds),
+  };
+}
+
+async function getLibraryAssetsByIds(token, assetIds) {
+  const ids = Array.isArray(assetIds)
+    ? assetIds
+      .map((id) => String(id || "").trim())
+      .filter((id) => Boolean(id))
+      .slice(0, 200)
+    : [];
+
+  if (ids.length === 0) {
+    return [];
+  }
+
+  const rows = await supabaseRest(
+    `/library_assets?select=id,type,title,source,file_url,thumbnail_url,mime_type,file_size_bytes,width,height,workspace_id,owner_id,is_active,s3_key,metadata_json,created_at,updated_at&id=in.(${ids
+      .map((id) => encodeURIComponent(id))
+      .join(",")})&is_active=eq.true`,
+    { token }
+  );
+
+  const mapped = await Promise.all((Array.isArray(rows) ? rows : []).map((row) => mapLibraryAsset(row)));
+  return mapped.filter((asset) => Boolean(asset && asset.id));
+}
+
+async function buildPreviewAssetCatalog(token, graph) {
+  const { characterIds, backgroundIds } = collectPreviewAssetIds(graph);
+  const [characters, backgrounds] = await Promise.all([
+    getLibraryAssetsByIds(token, characterIds),
+    getLibraryAssetsByIds(token, backgroundIds),
+  ]);
+
+  return {
+    character: characters.filter((asset) => asset.type === "character"),
+    background: backgrounds.filter((asset) => asset.type === "background"),
+  };
 }
 
 const EDITOR_NODE_TYPES = new Set(["start", "message", "response", "end"]);
@@ -2246,6 +2326,113 @@ app.get("/api/v1/builder/dialogs/:id/export", async (req, res) => {
   }
 });
 
+app.post("/api/v1/builder/dialogs/:id/preview/link", async (req, res) => {
+  const context = await requireUserContext(req, res);
+  if (!context) {
+    return;
+  }
+
+  const simulatorId = String(req.params.id || "").trim();
+
+  try {
+    const simulator = await getSimulatorById(context.token, simulatorId);
+    if (!simulator) {
+      return res.status(404).json({ error: "Dialog not found." });
+    }
+
+    const membership = await getMembershipForWorkspace(
+      context.token,
+      context.user.id,
+      simulator.workspace_id
+    );
+
+    if (!membership) {
+      return res.status(403).json({ error: "No access to this dialog." });
+    }
+
+    let scenarioVersion = await getLatestScenarioVersion(context.token, simulator.id);
+    if (!scenarioVersion) {
+      if (membership.role !== "owner" && membership.role !== "editor") {
+        return res.status(404).json({ error: "No scenario draft found." });
+      }
+      scenarioVersion = await createInitialScenarioVersion(context.token, simulator, context.user.id);
+    }
+
+    const graph = sanitizeEditorGraph(scenarioVersion?.metadata_json?.editor_graph || null);
+    const sceneType = sanitizeSceneType(scenarioVersion?.metadata_json?.scene_type);
+    const assetCatalog = await buildPreviewAssetCatalog(context.token, graph);
+
+    cleanupExpiredTempPreviewSessions();
+
+    const previewToken = createTempPreviewToken();
+    const nowMs = Date.now();
+    const ttlMs = Math.max(60, Math.min(7200, TEMP_PREVIEW_TTL_SEC)) * 1000;
+    const expiresAtMs = nowMs + ttlMs;
+
+    tempPreviewSessions.set(previewToken, {
+      token: previewToken,
+      simulatorId: simulator.id,
+      dialogName: simulator.name,
+      sceneType,
+      graph,
+      assetCatalog,
+      createdAtMs: nowMs,
+      expiresAtMs,
+    });
+
+    const previewPath = `/preview/${previewToken}`;
+    const baseUrl = `${req.protocol}://${req.get("host") || `localhost:${port}`}`;
+
+    return res.status(201).json({
+      token: previewToken,
+      previewPath,
+      previewUrl: `${baseUrl}${previewPath}`,
+      expiresAt: new Date(expiresAtMs).toISOString(),
+      ttlSec: Math.trunc(ttlMs / 1000),
+      sceneType,
+    });
+  } catch (error) {
+    const payload = formatErrorPayload(error, "Unable to create preview link.");
+    return res.status(error.status || 500).json(payload);
+  }
+});
+
+app.get("/api/v1/preview/:token", (req, res) => {
+  cleanupExpiredTempPreviewSessions();
+
+  const token = String(req.params.token || "").trim();
+  if (!token) {
+    return res.status(400).json({ error: "Invalid preview token." });
+  }
+
+  const session = tempPreviewSessions.get(token);
+  if (!session) {
+    return res.status(404).json({ error: "Preview link not found or expired." });
+  }
+
+  const nowMs = Date.now();
+  if (Number(session.expiresAtMs || 0) <= nowMs) {
+    tempPreviewSessions.delete(token);
+    return res.status(410).json({ error: "Preview link has expired." });
+  }
+
+  return res.status(200).json({
+    token,
+    dialogId: session.simulatorId,
+    dialogName: session.dialogName,
+    sceneType: sanitizeSceneType(session.sceneType),
+    graph: sanitizeEditorGraph(session.graph),
+    assetCatalog: ensurePlainObject(session.assetCatalog)
+      ? {
+          character: Array.isArray(session.assetCatalog.character) ? session.assetCatalog.character : [],
+          background: Array.isArray(session.assetCatalog.background) ? session.assetCatalog.background : [],
+        }
+      : { character: [], background: [] },
+    expiresAt: new Date(Number(session.expiresAtMs || nowMs)).toISOString(),
+    ttlSec: Math.max(0, Math.trunc((Number(session.expiresAtMs || nowMs) - nowMs) / 1000)),
+  });
+});
+
 app.get("/api/v1/builder/dialogs/:id/preview/attempts/summary", async (req, res) => {
   const context = await requireUserContext(req, res);
   if (!context) {
@@ -2473,6 +2660,10 @@ app.get("/assets/characters/:id", (_req, res) => {
 
 app.get("/builder/dialog/:id", (_req, res) => {
   res.sendFile(path.join(publicDir, "builder", "editor", "index.html"));
+});
+
+app.get("/preview/:token", (_req, res) => {
+  res.sendFile(path.join(publicDir, "preview", "index.html"));
 });
 
 app.get("/", (_req, res) => {

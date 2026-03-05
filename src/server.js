@@ -657,6 +657,8 @@ function buildDefaultEditorGraph() {
         position: { x: 520, y: 80 },
         data: {
           title: "Scenario Initialization",
+          passScore: null,
+          maxAttempts: null,
         },
       },
     ],
@@ -671,6 +673,24 @@ function clampNumber(value, min, max, fallback) {
   }
 
   return Math.max(min, Math.min(max, parsed));
+}
+
+function sanitizeOptionalInteger(value, min, max) {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return null;
+  }
+
+  const normalized = Math.trunc(parsed);
+  if (normalized < min || normalized > max) {
+    return null;
+  }
+
+  return normalized;
 }
 
 function sanitizeNodeId(value, fallback) {
@@ -691,8 +711,17 @@ function sanitizeNodeDataByType(type, dataInput) {
   const data = ensureJsonObject(dataInput) ? dataInput : {};
 
   if (type === "start") {
+    const passScore = sanitizeOptionalInteger(
+      data.passScore ?? data.passThreshold ?? data.passingScore,
+      0,
+      100000
+    );
+    const maxAttempts = sanitizeOptionalInteger(data.maxAttempts ?? data.attemptLimit, 1, 1000);
+
     return {
       title: String(data.title || "Scenario Initialization").trim().slice(0, 120) || "Scenario Initialization",
+      passScore,
+      maxAttempts,
     };
   }
 
@@ -870,6 +899,15 @@ function sanitizeEditorGraph(inputGraph) {
 async function getLatestScenarioVersion(token, simulatorId) {
   const rows = await supabaseRest(
     `/scenario_versions?select=id,simulator_id,version_number,state,schema_version,title,locale,start_step_key,metadata_json,updated_at&simulator_id=eq.${encodeURIComponent(simulatorId)}&order=version_number.desc&limit=1`,
+    { token }
+  );
+
+  return rows[0] || null;
+}
+
+async function getActivePublicationForSimulator(token, simulatorId) {
+  const rows = await supabaseRest(
+    `/publications?select=id,simulator_id,publication_key,published_at,is_active&simulator_id=eq.${encodeURIComponent(simulatorId)}&is_active=eq.true&order=published_at.desc&limit=1`,
     { token }
   );
 
@@ -2204,6 +2242,174 @@ app.get("/api/v1/builder/dialogs/:id/export", async (req, res) => {
     });
   } catch (error) {
     const payload = formatErrorPayload(error, "Unable to get export info.");
+    return res.status(error.status || 500).json(payload);
+  }
+});
+
+app.get("/api/v1/builder/dialogs/:id/preview/attempts/summary", async (req, res) => {
+  const context = await requireUserContext(req, res);
+  if (!context) {
+    return;
+  }
+
+  const simulatorId = String(req.params.id || "").trim();
+
+  try {
+    const simulator = await getSimulatorById(context.token, simulatorId);
+    if (!simulator) {
+      return res.status(404).json({ error: "Dialog not found." });
+    }
+
+    const membership = await getMembershipForWorkspace(
+      context.token,
+      context.user.id,
+      simulator.workspace_id
+    );
+
+    if (!membership) {
+      return res.status(403).json({ error: "No access to this dialog." });
+    }
+
+    const publication = await getActivePublicationForSimulator(context.token, simulator.id);
+    if (!publication) {
+      return res.status(404).json({ error: "Dialog is not published yet." });
+    }
+
+    const maxAttempts = sanitizeOptionalInteger(req.query?.maxAttempts, 1, 1000);
+    const learnerRef = String(context.user.id || "").trim() || null;
+
+    const attemptRows = await supabaseRest(
+      `/attempts?select=id&publication_id=eq.${encodeURIComponent(publication.id)}&learner_ref=eq.${encodeURIComponent(
+        learnerRef
+      )}&status=eq.completed`,
+      { token: context.token }
+    );
+
+    const attemptsUsed = Array.isArray(attemptRows) ? attemptRows.length : 0;
+    const attemptsRemaining =
+      maxAttempts === null ? null : Math.max(0, Number(maxAttempts) - Number(attemptsUsed));
+
+    return res.status(200).json({
+      publicationId: publication.id,
+      publicationKey: publication.publication_key,
+      attemptsUsed,
+      maxAttempts,
+      attemptsRemaining,
+    });
+  } catch (error) {
+    const payload = formatErrorPayload(error, "Unable to load attempts summary.");
+    return res.status(error.status || 500).json(payload);
+  }
+});
+
+app.post("/api/v1/builder/dialogs/:id/preview/attempts/complete", async (req, res) => {
+  const context = await requireUserContext(req, res);
+  if (!context) {
+    return;
+  }
+
+  const simulatorId = String(req.params.id || "").trim();
+
+  try {
+    const simulator = await getSimulatorById(context.token, simulatorId);
+    if (!simulator) {
+      return res.status(404).json({ error: "Dialog not found." });
+    }
+
+    const membership = await getMembershipForWorkspace(
+      context.token,
+      context.user.id,
+      simulator.workspace_id
+    );
+
+    if (!membership) {
+      return res.status(403).json({ error: "No access to this dialog." });
+    }
+
+    const publication = await getActivePublicationForSimulator(context.token, simulator.id);
+    if (!publication) {
+      return res.status(404).json({ error: "Dialog is not published yet." });
+    }
+
+    const learnerRef = String(context.user.id || "").trim() || null;
+    const maxAttempts = sanitizeOptionalInteger(req.body?.maxAttempts, 1, 1000);
+    const passScore = sanitizeOptionalInteger(req.body?.passScore, 0, 100000);
+    const finalScore = Math.trunc(clampNumber(req.body?.finalScore, -100000, 100000, 0));
+    const passed = Boolean(req.body?.passed);
+
+    const existingAttemptRows = await supabaseRest(
+      `/attempts?select=id&publication_id=eq.${encodeURIComponent(publication.id)}&learner_ref=eq.${encodeURIComponent(
+        learnerRef
+      )}&status=eq.completed`,
+      { token: context.token }
+    );
+
+    const attemptsUsedBefore = Array.isArray(existingAttemptRows) ? existingAttemptRows.length : 0;
+    if (maxAttempts !== null && attemptsUsedBefore >= maxAttempts) {
+      return res.status(409).json({
+        error: "No attempts left.",
+        attemptsUsed: attemptsUsedBefore,
+        maxAttempts,
+        attemptsRemaining: 0,
+      });
+    }
+
+    const nowIso = new Date().toISOString();
+    const runtimeContext = {
+      source: "editor_preview",
+      simulator_id: simulator.id,
+      scene_type: "messenger",
+      pass_score: passScore,
+      max_attempts: maxAttempts,
+      passed,
+      final_score: finalScore,
+    };
+
+    const insertedAttempts = await supabaseRest("/attempts", {
+      method: "POST",
+      token: context.token,
+      prefer: "return=representation",
+      body: {
+        publication_id: publication.id,
+        learner_ref: learnerRef,
+        status: "completed",
+        started_at: nowIso,
+        completed_at: nowIso,
+        final_score: finalScore,
+        ending_key: passed ? "pass" : "fail",
+        runtime_context: runtimeContext,
+      },
+    });
+
+    const attempt = insertedAttempts[0] || null;
+
+    if (attempt?.id) {
+      await supabaseRest("/attempt_events", {
+        method: "POST",
+        token: context.token,
+        prefer: "return=minimal",
+        body: {
+          attempt_id: attempt.id,
+          event_type: "preview_finished",
+          payload_json: runtimeContext,
+        },
+      });
+    }
+
+    const attemptsUsed = attemptsUsedBefore + 1;
+    const attemptsRemaining =
+      maxAttempts === null ? null : Math.max(0, Number(maxAttempts) - Number(attemptsUsed));
+
+    return res.status(200).json({
+      attemptId: attempt?.id || null,
+      attemptsUsed,
+      maxAttempts,
+      attemptsRemaining,
+      finalScore,
+      passed,
+    });
+  } catch (error) {
+    const payload = formatErrorPayload(error, "Unable to complete preview attempt.");
     return res.status(error.status || 500).json(payload);
   }
 });

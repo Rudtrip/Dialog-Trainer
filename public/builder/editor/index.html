@@ -429,6 +429,13 @@
           selections: {},
           lastBubbleKeys: [],
           awaitFirstChoice: true,
+          attemptsUsed: 0,
+          attemptsRemaining: null,
+          maxAttempts: null,
+          summaryRequestKey: "",
+          pendingCompletionKey: "",
+          loggedCompletionKey: "",
+          isCompletionSaving: false,
         },
       };
 
@@ -524,7 +531,10 @@
         app.phonePreview.open = Boolean(nextOpen);
         if (!app.phonePreview.open) {
           app.phonePreview.lastBubbleKeys = [];
+          return;
         }
+
+        fetchPhonePreviewAttemptsSummary(true);
       }
 
       function togglePhonePreview() {
@@ -533,15 +543,104 @@
       }
 
       function resetPhonePreviewConversation() {
+        const remaining = app.phonePreview.attemptsRemaining;
+        if (Number.isFinite(Number(remaining)) && Number(remaining) <= 0) {
+          toast("Попытки закончились. Сброс недоступен.", "warn");
+          return;
+        }
+
         app.phonePreview.selections = {};
         app.phonePreview.lastBubbleKeys = [];
         app.phonePreview.awaitFirstChoice = true;
+        app.phonePreview.pendingCompletionKey = "";
+        app.phonePreview.loggedCompletionKey = "";
+        app.phonePreview.isCompletionSaving = false;
         renderPhonePreview();
         updateToolButtons();
         if (els.phonePreviewMessages) {
           els.phonePreviewMessages.scrollTop = 0;
         }
         toast("Диалог в телефоне сброшен.");
+      }
+
+      function parseOptionalInteger(value, min, max) {
+        if (value === null || value === undefined || value === "") {
+          return null;
+        }
+
+        const parsed = Number(value);
+        if (!Number.isFinite(parsed)) {
+          return null;
+        }
+
+        const normalized = Math.trunc(parsed);
+        if (normalized < min || normalized > max) {
+          return null;
+        }
+
+        return normalized;
+      }
+
+      function getStartNode() {
+        return app.graph.nodes.find((node) => node.type === "start") || null;
+      }
+
+      function getStartRuntimeSettings() {
+        const startNode = getStartNode();
+        const passScore = parseOptionalInteger(
+          startNode?.data?.passScore ?? startNode?.data?.passThreshold ?? startNode?.data?.passingScore,
+          0,
+          100000
+        );
+        const maxAttempts = parseOptionalInteger(
+          startNode?.data?.maxAttempts ?? startNode?.data?.attemptLimit,
+          1,
+          1000
+        );
+
+        return { passScore, maxAttempts };
+      }
+
+      async function fetchPhonePreviewAttemptsSummary(forceReload = false) {
+        if (!isMessengerScene()) return;
+
+        const { maxAttempts } = getStartRuntimeSettings();
+        const requestKey = String(maxAttempts ?? "none");
+        if (!forceReload && app.phonePreview.summaryRequestKey === requestKey) {
+          return;
+        }
+
+        app.phonePreview.summaryRequestKey = requestKey;
+        app.phonePreview.maxAttempts = maxAttempts;
+
+        if (maxAttempts === null) {
+          app.phonePreview.attemptsUsed = 0;
+          app.phonePreview.attemptsRemaining = null;
+          return;
+        }
+
+        try {
+          const params = new URLSearchParams();
+          params.set("maxAttempts", String(maxAttempts));
+          const payload = await apiRequest(
+            `/api/v1/builder/dialogs/${encodeURIComponent(app.dialogId)}/preview/attempts/summary?${params.toString()}`
+          );
+
+          app.phonePreview.attemptsUsed = Number(payload?.attemptsUsed || 0);
+          app.phonePreview.maxAttempts = parseOptionalInteger(payload?.maxAttempts, 1, 1000) ?? maxAttempts;
+          app.phonePreview.attemptsRemaining =
+            payload?.attemptsRemaining === null || payload?.attemptsRemaining === undefined
+              ? null
+              : Math.max(0, Number(payload.attemptsRemaining));
+        } catch (error) {
+          if (error?.status === 404) {
+            // Not published yet: keep local maxAttempts but do not block preview.
+            app.phonePreview.attemptsUsed = 0;
+            app.phonePreview.attemptsRemaining = maxAttempts;
+          }
+        } finally {
+          renderPhonePreview();
+        }
       }
 
       function getAssetById(type, assetId) {
@@ -558,6 +657,154 @@
           return null;
         }
         return getAssetById("character", node.data?.characterAssetId);
+      }
+
+      function sortNodesByYThenX(nodes) {
+        return (Array.isArray(nodes) ? nodes.slice() : []).sort((a, b) => {
+          const ay = Number(a?.position?.y || 0);
+          const by = Number(b?.position?.y || 0);
+          if (ay !== by) return ay - by;
+          const ax = Number(a?.position?.x || 0);
+          const bx = Number(b?.position?.x || 0);
+          return ax - bx;
+        });
+      }
+
+      function getFirstNpcMessageNode() {
+        const startNode = app.graph.nodes.find((node) => node.type === "start") || null;
+        const firstFromStart = sortNodesByX(getOutgoingNodes(startNode?.id, "message"))[0] || null;
+        if (firstFromStart) {
+          return firstFromStart;
+        }
+
+        const npcMessages = app.graph.nodes.filter((node) => {
+          if (node.type !== "message") return false;
+          const speakerType = String(node.data?.speakerType || "npc").trim().toLowerCase();
+          return speakerType !== "system";
+        });
+        return sortNodesByYThenX(npcMessages)[0] || null;
+      }
+
+      function getDefaultCharacterIdFromFirstMessage() {
+        const firstMessage = getFirstNpcMessageNode();
+        const value = String(firstMessage?.data?.characterAssetId || "").trim();
+        return value || null;
+      }
+
+      function shouldUseCharacterNameAsSpeaker(node, previousCharacterName) {
+        const currentSpeakerName = String(node?.data?.speakerName || "").trim();
+        if (!currentSpeakerName || currentSpeakerName.toLowerCase() === "npc") {
+          return true;
+        }
+        if (previousCharacterName && currentSpeakerName === String(previousCharacterName)) {
+          return true;
+        }
+        return false;
+      }
+
+      function maybeFillSpeakerNameFromCharacter(node, previousCharacterName) {
+        if (!node || node.type !== "message") return false;
+
+        const characterAsset = getMessageCharacterAsset(node);
+        if (!characterAsset) return false;
+
+        if (!shouldUseCharacterNameAsSpeaker(node, previousCharacterName)) {
+          return false;
+        }
+
+        const nextSpeakerName = String(characterAsset.title || "").trim() || "NPC";
+        if (String(node.data?.speakerName || "") === nextSpeakerName) {
+          return false;
+        }
+
+        node.data.speakerName = nextSpeakerName;
+        return true;
+      }
+
+      function applyDefaultCharacterFromFirstMessage() {
+        const firstMessage = getFirstNpcMessageNode();
+        const defaultCharacterId = String(firstMessage?.data?.characterAssetId || "").trim();
+        if (!defaultCharacterId) return false;
+
+        let changed = false;
+        app.graph.nodes.forEach((node) => {
+          if (!node || node.type !== "message") return;
+          if (node.id === firstMessage.id) return;
+
+          const speakerType = String(node.data?.speakerType || "npc").trim().toLowerCase();
+          if (speakerType === "system") return;
+
+          const currentCharacterId = String(node.data?.characterAssetId || "").trim();
+          if (currentCharacterId) return;
+
+          node.data.characterAssetId = defaultCharacterId;
+          changed = true;
+          if (maybeFillSpeakerNameFromCharacter(node)) {
+            changed = true;
+          }
+        });
+
+        return changed;
+      }
+
+      function normalizeMessageNodeDataForEditor() {
+        let changed = false;
+
+        app.graph.nodes.forEach((node) => {
+          if (!node) return;
+
+          if (!node.data || typeof node.data !== "object") {
+            node.data = {};
+            changed = true;
+          }
+
+          if (node.type === "start") {
+            const passScore = parseOptionalInteger(
+              node.data?.passScore ?? node.data?.passThreshold ?? node.data?.passingScore,
+              0,
+              100000
+            );
+            const maxAttempts = parseOptionalInteger(
+              node.data?.maxAttempts ?? node.data?.attemptLimit,
+              1,
+              1000
+            );
+
+            if (node.data.passScore !== passScore) {
+              node.data.passScore = passScore;
+              changed = true;
+            }
+            if (node.data.maxAttempts !== maxAttempts) {
+              node.data.maxAttempts = maxAttempts;
+              changed = true;
+            }
+            return;
+          }
+
+          if (node.type !== "message") return;
+
+          const emotionState = normalizeMessageEmotionState(node.data?.emotionState);
+          if (node.data.emotionState !== emotionState) {
+            node.data.emotionState = emotionState;
+            changed = true;
+          }
+
+          const speakerType = String(node.data?.speakerType || "npc").trim().toLowerCase();
+          if (speakerType !== "system" && maybeFillSpeakerNameFromCharacter(node)) {
+            changed = true;
+          }
+
+          if (!String(node.data?.speakerName || "").trim()) {
+            node.data.speakerName = "NPC";
+            changed = true;
+          }
+        });
+
+        if (applyDefaultCharacterFromFirstMessage()) {
+          changed = true;
+        }
+
+        return changed;
       }
 
       function normalizeMessageEmotionState(value) {
@@ -711,6 +958,7 @@
       }
 
       function buildMessengerPreviewState() {
+        const { passScore, maxAttempts } = getStartRuntimeSettings();
         const baseState = {
           headerName: "NPC",
           headerAvatarUrl: "",
@@ -719,6 +967,14 @@
           choices: [],
           activeMessageId: null,
           empty: true,
+          totalScore: 0,
+          finished: false,
+          passed: true,
+          passScore,
+          maxAttempts,
+          finishNodeId: null,
+          finishLabel: "",
+          completionKey: "",
         };
 
         const startNode = app.graph.nodes.find((node) => node.type === "start") || null;
@@ -736,6 +992,9 @@
         let backgroundImageUrl = "";
         let choices = [];
         let activeMessageId = null;
+        let totalScore = 0;
+        let finished = false;
+        let finishNode = null;
         const visited = new Set();
         let depth = 0;
 
@@ -801,6 +1060,9 @@
             break;
           }
 
+          const scoreDelta = Number(selectedResponse.data?.scoreDelta);
+          totalScore += Number.isFinite(scoreDelta) ? scoreDelta : 0;
+
           bubbles.push({
             key: `r_${selectedResponse.id}`,
             side: "right",
@@ -808,14 +1070,41 @@
           });
 
           const nextMessage = sortNodesByX(getOutgoingNodes(selectedResponse.id, "message"))[0] || null;
-          if (!nextMessage) {
-            choices = [];
-            activeMessageId = null;
-            break;
+          if (nextMessage) {
+            currentMessage = nextMessage;
+            continue;
           }
 
-          currentMessage = nextMessage;
+          finishNode = sortNodesByX(getOutgoingNodes(selectedResponse.id, "end"))[0] || {
+            id: "finish_auto",
+            data: { endingType: "neutral", title: "Finish" },
+          };
+          finished = true;
+          choices = [];
+          activeMessageId = null;
+          break;
         }
+
+        let passed = true;
+        if (finished) {
+          if (passScore !== null) {
+            passed = totalScore >= passScore;
+          } else {
+            const endingType = String(finishNode?.data?.endingType || "")
+              .trim()
+              .toLowerCase();
+            passed = endingType !== "fail";
+          }
+        }
+
+        const selectionKey = Object.keys(app.phonePreview.selections || {})
+          .sort()
+          .map((messageId) => `${messageId}:${app.phonePreview.selections[messageId]}`)
+          .join("|");
+        const completionKey = finished
+          ? `${String(finishNode?.id || "finish")}|${totalScore}|${passScore ?? "none"}|${selectionKey}`
+          : "";
+        const finishLabel = String(finishNode?.data?.title || "").trim() || "Finish";
 
         return {
           headerName,
@@ -825,7 +1114,85 @@
           choices,
           activeMessageId,
           empty: bubbles.length === 0,
+          totalScore,
+          finished,
+          passed,
+          passScore,
+          maxAttempts,
+          finishNodeId: finishNode?.id || null,
+          finishLabel,
+          completionKey,
         };
+      }
+
+      async function completePhonePreviewAttempt(preview) {
+        if (!preview?.finished) return;
+
+        const completionKey = String(preview.completionKey || "").trim();
+        if (!completionKey) return;
+        if (app.phonePreview.loggedCompletionKey === completionKey) return;
+        if (app.phonePreview.pendingCompletionKey === completionKey) return;
+
+        app.phonePreview.pendingCompletionKey = completionKey;
+        app.phonePreview.isCompletionSaving = true;
+
+        try {
+          const payload = await apiRequest(
+            `/api/v1/builder/dialogs/${encodeURIComponent(app.dialogId)}/preview/attempts/complete`,
+            {
+              method: "POST",
+              body: {
+                finalScore: preview.totalScore,
+                passed: Boolean(preview.passed),
+                passScore: preview.passScore,
+                maxAttempts: preview.maxAttempts,
+              },
+            }
+          );
+
+          app.phonePreview.loggedCompletionKey = completionKey;
+          app.phonePreview.attemptsUsed = Number(payload?.attemptsUsed || app.phonePreview.attemptsUsed || 0);
+          app.phonePreview.maxAttempts =
+            parseOptionalInteger(payload?.maxAttempts, 1, 1000) ?? preview.maxAttempts;
+          app.phonePreview.attemptsRemaining =
+            payload?.attemptsRemaining === null || payload?.attemptsRemaining === undefined
+              ? null
+              : Math.max(0, Number(payload.attemptsRemaining));
+
+          if (preview.passed) {
+            toast("Результат попытки сохранен.");
+          } else if (
+            Number.isFinite(Number(app.phonePreview.attemptsRemaining)) &&
+            Number(app.phonePreview.attemptsRemaining) <= 0
+          ) {
+            toast("Тест провален. Попытки закончились.", "warn");
+          } else {
+            toast("Тест провален. Попытка зафиксирована.", "warn");
+          }
+        } catch (error) {
+          if (error?.status === 404) {
+            // Preview can work for unpublished drafts; skip DB tracking in this case.
+            app.phonePreview.loggedCompletionKey = completionKey;
+          } else if (error?.status === 409) {
+            const used = Number(error?.data?.attemptsUsed);
+            const remaining = Number(error?.data?.attemptsRemaining);
+            if (Number.isFinite(used)) {
+              app.phonePreview.attemptsUsed = Math.max(0, used);
+            }
+            app.phonePreview.maxAttempts =
+              parseOptionalInteger(error?.data?.maxAttempts, 1, 1000) ?? preview.maxAttempts;
+            app.phonePreview.attemptsRemaining = Number.isFinite(remaining) ? Math.max(0, remaining) : 0;
+            app.phonePreview.loggedCompletionKey = completionKey;
+            toast("Попытки закончились.", "warn");
+          } else {
+            app.phonePreview.loggedCompletionKey = completionKey;
+            toast(error.message || "Не удалось зафиксировать попытку.", "error");
+          }
+        } finally {
+          app.phonePreview.pendingCompletionKey = "";
+          app.phonePreview.isCompletionSaving = false;
+          renderPhonePreview();
+        }
       }
 
       function renderPhonePreview() {
@@ -843,7 +1210,13 @@
           return;
         }
 
+        void fetchPhonePreviewAttemptsSummary(false);
+
         const preview = buildMessengerPreviewState();
+        if (preview.finished) {
+          void completePhonePreviewAttempt(preview);
+        }
+
         const avatarMarkup = preview.headerAvatarUrl
           ? `<img src="${escapeHtml(preview.headerAvatarUrl)}" alt="${escapeHtml(
               preview.headerName
@@ -855,6 +1228,19 @@
         }
         if (els.phonePreviewHeaderName) {
           els.phonePreviewHeaderName.textContent = preview.headerName || "NPC";
+        }
+
+        const resetBlocked =
+          Number.isFinite(Number(app.phonePreview.attemptsRemaining)) &&
+          Number(app.phonePreview.attemptsRemaining) <= 0;
+        const attemptsExhausted = resetBlocked;
+        if (els.phonePreviewResetBtn) {
+          els.phonePreviewResetBtn.disabled = resetBlocked;
+          els.phonePreviewResetBtn.classList.toggle("opacity-60", resetBlocked);
+          els.phonePreviewResetBtn.classList.toggle("cursor-not-allowed", resetBlocked);
+          els.phonePreviewResetBtn.title = resetBlocked
+            ? "Попытки закончились"
+            : "Reset Conversation";
         }
 
         const backgroundStyle = preview.backgroundImageUrl
@@ -889,8 +1275,51 @@
           })
           .join("");
 
-        const choicesMarkup = preview.choices.length
+        const attemptsLine =
+          preview.maxAttempts === null
+            ? ""
+            : `<p class="text-[10px] text-center text-slate-400 mt-1">Attempts: ${escapeHtml(
+                String(app.phonePreview.attemptsUsed || 0)
+              )} / ${escapeHtml(String(preview.maxAttempts))}${
+                app.phonePreview.attemptsRemaining === null
+                  ? ""
+                  : ` (remaining: ${escapeHtml(String(app.phonePreview.attemptsRemaining))})`
+              }</p>`;
+
+        const finishedMarkup = preview.finished
           ? `
+              <div class="rounded-xl border px-3 py-2 text-xs ${
+                preview.passed
+                  ? "border-green-200 bg-green-50 text-green-700"
+                  : "border-rose-200 bg-rose-50 text-rose-700"
+              }">
+                <div class="font-semibold">${
+                  preview.passed ? "Тест пройден" : "Тест провален"
+                }</div>
+                <div class="mt-1">PTS: <b>${escapeHtml(String(preview.totalScore))}</b>${
+                  preview.passScore !== null
+                    ? `, проходной балл: <b>${escapeHtml(String(preview.passScore))}</b>`
+                    : ""
+                }</div>
+                <div class="mt-1 text-[10px] opacity-80">Finish: ${escapeHtml(
+                  preview.finishLabel || "Finish"
+                )}</div>
+                ${attemptsLine}
+              </div>
+            `
+          : "";
+
+        const choicesMarkup = preview.finished
+          ? finishedMarkup
+          : attemptsExhausted
+            ? `
+              <div class="rounded-xl border border-rose-200 bg-rose-50 text-rose-700 px-3 py-2 text-xs">
+                Попытки закончились. Сброс недоступен.
+                ${attemptsLine}
+              </div>
+            `
+            : preview.choices.length
+            ? `
               <p class="text-[10px] text-center text-gray-400 uppercase font-bold tracking-widest mb-1">Select Response</p>
               ${preview.choices
                 .map((choice) => {
@@ -909,7 +1338,7 @@
                 })
                 .join("")}
             `
-          : "";
+            : attemptsLine;
 
         els.phonePreviewMessages.innerHTML = `
           <div class="min-h-full flex flex-col gap-2"${backgroundStyle}>
@@ -951,6 +1380,8 @@
               position: { x: 520, y: 80 },
               data: {
                 title: "Scenario Initialization",
+                passScore: null,
+                maxAttempts: null,
               },
             },
           ],
@@ -1062,6 +1493,7 @@
         if (!response.ok) {
           const error = new Error(data?.error || `Request failed: ${response.status}`);
           error.status = response.status;
+          error.data = data;
           throw error;
         }
 
@@ -1158,6 +1590,13 @@
 
       function renderNodeContent(node) {
         if (node.type === "start") {
+          const passScore = parseOptionalInteger(
+            node.data?.passScore ?? node.data?.passThreshold ?? node.data?.passingScore,
+            0,
+            100000
+          );
+          const maxAttempts = parseOptionalInteger(node.data?.maxAttempts ?? node.data?.attemptLimit, 1, 1000);
+
           return `
             <div class="p-3">
               <div class="flex items-center gap-2 mb-2">
@@ -1165,6 +1604,22 @@
                 <span class="text-xs font-bold uppercase tracking-wider text-text-secondary">Start</span>
               </div>
               <p class="text-sm font-medium text-text-primary">${node.data?.title || "Scenario Initialization"}</p>
+              <div class="mt-2 flex flex-wrap items-center gap-1.5">
+                ${
+                  passScore === null
+                    ? ""
+                    : `<span class="text-[10px] px-1.5 py-0.5 rounded border border-blue-200 bg-blue-50 text-blue-700 font-semibold">Pass: ${escapeHtml(
+                        String(passScore)
+                      )} pts</span>`
+                }
+                ${
+                  maxAttempts === null
+                    ? ""
+                    : `<span class="text-[10px] px-1.5 py-0.5 rounded border border-amber-200 bg-amber-50 text-amber-700 font-semibold">Attempts: ${escapeHtml(
+                        String(maxAttempts)
+                      )}</span>`
+                }
+              </div>
             </div>
           `;
         }
@@ -1173,8 +1628,10 @@
           const speakerName = String(node.data?.speakerName || "NPC").trim().slice(0, 80) || "NPC";
           const messageText = String(node.data?.text || "Empty message").slice(0, 120);
           const emotionState = getMessageEmotionState(node);
-          const emotionLabel =
-            MESSAGE_EMOTION_STATES.find((emotion) => emotion.key === emotionState)?.label || "Neutral";
+          const emotionMeta =
+            MESSAGE_EMOTION_STATES.find((emotion) => emotion.key === emotionState) || MESSAGE_EMOTION_STATES[0];
+          const emotionLabel = emotionMeta?.label || "Neutral";
+          const emotionIcon = emotionMeta?.icon || "sentiment_neutral";
           const characterAsset = getMessageCharacterAsset(node);
           const characterImageUrl = getMessageCharacterImageUrl(node);
           const characterTitle = characterAsset?.title || speakerName;
@@ -1196,9 +1653,12 @@
                 )}</span>
               </div>
               <p class="text-sm text-text-primary">${escapeHtml(messageText)}</p>
-              <p class="text-[10px] mt-2 inline-flex items-center px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200">${escapeHtml(
-                emotionLabel
-              )}</p>
+              <div class="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded border border-indigo-200 bg-indigo-50 text-indigo-700">
+                <span class="material-symbols-outlined text-[13px]">${emotionIcon}</span>
+                <span class="text-[10px] font-semibold uppercase tracking-wide">Emotion: ${escapeHtml(
+                  emotionLabel
+                )}</span>
+              </div>
             </div>
           `;
         }
@@ -1407,19 +1867,95 @@
         els.deleteNodeBtn.disabled = node.type === "start";
 
         if (node.type === "start") {
+          const passScoreValue = parseOptionalInteger(
+            node.data?.passScore ?? node.data?.passThreshold ?? node.data?.passingScore,
+            0,
+            100000
+          );
+          const maxAttemptsValue = parseOptionalInteger(
+            node.data?.maxAttempts ?? node.data?.attemptLimit,
+            1,
+            1000
+          );
+
           els.inspectorBody.innerHTML = `
-            <label class="text-xs font-bold uppercase text-text-secondary tracking-wider">Title</label>
-            <input id="fieldStartTitle" class="w-full rounded-lg border-gray-300 bg-white text-sm" value="${node.data?.title || "Scenario Initialization"}" />
+            <div class="flex flex-col gap-1">
+              <label class="text-xs font-bold uppercase text-text-secondary tracking-wider">Title</label>
+              <input id="fieldStartTitle" class="w-full rounded-lg border-gray-300 bg-white text-sm" value="${node.data?.title || "Scenario Initialization"}" />
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div class="flex flex-col gap-1">
+                <label class="text-xs font-bold uppercase text-text-secondary tracking-wider">Проходной балл (PTS)</label>
+                <input
+                  id="fieldStartPassScore"
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="Не задан"
+                  class="w-full rounded-lg border-gray-300 bg-white text-sm"
+                  value="${passScoreValue === null ? "" : escapeHtml(String(passScoreValue))}"
+                />
+              </div>
+              <div class="flex flex-col gap-1">
+                <label class="text-xs font-bold uppercase text-text-secondary tracking-wider">Количество попыток</label>
+                <input
+                  id="fieldStartMaxAttempts"
+                  type="number"
+                  min="1"
+                  step="1"
+                  placeholder="Не задано"
+                  class="w-full rounded-lg border-gray-300 bg-white text-sm"
+                  value="${maxAttemptsValue === null ? "" : escapeHtml(String(maxAttemptsValue))}"
+                />
+              </div>
+            </div>
             <p class="text-xs text-text-secondary">Start node is required and cannot be deleted.</p>
           `;
 
           const input = document.getElementById("fieldStartTitle");
-          input.addEventListener("input", () => {
+          const passScoreInput = document.getElementById("fieldStartPassScore");
+          const maxAttemptsInput = document.getElementById("fieldStartMaxAttempts");
+
+          const applyStartSettings = () => {
+            node.data.passScore = parseOptionalInteger(passScoreInput?.value, 0, 100000);
+            node.data.maxAttempts = parseOptionalInteger(maxAttemptsInput?.value, 1, 1000);
+          };
+
+          const rerenderStart = () => {
             node.data.title = String(input.value || "").slice(0, 120);
+            applyStartSettings();
             setDirty(true);
             renderNodes();
             renderEdges();
+            if (app.phonePreview.open) {
+              app.phonePreview.summaryRequestKey = "";
+              app.phonePreview.pendingCompletionKey = "";
+              app.phonePreview.loggedCompletionKey = "";
+              void fetchPhonePreviewAttemptsSummary(true);
+            }
+            renderPhonePreview();
+          };
+
+          input.addEventListener("input", () => {
+            rerenderStart();
           });
+
+          if (passScoreInput) {
+            passScoreInput.addEventListener("input", () => {
+              rerenderStart();
+            });
+          }
+
+          if (maxAttemptsInput) {
+            maxAttemptsInput.addEventListener("input", () => {
+              rerenderStart();
+            });
+          }
+
+          if (app.phonePreview.open) {
+            app.phonePreview.summaryRequestKey = "";
+            void fetchPhonePreviewAttemptsSummary(true);
+          }
           return;
         }
 
@@ -1561,8 +2097,23 @@
             });
           }
           characterSelect.addEventListener("change", () => {
+            const previousCharacterName = selectedCharacterAsset?.title || "";
             const nextValue = String(characterSelect.value || "").trim();
             node.data.characterAssetId = nextValue || null;
+            const isFirstNpcMessage = getFirstNpcMessageNode()?.id === node.id;
+
+            if (nextValue) {
+              maybeFillSpeakerNameFromCharacter(node, previousCharacterName);
+            } else if (shouldUseCharacterNameAsSpeaker(node, previousCharacterName)) {
+              if (String(node.data?.speakerName || "") !== "NPC") {
+                node.data.speakerName = "NPC";
+              }
+            }
+
+            if (isFirstNpcMessage && nextValue) {
+              applyDefaultCharacterFromFirstMessage();
+            }
+
             setDirty(true);
             renderNodes();
             renderEdges();
@@ -1739,11 +2290,16 @@
 
       function getDefaultNodeData(type) {
         if (type === "message") {
+          const defaultCharacterId = getDefaultCharacterIdFromFirstMessage();
+          const defaultCharacterAsset = defaultCharacterId
+            ? getAssetById("character", defaultCharacterId)
+            : null;
+          const defaultSpeakerName = String(defaultCharacterAsset?.title || "").trim() || "NPC";
           return {
             speakerType: "npc",
-            speakerName: "NPC",
+            speakerName: defaultSpeakerName,
             text: "",
-            characterAssetId: null,
+            characterAssetId: defaultCharacterId,
             backgroundAssetId: null,
             emotionState: "neutral",
           };
@@ -2168,9 +2724,17 @@
         app.phonePreview.open = false;
         app.phonePreview.lastBubbleKeys = [];
         app.phonePreview.awaitFirstChoice = true;
+        app.phonePreview.attemptsUsed = 0;
+        app.phonePreview.attemptsRemaining = null;
+        app.phonePreview.maxAttempts = null;
+        app.phonePreview.summaryRequestKey = "";
+        app.phonePreview.pendingCompletionKey = "";
+        app.phonePreview.loggedCompletionKey = "";
+        app.phonePreview.isCompletionSaving = false;
         app.scenarioVersionId = payload.scenarioVersionId || null;
         app.revision = payload.revision || null;
         app.graph = ensureGraph(payload.graph);
+        normalizeMessageNodeDataForEditor();
         els.dialogNameLabel.textContent = app.dialogName;
         document.title = `Scenario Editor - ${app.dialogName}`;
 
@@ -2197,6 +2761,7 @@
 
           app.revision = payload.revision || app.revision;
           app.graph = ensureGraph(payload.graph);
+          normalizeMessageNodeDataForEditor();
           setDirty(false);
           toast("Сценарий сохранен.");
           renderAll();
@@ -2322,6 +2887,14 @@
           els.phonePreviewPanel.addEventListener("click", (event) => {
             const choiceButton = event.target.closest("[data-phone-choice-id]");
             if (!choiceButton) {
+              return;
+            }
+
+            const attemptsExhausted =
+              Number.isFinite(Number(app.phonePreview.attemptsRemaining)) &&
+              Number(app.phonePreview.attemptsRemaining) <= 0;
+            if (attemptsExhausted) {
+              toast("Попытки закончились.", "warn");
               return;
             }
 

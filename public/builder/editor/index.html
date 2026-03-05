@@ -167,6 +167,36 @@
       .phone-bubble-enter {
         animation: phoneBubbleIn 0.24s ease-out both;
       }
+
+      .dialog-preview-stage {
+        box-shadow:
+          inset 0 0 0 1px rgba(255, 255, 255, 0.4),
+          0 12px 24px rgba(15, 23, 42, 0.08);
+      }
+
+      .dialog-choice-btn {
+        width: 100%;
+        border-radius: 12px;
+        border: 1px solid #514df7;
+        padding: 12px 14px;
+        font-size: 15px;
+        font-weight: 600;
+        text-align: left;
+        color: #514df7;
+        background: #fff;
+        transition: all 0.18s ease;
+      }
+
+      .dialog-choice-btn:hover {
+        background: #514df7;
+        color: #fff;
+        transform: translateX(2px);
+      }
+
+      .dialog-choice-btn.active {
+        background: #514df7;
+        color: #fff;
+      }
     </style>
   </head>
   <body class="bg-background-light font-display text-text-primary overflow-hidden h-screen flex flex-col">
@@ -243,6 +273,13 @@
           title="Phone Preview"
         >
           <span class="material-symbols-outlined">smartphone</span>
+        </button>
+        <button
+          id="toolDialogPreviewBtn"
+          class="size-10 rounded-lg hidden items-center justify-center text-text-secondary hover:bg-primary/5 hover:text-primary transition-colors"
+          title="Dialog Preview"
+        >
+          <span class="material-symbols-outlined">forum</span>
         </button>
       </aside>
 
@@ -388,6 +425,92 @@
           <span class="material-symbols-outlined text-sm">close</span>
         </button>
       </aside>
+
+      <aside
+        id="dialogPreviewPanel"
+        class="w-[700px] h-full bg-slate-100 border-l border-border-light flex-col p-6 z-20 shadow-[-10px_0_30px_rgba(0,0,0,0.05)] hidden relative"
+      >
+        <div id="dialogPreviewStage" class="dialog-preview-stage relative flex-1 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+          <div id="dialogPreviewBackground" class="absolute inset-0 bg-cover bg-center"></div>
+          <div class="absolute inset-0 bg-white/30"></div>
+          <div class="relative z-10 flex h-full flex-col">
+            <header class="flex items-center justify-between px-6 py-3 bg-white/90 border-b border-slate-200 backdrop-blur-sm">
+              <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-primary">forum</span>
+                <div class="flex flex-col">
+                  <span class="text-sm font-bold text-slate-800">Dialogue Preview</span>
+                  <span id="dialogPreviewProgressText" class="text-[11px] text-slate-500">Live from current graph</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-3">
+                <button
+                  id="dialogPreviewResetBtn"
+                  class="h-8 rounded-full bg-white border border-gray-200 px-3 text-[11px] font-semibold text-gray-600 hover:text-primary hover:border-primary/30 shadow-sm"
+                  title="Reset Conversation"
+                >
+                  Сбросить
+                </button>
+                <div class="text-xs font-semibold text-slate-600">
+                  PTS:
+                  <span id="dialogPreviewScore" class="text-primary">0</span>
+                </div>
+              </div>
+            </header>
+
+            <main class="flex-1 flex items-end justify-between gap-6 px-6 pb-6 pt-4">
+              <div class="w-[44%] h-full flex items-end justify-center">
+                <div class="relative w-full max-w-[290px] h-full max-h-[640px] flex items-end justify-center">
+                  <img
+                    id="dialogPreviewCharacterImg"
+                    alt="Character"
+                    class="max-h-full w-full object-contain drop-shadow-xl hidden"
+                  />
+                  <div
+                    id="dialogPreviewCharacterFallback"
+                    class="h-[75%] w-full rounded-2xl border border-dashed border-slate-300 bg-white/70 text-slate-400 flex items-center justify-center text-xs font-medium"
+                  >
+                    Character not selected
+                  </div>
+                  <div
+                    id="dialogPreviewEmotionBadge"
+                    class="absolute bottom-24 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl items-center gap-2 shadow border border-white hidden"
+                  >
+                    <span id="dialogPreviewEmotionIcon" class="material-symbols-outlined text-primary text-[18px]">sentiment_neutral</span>
+                    <span id="dialogPreviewEmotionLabel" class="text-[10px] font-bold text-slate-700 uppercase tracking-widest">Neutral</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="w-[56%] flex flex-col gap-4 mb-4">
+                <div class="bg-white rounded-2xl p-7 border border-slate-100 shadow-lg shadow-slate-200/40 relative min-h-[150px]">
+                  <div id="dialogPreviewSpeakerBadge" class="absolute -top-3.5 left-6 bg-primary text-white px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow">
+                    NPC
+                  </div>
+                  <span class="material-symbols-outlined text-slate-100 text-6xl absolute right-6 top-5 select-none">format_quote</span>
+                  <p id="dialogPreviewMessageText" class="relative z-10 text-slate-800 text-xl font-medium leading-relaxed">
+                    Add a Message node to see preview.
+                  </p>
+                </div>
+
+                <div id="dialogPreviewChoices" class="flex flex-col gap-2.5"></div>
+
+                <div
+                  id="dialogPreviewFinish"
+                  class="hidden rounded-xl border px-4 py-3 text-sm border-slate-200 bg-white text-slate-700"
+                ></div>
+              </div>
+            </main>
+          </div>
+        </div>
+
+        <button
+          id="dialogPreviewCloseBtn"
+          class="absolute top-4 right-4 size-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-600 shadow-sm"
+          title="Close Dialog Preview"
+        >
+          <span class="material-symbols-outlined text-sm">close</span>
+        </button>
+      </aside>
     </div>
 
     <div id="toastContainer" class="fixed right-4 bottom-4 z-50 flex flex-col gap-2"></div>
@@ -437,6 +560,11 @@
           loggedCompletionKey: "",
           isCompletionSaving: false,
         },
+        dialogPreview: {
+          open: false,
+          selections: {},
+          awaitFirstChoice: true,
+        },
       };
 
       const els = {
@@ -449,6 +577,7 @@
         toolConnectBtn: document.getElementById("toolConnectBtn"),
         toolPhoneDivider: document.getElementById("toolPhoneDivider"),
         toolPhonePreviewBtn: document.getElementById("toolPhonePreviewBtn"),
+        toolDialogPreviewBtn: document.getElementById("toolDialogPreviewBtn"),
         canvasViewport: document.getElementById("canvasViewport"),
         canvasInner: document.getElementById("canvasInner"),
         edgesSvg: document.getElementById("edgesSvg"),
@@ -475,6 +604,21 @@
         phonePreviewChoices: document.getElementById("phonePreviewChoices"),
         phonePreviewHeaderAvatar: document.getElementById("phonePreviewHeaderAvatar"),
         phonePreviewHeaderName: document.getElementById("phonePreviewHeaderName"),
+        dialogPreviewPanel: document.getElementById("dialogPreviewPanel"),
+        dialogPreviewCloseBtn: document.getElementById("dialogPreviewCloseBtn"),
+        dialogPreviewResetBtn: document.getElementById("dialogPreviewResetBtn"),
+        dialogPreviewBackground: document.getElementById("dialogPreviewBackground"),
+        dialogPreviewProgressText: document.getElementById("dialogPreviewProgressText"),
+        dialogPreviewScore: document.getElementById("dialogPreviewScore"),
+        dialogPreviewCharacterImg: document.getElementById("dialogPreviewCharacterImg"),
+        dialogPreviewCharacterFallback: document.getElementById("dialogPreviewCharacterFallback"),
+        dialogPreviewEmotionBadge: document.getElementById("dialogPreviewEmotionBadge"),
+        dialogPreviewEmotionIcon: document.getElementById("dialogPreviewEmotionIcon"),
+        dialogPreviewEmotionLabel: document.getElementById("dialogPreviewEmotionLabel"),
+        dialogPreviewSpeakerBadge: document.getElementById("dialogPreviewSpeakerBadge"),
+        dialogPreviewMessageText: document.getElementById("dialogPreviewMessageText"),
+        dialogPreviewChoices: document.getElementById("dialogPreviewChoices"),
+        dialogPreviewFinish: document.getElementById("dialogPreviewFinish"),
         toastContainer: document.getElementById("toastContainer"),
       };
 
@@ -509,17 +653,29 @@
         return normalizeSceneType(app.sceneType) === "messenger";
       }
 
+      function isDialogScene() {
+        return normalizeSceneType(app.sceneType) === "dialog";
+      }
+
       function updatePhonePreviewToolVisibility() {
-        const show = isMessengerScene();
+        const showPhone = isMessengerScene();
+        const showDialog = isDialogScene();
         if (els.toolPhonePreviewBtn) {
-          els.toolPhonePreviewBtn.classList.toggle("hidden", !show);
-          els.toolPhonePreviewBtn.classList.toggle("flex", show);
+          els.toolPhonePreviewBtn.classList.toggle("hidden", !showPhone);
+          els.toolPhonePreviewBtn.classList.toggle("flex", showPhone);
+        }
+        if (els.toolDialogPreviewBtn) {
+          els.toolDialogPreviewBtn.classList.toggle("hidden", !showDialog);
+          els.toolDialogPreviewBtn.classList.toggle("flex", showDialog);
         }
         if (els.toolPhoneDivider) {
-          els.toolPhoneDivider.classList.toggle("hidden", !show);
+          els.toolPhoneDivider.classList.toggle("hidden", !(showPhone || showDialog));
         }
-        if (!show) {
+        if (!showPhone) {
           app.phonePreview.open = false;
+        }
+        if (!showDialog) {
+          app.dialogPreview.open = false;
         }
       }
 
@@ -529,6 +685,9 @@
           return;
         }
         app.phonePreview.open = Boolean(nextOpen);
+        if (app.phonePreview.open) {
+          app.dialogPreview.open = false;
+        }
         if (!app.phonePreview.open) {
           app.phonePreview.lastBubbleKeys = [];
           return;
@@ -537,8 +696,24 @@
         fetchPhonePreviewAttemptsSummary(true);
       }
 
+      function setDialogPreviewOpen(nextOpen) {
+        if (!isDialogScene()) {
+          app.dialogPreview.open = false;
+          return;
+        }
+        app.dialogPreview.open = Boolean(nextOpen);
+        if (app.dialogPreview.open) {
+          app.phonePreview.open = false;
+        }
+      }
+
       function togglePhonePreview() {
         setPhonePreviewOpen(!app.phonePreview.open);
+        renderAll();
+      }
+
+      function toggleDialogPreview() {
+        setDialogPreviewOpen(!app.dialogPreview.open);
         renderAll();
       }
 
@@ -561,6 +736,14 @@
           els.phonePreviewMessages.scrollTop = 0;
         }
         toast("Диалог в телефоне сброшен.");
+      }
+
+      function resetDialogPreviewConversation() {
+        app.dialogPreview.selections = {};
+        app.dialogPreview.awaitFirstChoice = true;
+        renderDialogPreview();
+        updateToolButtons();
+        toast("Диалог сброшен.");
       }
 
       function parseOptionalInteger(value, min, max) {
@@ -957,15 +1140,29 @@
         return resolveAssetMediaUrl(background?.fileUrl || background?.thumbnailUrl);
       }
 
-      function buildMessengerPreviewState() {
+      function buildConversationPreviewState(previewRuntime) {
         const { passScore, maxAttempts } = getStartRuntimeSettings();
+        const selections =
+          previewRuntime && typeof previewRuntime === "object" && previewRuntime.selections
+            ? previewRuntime.selections
+            : {};
+        const awaitFirstChoice = Boolean(previewRuntime?.awaitFirstChoice);
+
         const baseState = {
           headerName: "NPC",
           headerAvatarUrl: "",
           backgroundImageUrl: "",
+          activeBackgroundImageUrl: "",
           bubbles: [],
           choices: [],
           activeMessageId: null,
+          activeSpeakerName: "NPC",
+          activeMessageText: "",
+          activeCharacterImageUrl: "",
+          activeCharacterTitle: "NPC",
+          activeEmotionState: "neutral",
+          activeEmotionLabel: "Neutral",
+          activeEmotionIcon: "sentiment_neutral",
           empty: true,
           totalScore: 0,
           finished: false,
@@ -990,11 +1187,13 @@
         let headerName = "NPC";
         let headerAvatarUrl = "";
         let backgroundImageUrl = "";
+        let activeBackgroundImageUrl = "";
         let choices = [];
         let activeMessageId = null;
         let totalScore = 0;
         let finished = false;
         let finishNode = null;
+        let activeMessageMeta = null;
         const visited = new Set();
         let depth = 0;
 
@@ -1008,6 +1207,9 @@
           const characterAsset = getMessageCharacterAsset(currentMessage);
           const characterImageUrl = getMessageCharacterImageUrl(currentMessage);
           const backgroundUrl = getMessageBackgroundImageUrl(currentMessage);
+          const emotionState = getMessageEmotionState(currentMessage);
+          const emotionMeta =
+            MESSAGE_EMOTION_STATES.find((emotion) => emotion.key === emotionState) || MESSAGE_EMOTION_STATES[0];
 
           if (!headerAvatarUrl && characterImageUrl) {
             headerAvatarUrl = characterImageUrl;
@@ -1018,6 +1220,20 @@
           if (!backgroundImageUrl && backgroundUrl) {
             backgroundImageUrl = backgroundUrl;
           }
+          if (backgroundUrl) {
+            activeBackgroundImageUrl = backgroundUrl;
+          }
+
+          activeMessageMeta = {
+            id: currentMessage.id,
+            speakerName,
+            messageText,
+            characterImageUrl,
+            characterTitle: String(characterAsset?.title || speakerName || "NPC"),
+            emotionState,
+            emotionLabel: emotionMeta?.label || "Neutral",
+            emotionIcon: emotionMeta?.icon || "sentiment_neutral",
+          };
 
           bubbles.push({
             key: `m_${currentMessage.id}`,
@@ -1038,7 +1254,7 @@
             text: String(responseNode.data?.responseText || "").trim() || "Empty response",
           }));
 
-          if (app.phonePreview.awaitFirstChoice) {
+          if (awaitFirstChoice) {
             break;
           }
 
@@ -1047,16 +1263,14 @@
             break;
           }
 
-          const selectedResponseId = String(app.phonePreview.selections[currentMessage.id] || "").trim();
+          const selectedResponseId = String(selections[currentMessage.id] || "").trim();
           if (!selectedResponseId) {
             break;
           }
 
-          const selectedResponse = responseNodes.find(
-            (responseNode) => responseNode.id === selectedResponseId
-          );
+          const selectedResponse = responseNodes.find((responseNode) => responseNode.id === selectedResponseId);
           if (!selectedResponse) {
-            delete app.phonePreview.selections[currentMessage.id];
+            delete selections[currentMessage.id];
             break;
           }
 
@@ -1097,9 +1311,9 @@
           }
         }
 
-        const selectionKey = Object.keys(app.phonePreview.selections || {})
+        const selectionKey = Object.keys(selections || {})
           .sort()
-          .map((messageId) => `${messageId}:${app.phonePreview.selections[messageId]}`)
+          .map((messageId) => `${messageId}:${selections[messageId]}`)
           .join("|");
         const completionKey = finished
           ? `${String(finishNode?.id || "finish")}|${totalScore}|${passScore ?? "none"}|${selectionKey}`
@@ -1110,9 +1324,17 @@
           headerName,
           headerAvatarUrl,
           backgroundImageUrl,
+          activeBackgroundImageUrl: activeBackgroundImageUrl || backgroundImageUrl,
           bubbles,
           choices,
           activeMessageId,
+          activeSpeakerName: activeMessageMeta?.speakerName || headerName || "NPC",
+          activeMessageText: activeMessageMeta?.messageText || "",
+          activeCharacterImageUrl: activeMessageMeta?.characterImageUrl || headerAvatarUrl,
+          activeCharacterTitle: activeMessageMeta?.characterTitle || headerName || "NPC",
+          activeEmotionState: activeMessageMeta?.emotionState || "neutral",
+          activeEmotionLabel: activeMessageMeta?.emotionLabel || "Neutral",
+          activeEmotionIcon: activeMessageMeta?.emotionIcon || "sentiment_neutral",
           empty: bubbles.length === 0,
           totalScore,
           finished,
@@ -1123,6 +1345,14 @@
           finishLabel,
           completionKey,
         };
+      }
+
+      function buildMessengerPreviewState() {
+        return buildConversationPreviewState(app.phonePreview);
+      }
+
+      function buildDialogPreviewState() {
+        return buildConversationPreviewState(app.dialogPreview);
       }
 
       async function completePhonePreviewAttempt(preview) {
@@ -1351,6 +1581,129 @@
         app.phonePreview.lastBubbleKeys = preview.bubbles.map((bubble) => String(bubble.key || ""));
       }
 
+      function renderDialogPreview() {
+        updatePhonePreviewToolVisibility();
+
+        if (!els.dialogPreviewPanel) {
+          return;
+        }
+
+        const shouldShow = isDialogScene() && app.dialogPreview.open;
+        els.dialogPreviewPanel.classList.toggle("hidden", !shouldShow);
+        els.dialogPreviewPanel.classList.toggle("flex", shouldShow);
+
+        if (!shouldShow) {
+          return;
+        }
+
+        const preview = buildDialogPreviewState();
+        const hasActiveStep = !preview.finished && preview.choices.length > 0;
+        const hasAnyDialogue = !preview.empty;
+        const progressText = hasActiveStep ? "Choose response to continue" : "Dialogue summary";
+
+        if (els.dialogPreviewProgressText) {
+          els.dialogPreviewProgressText.textContent = hasAnyDialogue ? progressText : "Live from current graph";
+        }
+        if (els.dialogPreviewScore) {
+          els.dialogPreviewScore.textContent = String(preview.totalScore || 0);
+        }
+
+        const backgroundUrl = preview.activeBackgroundImageUrl || preview.backgroundImageUrl;
+        if (els.dialogPreviewBackground) {
+          els.dialogPreviewBackground.style.backgroundImage = backgroundUrl
+            ? `url("${escapeHtml(backgroundUrl)}")`
+            : "none";
+        }
+
+        const messageText = preview.activeMessageText || "Add a Message node to see preview.";
+        if (els.dialogPreviewMessageText) {
+          els.dialogPreviewMessageText.textContent = messageText;
+        }
+        if (els.dialogPreviewSpeakerBadge) {
+          els.dialogPreviewSpeakerBadge.textContent = preview.activeSpeakerName || preview.headerName || "NPC";
+        }
+
+        const characterImageUrl = preview.activeCharacterImageUrl || preview.headerAvatarUrl || "";
+        if (els.dialogPreviewCharacterImg && els.dialogPreviewCharacterFallback) {
+          if (characterImageUrl) {
+            els.dialogPreviewCharacterImg.src = characterImageUrl;
+            els.dialogPreviewCharacterImg.alt = preview.activeCharacterTitle || preview.headerName || "Character";
+            els.dialogPreviewCharacterImg.classList.remove("hidden");
+            els.dialogPreviewCharacterFallback.classList.add("hidden");
+          } else {
+            els.dialogPreviewCharacterImg.src = "";
+            els.dialogPreviewCharacterImg.alt = "Character";
+            els.dialogPreviewCharacterImg.classList.add("hidden");
+            els.dialogPreviewCharacterFallback.classList.remove("hidden");
+          }
+        }
+
+        if (els.dialogPreviewEmotionBadge && els.dialogPreviewEmotionIcon && els.dialogPreviewEmotionLabel) {
+          if (characterImageUrl) {
+            els.dialogPreviewEmotionBadge.classList.remove("hidden");
+            els.dialogPreviewEmotionBadge.classList.add("flex");
+            els.dialogPreviewEmotionIcon.textContent = preview.activeEmotionIcon || "sentiment_neutral";
+            els.dialogPreviewEmotionLabel.textContent = preview.activeEmotionLabel || "Neutral";
+          } else {
+            els.dialogPreviewEmotionBadge.classList.add("hidden");
+            els.dialogPreviewEmotionBadge.classList.remove("flex");
+          }
+        }
+
+        if (els.dialogPreviewChoices) {
+          if (preview.empty) {
+            els.dialogPreviewChoices.innerHTML = "";
+          } else if (preview.finished) {
+            els.dialogPreviewChoices.innerHTML = "";
+          } else if (preview.choices.length > 0) {
+            const selectedId = String(app.dialogPreview.selections[preview.activeMessageId] || "");
+            els.dialogPreviewChoices.innerHTML = preview.choices
+              .map((choice) => {
+                const selectedClass = selectedId === choice.id ? "active" : "";
+                return `
+                  <button
+                    type="button"
+                    class="dialog-choice-btn ${selectedClass}"
+                    data-dialog-choice-id="${escapeHtml(choice.id)}"
+                    data-dialog-message-id="${escapeHtml(preview.activeMessageId || "")}"
+                  >
+                    ${escapeHtml(choice.text)}
+                  </button>
+                `;
+              })
+              .join("");
+          } else {
+            els.dialogPreviewChoices.innerHTML = "";
+          }
+        }
+
+        if (els.dialogPreviewFinish) {
+          if (!preview.finished) {
+            els.dialogPreviewFinish.classList.add("hidden");
+            els.dialogPreviewFinish.textContent = "";
+          } else {
+            els.dialogPreviewFinish.classList.remove("hidden");
+            els.dialogPreviewFinish.className = `rounded-xl border px-4 py-3 text-sm ${
+              preview.passed
+                ? "border-green-200 bg-green-50 text-green-700"
+                : "border-rose-200 bg-rose-50 text-rose-700"
+            }`;
+            const thresholdText =
+              preview.passScore === null ? "" : ` (проходной: ${escapeHtml(String(preview.passScore))})`;
+            els.dialogPreviewFinish.innerHTML = `
+              <div class="font-semibold">${preview.passed ? "Тест пройден" : "Тест провален"}</div>
+              <div class="mt-1">PTS: <b>${escapeHtml(String(preview.totalScore))}</b>${thresholdText}</div>
+              <div class="mt-1 text-xs opacity-80">Finish: ${escapeHtml(preview.finishLabel || "Finish")}</div>
+            `;
+          }
+        }
+      }
+
+      function renderPreviewPanels() {
+        renderPhonePreview();
+        renderDialogPreview();
+      }
+
       function getToken() {
         const direct = localStorage.getItem(storageKeys.accessToken);
         if (direct) return direct;
@@ -1529,13 +1882,16 @@
       }
 
       function updateToolButtons() {
-        [els.toolSelectBtn, els.toolConnectBtn, els.toolPhonePreviewBtn]
+        [els.toolSelectBtn, els.toolConnectBtn, els.toolPhonePreviewBtn, els.toolDialogPreviewBtn]
           .filter(Boolean)
           .forEach((btn) => btn.classList.remove("tool-active"));
         if (app.tool === "select") els.toolSelectBtn.classList.add("tool-active");
         if (app.tool === "connect") els.toolConnectBtn.classList.add("tool-active");
         if (app.phonePreview.open && isMessengerScene() && els.toolPhonePreviewBtn) {
           els.toolPhonePreviewBtn.classList.add("tool-active");
+        }
+        if (app.dialogPreview.open && isDialogScene() && els.toolDialogPreviewBtn) {
+          els.toolDialogPreviewBtn.classList.add("tool-active");
         }
       }
 
@@ -1933,7 +2289,7 @@
               app.phonePreview.loggedCompletionKey = "";
               void fetchPhonePreviewAttemptsSummary(true);
             }
-            renderPhonePreview();
+            renderPreviewPanels();
           };
 
           input.addEventListener("input", () => {
@@ -2083,6 +2439,7 @@
             setDirty(true);
             renderNodes();
             renderEdges();
+            renderPreviewPanels();
           });
           text.addEventListener("input", () => {
             node.data.text = String(text.value || "").slice(0, 4000);
@@ -2090,6 +2447,7 @@
             updateTextCounter();
             renderNodes();
             renderEdges();
+            renderPreviewPanels();
           });
           if (insertVarBtn) {
             insertVarBtn.addEventListener("click", () => {
@@ -2121,6 +2479,7 @@
             if (app.selectedNodeId === node.id) {
               renderInspector();
             }
+            renderPreviewPanels();
           });
           emotionButtons.forEach((button) => {
             button.addEventListener("click", () => {
@@ -2133,12 +2492,14 @@
               if (app.selectedNodeId === node.id) {
                 renderInspector();
               }
+              renderPreviewPanels();
             });
           });
           backgroundSelect.addEventListener("change", () => {
             const nextValue = String(backgroundSelect.value || "").trim();
             node.data.backgroundAssetId = nextValue || null;
             setDirty(true);
+            renderPreviewPanels();
           });
           return;
         }
@@ -2182,16 +2543,19 @@
             setDirty(true);
             renderNodes();
             renderEdges();
+            renderPreviewPanels();
           });
           responseScore.addEventListener("input", () => {
             node.data.scoreDelta = Number.isFinite(Number(responseScore.value)) ? Number(responseScore.value) : 0;
             setDirty(true);
             renderNodes();
             renderEdges();
+            renderPreviewPanels();
           });
           responseFeedback.addEventListener("change", () => {
             node.data.feedbackType = responseFeedback.value;
             setDirty(true);
+            renderPreviewPanels();
           });
           hintEnabled.addEventListener("change", () => {
             node.data.hintEnabled = Boolean(hintEnabled.checked);
@@ -2200,10 +2564,12 @@
             }
             setDirty(true);
             renderInspector();
+            renderPreviewPanels();
           });
           hintText.addEventListener("input", () => {
             node.data.hintText = String(hintText.value || "").slice(0, 1200);
             setDirty(true);
+            renderPreviewPanels();
           });
           return;
         }
@@ -2226,10 +2592,12 @@
           setDirty(true);
           renderNodes();
           renderEdges();
+          renderPreviewPanels();
         });
         endType.addEventListener("change", () => {
           node.data.endingType = endType.value;
           setDirty(true);
+          renderPreviewPanels();
         });
       }
 
@@ -2237,7 +2605,7 @@
         renderNodes();
         renderEdges();
         renderInspector();
-        renderPhonePreview();
+        renderPreviewPanels();
         updateToolButtons();
         updateQuickAddUI();
         els.zoomLabel.textContent = `${app.graph?.viewport?.zoom || 100}%`;
@@ -2731,6 +3099,9 @@
         app.phonePreview.pendingCompletionKey = "";
         app.phonePreview.loggedCompletionKey = "";
         app.phonePreview.isCompletionSaving = false;
+        app.dialogPreview.open = false;
+        app.dialogPreview.selections = {};
+        app.dialogPreview.awaitFirstChoice = true;
         app.scenarioVersionId = payload.scenarioVersionId || null;
         app.revision = payload.revision || null;
         app.graph = ensureGraph(payload.graph);
@@ -2801,6 +3172,9 @@
         if (els.toolPhonePreviewBtn) {
           els.toolPhonePreviewBtn.addEventListener("click", togglePhonePreview);
         }
+        if (els.toolDialogPreviewBtn) {
+          els.toolDialogPreviewBtn.addEventListener("click", toggleDialogPreview);
+        }
         if (els.phonePreviewCloseBtn) {
           els.phonePreviewCloseBtn.addEventListener("click", () => {
             setPhonePreviewOpen(false);
@@ -2810,6 +3184,17 @@
         if (els.phonePreviewResetBtn) {
           els.phonePreviewResetBtn.addEventListener("click", () => {
             resetPhonePreviewConversation();
+          });
+        }
+        if (els.dialogPreviewCloseBtn) {
+          els.dialogPreviewCloseBtn.addEventListener("click", () => {
+            setDialogPreviewOpen(false);
+            renderAll();
+          });
+        }
+        if (els.dialogPreviewResetBtn) {
+          els.dialogPreviewResetBtn.addEventListener("click", () => {
+            resetDialogPreviewConversation();
           });
         }
         els.deleteNodeBtn.addEventListener("click", deleteSelectedNode);
@@ -2907,6 +3292,26 @@
             app.phonePreview.awaitFirstChoice = false;
             app.phonePreview.selections[messageId] = responseId;
             renderPhonePreview();
+            updateToolButtons();
+          });
+        }
+
+        if (els.dialogPreviewPanel) {
+          els.dialogPreviewPanel.addEventListener("click", (event) => {
+            const choiceButton = event.target.closest("[data-dialog-choice-id]");
+            if (!choiceButton) {
+              return;
+            }
+
+            const messageId = String(choiceButton.dataset.dialogMessageId || "").trim();
+            const responseId = String(choiceButton.dataset.dialogChoiceId || "").trim();
+            if (!messageId || !responseId) {
+              return;
+            }
+
+            app.dialogPreview.awaitFirstChoice = false;
+            app.dialogPreview.selections[messageId] = responseId;
+            renderDialogPreview();
             updateToolButtons();
           });
         }

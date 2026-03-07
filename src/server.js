@@ -2845,13 +2845,30 @@ app.get("/assets", (_req, res) => {
   res.sendFile(path.join(publicDir, "assets", "index.html"));
 });
 
-app.get("/assets/characters/:id", (_req, res) => {
+const sendCharacterEditPage = (_req, res) => {
   res.sendFile(path.join(publicDir, "assets", "character-edit.html"));
-});
+};
+
+app.get("/assets/characters/:id", sendCharacterEditPage);
 
 // Backward compatibility for legacy localized links.
-app.get("/assets/персонажей/:id", (_req, res) => {
-  res.sendFile(path.join(publicDir, "assets", "character-edit.html"));
+app.get("/assets/персонажей/:id", sendCharacterEditPage);
+
+// Also handle URLs where localized path segments arrive url-encoded.
+app.get("/assets/:section/:id", (req, res, next) => {
+  const rawSection = String(req.params.section || "").trim();
+  let decodedSection = rawSection;
+  try {
+    decodedSection = decodeURIComponent(rawSection);
+  } catch (_error) {
+    decodedSection = rawSection;
+  }
+
+  const normalizedSection = decodedSection.toLowerCase();
+  if (normalizedSection === "characters" || normalizedSection === "персонажей") {
+    return sendCharacterEditPage(req, res);
+  }
+  return next();
 });
 
 app.get("/builder/dialog/:id", (_req, res) => {

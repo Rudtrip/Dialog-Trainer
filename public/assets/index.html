@@ -575,7 +575,7 @@
         if (action === "edit") {
           const id = String(actionElement.dataset.id || "").trim();
           if (id && state.activeTab === "character") {
-            window.location.href = `/assets/персонажей/${encodeURIComponent(id)}`;
+            window.location.href = `/assets/characters/${encodeURIComponent(id)}`;
           }
           return;
         }

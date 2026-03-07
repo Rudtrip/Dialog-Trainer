@@ -2849,6 +2849,11 @@ app.get("/assets/characters/:id", (_req, res) => {
   res.sendFile(path.join(publicDir, "assets", "character-edit.html"));
 });
 
+// Backward compatibility for legacy localized links.
+app.get("/assets/персонажей/:id", (_req, res) => {
+  res.sendFile(path.join(publicDir, "assets", "character-edit.html"));
+});
+
 app.get("/builder/dialog/:id", (_req, res) => {
   res.sendFile(path.join(publicDir, "builder", "editor", "index.html"));
 });

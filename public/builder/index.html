@@ -638,6 +638,73 @@
         margin-top: 12px;
       }
 
+      .publish-modal-card {
+        width: min(960px, 100%);
+        max-height: 92vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .publish-modal-scroll {
+        padding: 20px 22px;
+        overflow-y: auto;
+      }
+
+      .publish-top {
+        border: 1px solid var(--line-soft);
+        border-radius: 14px;
+        background: #f8fafc;
+        padding: 14px;
+        margin-top: 12px;
+      }
+
+      .publish-top h3 {
+        margin: 0 0 8px;
+        font-size: 22px;
+      }
+
+      .publish-success-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 999px;
+        background: #dcfce7;
+        color: #059669;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+      }
+
+      .publish-meta {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .publish-actions {
+        margin-top: 12px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .publish-code {
+        min-height: 94px;
+        resize: vertical;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .publish-row {
+        display: flex;
+        gap: 8px;
+      }
+
+      .publish-row .field-input {
+        flex: 1;
+      }
+
       .export-head {
         display: flex;
         justify-content: space-between;
@@ -889,7 +956,7 @@
     </div>
 
     <div class="modal" id="exportModal" hidden>
-      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="exportDialogTitle">
+      <div class="modal-card publish-modal-card" role="dialog" aria-modal="true" aria-labelledby="exportDialogTitle">
         <div class="modal-content">
           <div class="modal-topline">
             <h2 class="modal-title" id="exportDialogTitle">Экспорт и встраивание</h2>
@@ -897,14 +964,45 @@
               <span class="material-symbols-outlined">close</span>
             </button>
           </div>
+        </div>
+
+        <div class="publish-modal-scroll">
           <p class="modal-text" id="exportSubtitle">Загрузка кодов экспорта…</p>
+
+          <section class="publish-top">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px">
+              <span class="publish-success-icon">
+                <span class="material-symbols-outlined">check_circle</span>
+              </span>
+              <h3 id="exportDialogName" style="margin: 0">Сценарий</h3>
+            </div>
+            <p class="publish-meta" id="exportDateLabel">Дата публикации: —</p>
+            <div class="publish-actions">
+              <button class="btn btn-primary" id="exportPreviewBtn" type="button">
+                <span class="material-symbols-outlined">visibility</span>
+                <span>Открыть</span>
+              </button>
+              <button class="btn" id="exportOpenEditorBtn" type="button">
+                <span class="material-symbols-outlined">edit</span>
+                <span>Открыть редактор</span>
+              </button>
+            </div>
+          </section>
+
+          <div class="export-block">
+            <div class="export-head">
+              <span>Прямая ссылка</span>
+              <button class="btn" data-copy-target="directOutput" type="button">Копировать</button>
+            </div>
+            <input class="field-input" id="directOutput" readonly />
+          </div>
 
           <div class="export-block">
             <div class="export-head">
               <span>iframe-код</span>
               <button class="btn" data-copy-target="iframeOutput" type="button">Копировать</button>
             </div>
-            <textarea class="field-area" id="iframeOutput" readonly></textarea>
+            <textarea class="field-area publish-code" id="iframeOutput" readonly></textarea>
           </div>
 
           <div class="export-block">
@@ -912,15 +1010,18 @@
               <span>Скрипт встраивания</span>
               <button class="btn" data-copy-target="scriptOutput" type="button">Копировать</button>
             </div>
-            <textarea class="field-area" id="scriptOutput" readonly></textarea>
+            <textarea class="field-area publish-code" id="scriptOutput" readonly></textarea>
           </div>
 
           <div class="export-block">
             <div class="export-head">
               <span>URL автономного HTML</span>
-              <button class="btn" data-copy-target="htmlOutput" type="button">Копировать</button>
+              <div style="display: flex; gap: 8px">
+                <button class="btn" data-copy-target="htmlOutput" type="button">Копировать</button>
+                <button class="btn btn-primary" id="exportOpenHtmlBtn" type="button">Открыть</button>
+              </div>
             </div>
-            <textarea class="field-area" id="htmlOutput" readonly></textarea>
+            <input class="field-input" id="htmlOutput" readonly />
           </div>
         </div>
       </div>
@@ -950,6 +1051,9 @@
         filter: "all",
         search: "",
         customCoverByDialogId: {},
+        exportDialogId: "",
+        exportDirectUrl: "",
+        exportHtmlUrl: "",
       };
 
       const elements = {
@@ -979,9 +1083,15 @@
         exportModal: document.getElementById("exportModal"),
         closeExportModalBtn: document.getElementById("closeExportModalBtn"),
         exportSubtitle: document.getElementById("exportSubtitle"),
+        exportDialogName: document.getElementById("exportDialogName"),
+        exportDateLabel: document.getElementById("exportDateLabel"),
+        exportPreviewBtn: document.getElementById("exportPreviewBtn"),
+        exportOpenEditorBtn: document.getElementById("exportOpenEditorBtn"),
+        directOutput: document.getElementById("directOutput"),
         iframeOutput: document.getElementById("iframeOutput"),
         scriptOutput: document.getElementById("scriptOutput"),
         htmlOutput: document.getElementById("htmlOutput"),
+        exportOpenHtmlBtn: document.getElementById("exportOpenHtmlBtn"),
         toastStack: document.getElementById("toastStack"),
         retryBtn: document.getElementById("retryBtn"),
         workspaceLabel: document.getElementById("workspaceLabel"),
@@ -1001,6 +1111,42 @@
         } catch (_error) {
           return null;
         }
+      }
+
+      function applyAuthSessionFromHash() {
+        const hash = String(window.location.hash || "");
+        if (!hash || !hash.startsWith("#")) {
+          return false;
+        }
+
+        const params = new URLSearchParams(hash.slice(1));
+        const accessToken = String(params.get("access_token") || "").trim();
+        if (!accessToken) {
+          return false;
+        }
+
+        const refreshToken = String(params.get("refresh_token") || "").trim();
+        const tokenType = String(params.get("token_type") || "bearer").trim().toLowerCase() || "bearer";
+        const expiresInRaw = Number(params.get("expires_in"));
+        const expiresIn = Number.isFinite(expiresInRaw) && expiresInRaw > 0 ? Math.trunc(expiresInRaw) : null;
+        const expiresAt = expiresIn ? Math.floor(Date.now() / 1000) + expiresIn : null;
+
+        const session = {
+          access_token: accessToken,
+          refresh_token: refreshToken || null,
+          token_type: tokenType,
+          expires_in: expiresIn,
+          expires_at: expiresAt,
+        };
+
+        localStorage.setItem(storageKeys.session, JSON.stringify(session));
+        localStorage.setItem(storageKeys.accessToken, accessToken);
+
+        if (window.history?.replaceState) {
+          window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
+        }
+
+        return true;
       }
 
       function clearSessionAndGoToLogin() {
@@ -1138,6 +1284,15 @@
 
         const days = Math.floor(hours / 24);
         return `Обновлено ${days} дн назад`;
+      }
+
+      function formatPublishedAt(dateString) {
+        const source = new Date(String(dateString || "").trim());
+        if (Number.isNaN(source.getTime())) return "—";
+        return new Intl.DateTimeFormat("ru-RU", {
+          dateStyle: "medium",
+          timeStyle: "short",
+        }).format(source);
       }
 
       function getCoverForDialog(dialog) {
@@ -1320,8 +1475,15 @@
         elements.createModal.hidden = true;
       }
 
-      function openExportModal() {
+      function openExportModal(dialog) {
+        state.exportDialogId = String(dialog?.id || "").trim();
+        state.exportDirectUrl = "";
+        state.exportHtmlUrl = "";
+
+        elements.exportDialogName.textContent = dialog?.name || "Сценарий";
+        elements.exportDateLabel.textContent = "Дата публикации: —";
         elements.exportSubtitle.textContent = "Загрузка кодов экспорта…";
+        elements.directOutput.value = "";
         elements.iframeOutput.value = "";
         elements.scriptOutput.value = "";
         elements.htmlOutput.value = "";
@@ -1418,10 +1580,23 @@
         }
 
         if (action === "export") {
-          openExportModal();
+          const dialog = state.dialogs.find((item) => String(item.id || "") === String(id || "")) || null;
+          openExportModal(dialog);
           try {
             const payload = await apiRequest(`/api/v1/builder/dialogs/${encodeURIComponent(id)}/export`);
-            elements.exportSubtitle.textContent = `Ключ публикации: ${payload.publicationKey}`;
+            const publicationKey = String(payload.publicationKey || "").trim();
+            const directUrl = publicationKey
+              ? `${window.location.origin}/p/${encodeURIComponent(publicationKey)}`
+              : "";
+
+            state.exportDirectUrl = directUrl;
+            state.exportHtmlUrl = String(payload.htmlUrl || "").trim();
+
+            elements.exportSubtitle.textContent = publicationKey
+              ? `Ключ публикации: ${publicationKey}`
+              : "Публикация активна";
+            elements.exportDateLabel.textContent = `Дата публикации: ${formatPublishedAt(payload.publishedAt)}`;
+            elements.directOutput.value = directUrl;
             elements.iframeOutput.value = payload.iframe || "";
             elements.scriptOutput.value = payload.script || "";
             elements.htmlOutput.value = payload.htmlUrl || "";
@@ -1449,7 +1624,7 @@
 
       async function copyFromField(id) {
         const target = document.getElementById(id);
-        const value = target?.value || "";
+        const value = String(target?.value || "").trim();
         if (!value) {
           showToast("Пустое значение для копирования.", "error");
           return;
@@ -1461,6 +1636,33 @@
         } catch (_error) {
           showToast("Не удалось скопировать.", "error");
         }
+      }
+
+      function openExportDirectLink() {
+        const url = String(state.exportDirectUrl || "").trim();
+        if (!url) {
+          showToast("Прямая ссылка недоступна.", "error");
+          return;
+        }
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
+
+      function openExportEditor() {
+        const id = String(state.exportDialogId || "").trim();
+        if (!id) {
+          showToast("ID проекта не найден.", "error");
+          return;
+        }
+        window.location.href = `/builder/dialog/${encodeURIComponent(id)}`;
+      }
+
+      function openExportHtml() {
+        const url = String(state.exportHtmlUrl || "").trim();
+        if (!url) {
+          showToast("Ссылка HTML экспорта недоступна.", "error");
+          return;
+        }
+        window.open(url, "_blank", "noopener,noreferrer");
       }
 
       function setupEvents() {
@@ -1522,6 +1724,9 @@
         elements.exportModal.addEventListener("click", (event) => {
           if (event.target === elements.exportModal) closeExportModal();
         });
+        elements.exportPreviewBtn.addEventListener("click", openExportDirectLink);
+        elements.exportOpenEditorBtn.addEventListener("click", openExportEditor);
+        elements.exportOpenHtmlBtn.addEventListener("click", openExportHtml);
 
         elements.exportModal.addEventListener("click", (event) => {
           const copyBtn = event.target.closest("[data-copy-target]");
@@ -1539,6 +1744,7 @@
       async function init() {
         state.customCoverByDialogId = loadCoverMapFromStorage();
         setupEvents();
+        applyAuthSessionFromHash();
 
         state.token = getTokenFromStorage();
         if (!state.token) {

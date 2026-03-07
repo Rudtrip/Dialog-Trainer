@@ -236,7 +236,7 @@
           class="flex items-center justify-center gap-2 rounded-lg h-9 px-4 bg-primary text-white hover:bg-primary-hover transition-colors text-sm font-semibold shadow-md shadow-indigo-200"
         >
           <span class="material-symbols-outlined text-[18px]">publish</span>
-          <span>Публикация</span>
+          <span>Опубликовать</span>
         </button>
       </div>
     </header>
@@ -513,6 +513,151 @@
       </aside>
     </div>
 
+    <div
+      id="publishSuccessModal"
+      class="fixed inset-0 z-[70] hidden items-center justify-center p-4 sm:p-8"
+      aria-hidden="true"
+    >
+      <div id="publishSuccessOverlay" class="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px]"></div>
+      <div class="relative w-full max-w-4xl max-h-[92vh] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+        <div class="flex items-center justify-between gap-4 border-b border-slate-200 px-6 py-4">
+          <div class="flex items-center gap-3">
+            <div class="size-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
+              <span class="material-symbols-outlined">check_circle</span>
+            </div>
+            <div>
+              <h3 class="text-lg font-bold text-slate-900">Опубликовано успешно</h3>
+              <p class="text-xs text-slate-500">Сценарий уже доступен по публичной ссылке</p>
+            </div>
+          </div>
+          <button
+            id="publishSuccessCloseBtn"
+            class="size-9 rounded-full border border-slate-200 bg-white text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+            title="Закрыть"
+          >
+            <span class="material-symbols-outlined text-[18px]">close</span>
+          </button>
+        </div>
+
+        <div class="max-h-[calc(92vh-80px)] overflow-y-auto px-6 py-6 sm:px-8 sm:py-7">
+          <div class="flex flex-col gap-6">
+            <section class="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+              <div class="flex flex-col gap-2">
+                <h4 class="text-xl font-bold text-slate-900">Сценарий опубликован</h4>
+                <p class="text-sm text-slate-600">
+                  <span id="publishDialogName" class="font-semibold text-slate-800">Текущий сценарий</span>
+                  доступен для просмотра и встраивания.
+                </p>
+                <p id="publishDateLabel" class="text-xs text-slate-500">Дата публикации: —</p>
+              </div>
+              <div class="mt-4 flex flex-wrap gap-2">
+                <button
+                  id="publishModalPreviewBtn"
+                  class="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover"
+                >
+                  <span class="material-symbols-outlined text-[18px]">visibility</span>
+                  Открыть
+                </button>
+                <button
+                  id="publishModalBackToEditorBtn"
+                  class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                >
+                  <span class="material-symbols-outlined text-[18px]">edit</span>
+                  Вернуться в редактор
+                </button>
+              </div>
+            </section>
+
+            <section class="space-y-3">
+              <div class="flex items-center justify-between">
+                <h4 class="text-base font-semibold text-slate-900 flex items-center gap-2">
+                  <span class="material-symbols-outlined text-primary">link</span>
+                  Прямая ссылка
+                </h4>
+              </div>
+              <div class="flex w-full items-stretch rounded-lg border border-slate-300 bg-white">
+                <input
+                  id="publishDirectLinkInput"
+                  type="text"
+                  readonly
+                  class="flex-1 border-0 px-4 py-3 text-sm text-slate-700 focus:ring-0"
+                  value=""
+                />
+                <button
+                  id="publishCopyDirectBtn"
+                  class="border-l border-slate-300 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  Копировать
+                </button>
+              </div>
+            </section>
+
+            <section class="space-y-3">
+              <div class="flex items-center justify-between">
+                <h4 class="text-base font-semibold text-slate-900 flex items-center gap-2">
+                  <span class="material-symbols-outlined text-primary">code</span>
+                  Код для встраивания (iframe)
+                </h4>
+                <button
+                  id="publishCopyIframeBtn"
+                  class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  Копировать код
+                </button>
+              </div>
+              <pre class="rounded-xl border border-slate-200 bg-slate-900 p-4 text-xs leading-relaxed text-slate-100 overflow-auto"><code id="publishIframeCode"></code></pre>
+            </section>
+
+            <section class="space-y-3">
+              <div class="flex items-center justify-between">
+                <h4 class="text-base font-semibold text-slate-900 flex items-center gap-2">
+                  <span class="material-symbols-outlined text-primary">integration_instructions</span>
+                  Код вставки (script)
+                </h4>
+                <button
+                  id="publishCopyScriptBtn"
+                  class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  Копировать код
+                </button>
+              </div>
+              <pre class="rounded-xl border border-slate-200 bg-slate-900 p-4 text-xs leading-relaxed text-slate-100 overflow-auto"><code id="publishScriptCode"></code></pre>
+            </section>
+
+            <section class="space-y-3">
+              <h4 class="text-base font-semibold text-slate-900 flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary">download</span>
+                Экспорт
+              </h4>
+              <div class="rounded-xl border border-slate-200 bg-white p-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+                <input
+                  id="publishHtmlUrlInput"
+                  type="text"
+                  readonly
+                  class="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 focus:ring-0"
+                  value=""
+                />
+                <div class="flex gap-2">
+                  <button
+                    id="publishCopyHtmlBtn"
+                    class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                  >
+                    Копировать
+                  </button>
+                  <button
+                    id="publishOpenHtmlBtn"
+                    class="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white hover:bg-primary-hover"
+                  >
+                    Открыть
+                  </button>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div id="toastContainer" class="fixed right-4 bottom-4 z-50 flex flex-col gap-2"></div>
 
     <script>
@@ -564,6 +709,14 @@
           open: false,
           selections: {},
           awaitFirstChoice: true,
+        },
+        publishModal: {
+          publicationKey: "",
+          publishedAt: "",
+          directUrl: "",
+          iframeCode: "",
+          scriptCode: "",
+          htmlUrl: "",
         },
       };
 
@@ -619,6 +772,22 @@
         dialogPreviewMessageText: document.getElementById("dialogPreviewMessageText"),
         dialogPreviewChoices: document.getElementById("dialogPreviewChoices"),
         dialogPreviewFinish: document.getElementById("dialogPreviewFinish"),
+        publishSuccessModal: document.getElementById("publishSuccessModal"),
+        publishSuccessOverlay: document.getElementById("publishSuccessOverlay"),
+        publishSuccessCloseBtn: document.getElementById("publishSuccessCloseBtn"),
+        publishDialogName: document.getElementById("publishDialogName"),
+        publishDateLabel: document.getElementById("publishDateLabel"),
+        publishModalPreviewBtn: document.getElementById("publishModalPreviewBtn"),
+        publishModalBackToEditorBtn: document.getElementById("publishModalBackToEditorBtn"),
+        publishDirectLinkInput: document.getElementById("publishDirectLinkInput"),
+        publishCopyDirectBtn: document.getElementById("publishCopyDirectBtn"),
+        publishIframeCode: document.getElementById("publishIframeCode"),
+        publishCopyIframeBtn: document.getElementById("publishCopyIframeBtn"),
+        publishScriptCode: document.getElementById("publishScriptCode"),
+        publishCopyScriptBtn: document.getElementById("publishCopyScriptBtn"),
+        publishHtmlUrlInput: document.getElementById("publishHtmlUrlInput"),
+        publishCopyHtmlBtn: document.getElementById("publishCopyHtmlBtn"),
+        publishOpenHtmlBtn: document.getElementById("publishOpenHtmlBtn"),
         toastContainer: document.getElementById("toastContainer"),
       };
 
@@ -634,6 +803,137 @@
         item.textContent = message;
         els.toastContainer.appendChild(item);
         setTimeout(() => item.remove(), 2800);
+      }
+
+      function setPublishModalOpen(nextOpen) {
+        if (!els.publishSuccessModal) return;
+        const isOpen = Boolean(nextOpen);
+        els.publishSuccessModal.classList.toggle("hidden", !isOpen);
+        els.publishSuccessModal.classList.toggle("flex", isOpen);
+        els.publishSuccessModal.setAttribute("aria-hidden", String(!isOpen));
+      }
+
+      function formatPublishDate(value) {
+        const iso = String(value || "").trim();
+        if (!iso) return "—";
+        const date = new Date(iso);
+        if (Number.isNaN(date.getTime())) return "—";
+        return new Intl.DateTimeFormat("ru-RU", {
+          dateStyle: "medium",
+          timeStyle: "short",
+        }).format(date);
+      }
+
+      function buildDefaultDirectUrl(publicationKey) {
+        const key = String(publicationKey || "").trim();
+        if (!key) return "";
+        return `${window.location.origin}/p/${encodeURIComponent(key)}`;
+      }
+
+      function buildDefaultIframeCode(directUrl) {
+        const src = String(directUrl || "").trim();
+        if (!src) return "";
+        return `<iframe src="${src}" width="100%" height="720" frameborder="0" allowfullscreen></iframe>`;
+      }
+
+      function buildDefaultScriptCode(publicationKey) {
+        const key = String(publicationKey || "").trim();
+        if (!key) return "";
+        return (
+          `<script src="${window.location.origin}/embed.js" data-publication="${key}"></` + "script>"
+        );
+      }
+
+      function buildDefaultHtmlUrl(publicationKey) {
+        const key = String(publicationKey || "").trim();
+        if (!key) return "";
+        return `${window.location.origin}/export/${encodeURIComponent(key)}.html`;
+      }
+
+      function buildPublishModalPayload(publishPayload, exportPayload) {
+        const publicationKey = String(
+          publishPayload?.publicationKey || exportPayload?.publicationKey || ""
+        ).trim();
+        const directUrl = buildDefaultDirectUrl(publicationKey);
+        const iframeCode =
+          String(exportPayload?.iframe || "").trim() || buildDefaultIframeCode(directUrl);
+        const scriptCode =
+          String(exportPayload?.script || "").trim() || buildDefaultScriptCode(publicationKey);
+        const htmlUrl =
+          String(exportPayload?.htmlUrl || "").trim() || buildDefaultHtmlUrl(publicationKey);
+
+        return {
+          publicationKey,
+          publishedAt: String(publishPayload?.publishedAt || exportPayload?.publishedAt || "").trim(),
+          directUrl,
+          iframeCode,
+          scriptCode,
+          htmlUrl,
+        };
+      }
+
+      function renderPublishModal() {
+        const data = app.publishModal || {};
+        if (els.publishDialogName) {
+          els.publishDialogName.textContent = app.dialogName || "Сценарий";
+        }
+        if (els.publishDateLabel) {
+          els.publishDateLabel.textContent = `Дата публикации: ${formatPublishDate(data.publishedAt)}`;
+        }
+        if (els.publishDirectLinkInput) {
+          els.publishDirectLinkInput.value = String(data.directUrl || "").trim();
+        }
+        if (els.publishIframeCode) {
+          els.publishIframeCode.textContent = String(data.iframeCode || "").trim();
+        }
+        if (els.publishScriptCode) {
+          els.publishScriptCode.textContent = String(data.scriptCode || "").trim();
+        }
+        if (els.publishHtmlUrlInput) {
+          els.publishHtmlUrlInput.value = String(data.htmlUrl || "").trim();
+        }
+      }
+
+      function openPublishSuccessModal(payload) {
+        app.publishModal = {
+          publicationKey: String(payload?.publicationKey || "").trim(),
+          publishedAt: String(payload?.publishedAt || "").trim(),
+          directUrl: String(payload?.directUrl || "").trim(),
+          iframeCode: String(payload?.iframeCode || "").trim(),
+          scriptCode: String(payload?.scriptCode || "").trim(),
+          htmlUrl: String(payload?.htmlUrl || "").trim(),
+        };
+        renderPublishModal();
+        setPublishModalOpen(true);
+      }
+
+      function closePublishSuccessModal() {
+        setPublishModalOpen(false);
+      }
+
+      async function copyTextToClipboard(text) {
+        const value = String(text || "").trim();
+        if (!value) return false;
+
+        if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+          try {
+            await navigator.clipboard.writeText(value);
+            return true;
+          } catch (_error) {
+            // fallback below
+          }
+        }
+
+        const helper = document.createElement("textarea");
+        helper.value = value;
+        helper.setAttribute("readonly", "");
+        helper.style.position = "fixed";
+        helper.style.left = "-9999px";
+        document.body.appendChild(helper);
+        helper.select();
+        const copied = document.execCommand("copy");
+        document.body.removeChild(helper);
+        return copied;
       }
 
       function escapeHtml(value) {
@@ -3158,13 +3458,77 @@
       async function publishDialog() {
         try {
           await saveEditor();
-          await apiRequest(`/api/v1/builder/dialogs/${encodeURIComponent(app.dialogId)}/publish`, {
-            method: "POST",
-          });
-          toast("Диалог опубликован.");
+          const publishPayload = await apiRequest(
+            `/api/v1/builder/dialogs/${encodeURIComponent(app.dialogId)}/publish`,
+            {
+              method: "POST",
+            }
+          );
+
+          let exportPayload = null;
+          try {
+            exportPayload = await apiRequest(
+              `/api/v1/builder/dialogs/${encodeURIComponent(app.dialogId)}/export`
+            );
+          } catch (_error) {
+            // Keep modal available even if export endpoint temporarily failed.
+          }
+
+          const modalPayload = buildPublishModalPayload(publishPayload, exportPayload);
+          openPublishSuccessModal(modalPayload);
+
+          toast("Сценарий опубликован.");
         } catch (error) {
           toast(error.message || "Ошибка публикации.", "error");
         }
+      }
+
+      function openPublishedRuntimeFromModal() {
+        const url = String(app.publishModal?.directUrl || "").trim();
+        if (!url) {
+          toast("Публичная ссылка пока недоступна.", "warn");
+          return;
+        }
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
+
+      function openExportHtmlFromModal() {
+        const url = String(app.publishModal?.htmlUrl || "").trim();
+        if (!url) {
+          toast("Ссылка экспорта недоступна.", "warn");
+          return;
+        }
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
+
+      async function copyModalValue(selector) {
+        const value = String(selector || "").trim();
+        if (!value) {
+          toast("Нет данных для копирования.", "warn");
+          return;
+        }
+        const copied = await copyTextToClipboard(value);
+        if (copied) {
+          toast("Скопировано.");
+          return;
+        }
+        toast("Не удалось скопировать в буфер обмена.", "error");
+      }
+
+      async function handlePublishModalCopyDirect() {
+        await copyModalValue(els.publishDirectLinkInput?.value);
+      }
+
+      async function handlePublishModalCopyIframe() {
+        await copyModalValue(els.publishIframeCode?.textContent);
+      }
+
+      async function handlePublishModalCopyScript() {
+        await copyModalValue(els.publishScriptCode?.textContent);
+      }
+
+      async function handlePublishModalCopyHtml() {
+        await copyModalValue(els.publishHtmlUrlInput?.value);
       }
 
       async function openRuntimePreview() {
@@ -3241,6 +3605,33 @@
         els.saveGraphBtn.addEventListener("click", saveEditor);
         els.previewBtn.addEventListener("click", openRuntimePreview);
         els.publishBtn.addEventListener("click", publishDialog);
+        if (els.publishSuccessCloseBtn) {
+          els.publishSuccessCloseBtn.addEventListener("click", closePublishSuccessModal);
+        }
+        if (els.publishSuccessOverlay) {
+          els.publishSuccessOverlay.addEventListener("click", closePublishSuccessModal);
+        }
+        if (els.publishModalBackToEditorBtn) {
+          els.publishModalBackToEditorBtn.addEventListener("click", closePublishSuccessModal);
+        }
+        if (els.publishModalPreviewBtn) {
+          els.publishModalPreviewBtn.addEventListener("click", openPublishedRuntimeFromModal);
+        }
+        if (els.publishCopyDirectBtn) {
+          els.publishCopyDirectBtn.addEventListener("click", handlePublishModalCopyDirect);
+        }
+        if (els.publishCopyIframeBtn) {
+          els.publishCopyIframeBtn.addEventListener("click", handlePublishModalCopyIframe);
+        }
+        if (els.publishCopyScriptBtn) {
+          els.publishCopyScriptBtn.addEventListener("click", handlePublishModalCopyScript);
+        }
+        if (els.publishCopyHtmlBtn) {
+          els.publishCopyHtmlBtn.addEventListener("click", handlePublishModalCopyHtml);
+        }
+        if (els.publishOpenHtmlBtn) {
+          els.publishOpenHtmlBtn.addEventListener("click", openExportHtmlFromModal);
+        }
 
         els.nodesLayer.addEventListener("pointerdown", onNodePointerDown);
         document.addEventListener("pointermove", onNodePointerMove);
@@ -3305,6 +3696,12 @@
 
           if (changed) {
             renderAll();
+          }
+        });
+
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape" && els.publishSuccessModal && !els.publishSuccessModal.classList.contains("hidden")) {
+            closePublishSuccessModal();
           }
         });
 

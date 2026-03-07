@@ -213,6 +213,47 @@
 
     const strengthBars = Array.from(document.querySelectorAll("[data-strength-bar]"));
 
+    function applyAuthSessionFromHash() {
+      const hash = String(window.location.hash || "");
+      if (!hash || !hash.startsWith("#")) {
+        return false;
+      }
+
+      const params = new URLSearchParams(hash.slice(1));
+      const accessToken = String(params.get("access_token") || "").trim();
+      if (!accessToken) {
+        return false;
+      }
+
+      const refreshToken = String(params.get("refresh_token") || "").trim();
+      const tokenType = String(params.get("token_type") || "bearer").trim().toLowerCase() || "bearer";
+      const expiresInRaw = Number(params.get("expires_in"));
+      const expiresIn = Number.isFinite(expiresInRaw) && expiresInRaw > 0 ? Math.trunc(expiresInRaw) : null;
+      const expiresAt = expiresIn ? Math.floor(Date.now() / 1000) + expiresIn : null;
+
+      const session = {
+        access_token: accessToken,
+        refresh_token: refreshToken || null,
+        token_type: tokenType,
+        expires_in: expiresIn,
+        expires_at: expiresAt,
+      };
+
+      localStorage.setItem("dialogTrainerSession", JSON.stringify(session));
+      localStorage.setItem("dialogTrainerAccessToken", accessToken);
+
+      if (window.history?.replaceState) {
+        window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
+      }
+
+      window.location.replace("/builder");
+      return true;
+    }
+
+    if (applyAuthSessionFromHash()) {
+      // Supabase callback handled.
+    }
+
     function isEmailValid(email) {
       return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
     }

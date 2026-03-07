@@ -37,6 +37,12 @@ const port = Number(process.env.PORT || 3000);
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY;
 const SUPABASE_SERVICE_ROLE_KEY = readOptionalEnv("SUPABASE_SERVICE_ROLE_KEY");
+const ADMIN_EMAILS = new Set(
+  String(process.env.ADMIN_EMAILS || "")
+    .split(",")
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean)
+);
 const PLAYER_BASE_URL = String(process.env.PLAYER_BASE_URL || "").trim();
 const AWS_REGION = process.env.AWS_REGION || "us-east-1";
 const S3_BUCKET = readOptionalEnv("S3_BUCKET");
@@ -50,6 +56,8 @@ const LOCAL_ASSET_PREFIX = String(process.env.LOCAL_ASSET_PREFIX || "uploads/lib
   .replace(/\\/g, "/")
   .replace(/^\/+|\/+$/g, "") || "uploads/library-assets";
 const TEMP_PREVIEW_TTL_SEC = Number(process.env.TEMP_PREVIEW_TTL_SEC || 1800);
+const ADMIN_USERS_MAX_PAGE_SIZE = 100;
+const ADMIN_TARIFF_VALUES = new Set(["free", "pro", "enterprise"]);
 
 const ASSET_ALLOWED_MIME = {
   character: new Set(["image/png", "image/svg+xml"]),
@@ -415,6 +423,181 @@ async function requireUserContext(req, res) {
     res.status(error.status || 401).json(payload);
     return null;
   }
+}
+
+function getUserEmailLower(user) {
+  return String(user?.email || "").trim().toLowerCase();
+}
+
+function isAdminUser(user) {
+  const email = getUserEmailLower(user);
+  if (!email) {
+    return false;
+  }
+  return ADMIN_EMAILS.has(email);
+}
+
+async function requireAdminContext(req, res) {
+  const context = await requireUserContext(req, res);
+  if (!context) {
+    return null;
+  }
+
+  if (!SUPABASE_SERVICE_ROLE_KEY) {
+    res.status(500).json({
+      error: "Admin API is not configured. Missing SUPABASE_SERVICE_ROLE_KEY.",
+    });
+    return null;
+  }
+
+  if (ADMIN_EMAILS.size === 0) {
+    res.status(500).json({
+      error: "Admin API is not configured. Missing ADMIN_EMAILS.",
+    });
+    return null;
+  }
+
+  if (!isAdminUser(context.user)) {
+    res.status(403).json({
+      error: "Admin access denied.",
+    });
+    return null;
+  }
+
+  return context;
+}
+
+async function supabaseAuthAdmin(pathname, options) {
+  const method = options?.method || "GET";
+  const body = options?.body;
+  const prefer = options?.prefer;
+
+  const headers = {
+    apikey: SUPABASE_SERVICE_ROLE_KEY,
+    Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+  };
+
+  if (body !== undefined) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  if (prefer) {
+    headers.Prefer = prefer;
+  }
+
+  const response = await fetch(`${SUPABASE_URL.replace(/\/+$/, "")}/auth/v1/admin${pathname}`, {
+    method,
+    headers,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+
+  const data = await fetchJsonSafe(response);
+
+  if (!response.ok) {
+    const error = new Error(data?.message || "Supabase auth admin request failed.");
+    error.status = response.status;
+    error.data = data;
+    throw error;
+  }
+
+  return data;
+}
+
+function normalizeAdminUserPlan(user) {
+  const candidates = [
+    user?.user_metadata?.tariff,
+    user?.user_metadata?.plan,
+    user?.app_metadata?.tariff,
+    user?.app_metadata?.plan,
+  ];
+
+  for (const rawValue of candidates) {
+    const normalized = String(rawValue || "").trim().toLowerCase();
+    if (normalized) {
+      return normalized;
+    }
+  }
+
+  return "free";
+}
+
+function normalizeAdminUserStatus(user) {
+  const bannedUntil = String(user?.banned_until || "").trim();
+  if (bannedUntil) {
+    return "blocked";
+  }
+
+  if (user?.deleted_at) {
+    return "inactive";
+  }
+
+  if (user?.email_confirmed_at) {
+    return "active";
+  }
+
+  return "pending";
+}
+
+function mapAdminUser(user) {
+  return {
+    id: String(user?.id || ""),
+    email: String(user?.email || ""),
+    fullName: String(user?.user_metadata?.full_name || user?.user_metadata?.name || "").trim(),
+    registeredAt: user?.created_at || null,
+    emailConfirmedAt: user?.email_confirmed_at || null,
+    lastSignInAt: user?.last_sign_in_at || null,
+    plan: normalizeAdminUserPlan(user),
+    status: normalizeAdminUserStatus(user),
+  };
+}
+
+function sanitizeAdminUserId(value) {
+  const normalized = String(value || "").trim();
+  return /^[0-9a-fA-F-]{36}$/.test(normalized) ? normalized : null;
+}
+
+function sanitizeAdminTariff(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  return ADMIN_TARIFF_VALUES.has(normalized) ? normalized : null;
+}
+
+function getGenerateLinkFromPayload(payload) {
+  if (!ensurePlainObject(payload)) {
+    return "";
+  }
+
+  const direct = String(payload.action_link || "").trim();
+  if (direct) {
+    return direct;
+  }
+
+  const fromProperties = String(payload?.properties?.action_link || "").trim();
+  if (fromProperties) {
+    return fromProperties;
+  }
+
+  const fromData = String(payload?.data?.properties?.action_link || "").trim();
+  if (fromData) {
+    return fromData;
+  }
+
+  return "";
+}
+
+async function getAdminUserById(userId) {
+  const payload = await supabaseAuthAdmin(`/users/${encodeURIComponent(userId)}`, {
+    method: "GET",
+  });
+
+  if (ensurePlainObject(payload?.user)) {
+    return payload.user;
+  }
+
+  if (ensurePlainObject(payload)) {
+    return payload;
+  }
+
+  return null;
 }
 
 async function supabaseRest(pathname, options) {
@@ -1327,6 +1510,215 @@ app.get("/api/v1/auth/me", async (req, res) => {
   }
 
   res.status(200).json({ user: context.user });
+});
+
+app.get("/api/v1/admin/users", async (req, res) => {
+  const context = await requireAdminContext(req, res);
+  if (!context) {
+    return;
+  }
+
+  try {
+    const page = sanitizeOptionalInteger(req.query?.page, 1, 100000) || 1;
+    const pageSize =
+      sanitizeOptionalInteger(req.query?.pageSize, 1, ADMIN_USERS_MAX_PAGE_SIZE) || 20;
+    const search = String(req.query?.search || "").trim().toLowerCase();
+
+    const needClientFiltering = Boolean(search);
+    const fetchPage = needClientFiltering ? 1 : page;
+    const fetchPageSize = needClientFiltering ? ADMIN_USERS_MAX_PAGE_SIZE : pageSize;
+    const query = new URLSearchParams({
+      page: String(fetchPage),
+      per_page: String(fetchPageSize),
+    });
+
+    const payload = await supabaseAuthAdmin(`/users?${query.toString()}`, {
+      method: "GET",
+    });
+
+    const allUsers = Array.isArray(payload?.users) ? payload.users : [];
+
+    let filtered = allUsers.map(mapAdminUser);
+    if (search) {
+      filtered = filtered.filter((user) => {
+        const email = String(user.email || "").toLowerCase();
+        const fullName = String(user.fullName || "").toLowerCase();
+        return email.includes(search) || fullName.includes(search);
+      });
+    }
+
+    const total =
+      typeof payload?.total === "number"
+        ? payload.total
+        : search
+          ? filtered.length
+          : null;
+
+    const start = search ? (page - 1) * pageSize : 0;
+    const items = search ? filtered.slice(start, start + pageSize) : filtered;
+    const hasNextPage =
+      search
+        ? start + pageSize < filtered.length
+        : Boolean(payload?.next_page) || items.length >= pageSize;
+
+    return res.status(200).json({
+      page,
+      pageSize,
+      search,
+      total,
+      hasNextPage,
+      items,
+    });
+  } catch (error) {
+    const payload = formatErrorPayload(error, "Unable to load admin users.");
+    return res.status(error.status || 500).json(payload);
+  }
+});
+
+app.post("/api/v1/admin/users/:id/password", async (req, res) => {
+  const context = await requireAdminContext(req, res);
+  if (!context) {
+    return;
+  }
+
+  const userId = sanitizeAdminUserId(req.params?.id);
+  if (!userId) {
+    return res.status(400).json({ error: "Invalid user id." });
+  }
+
+  const password = String(req.body?.password || "");
+  if (password.length < 8 || password.length > 128) {
+    return res.status(400).json({
+      error: "Password must contain 8-128 characters.",
+    });
+  }
+
+  try {
+    await supabaseAuthAdmin(`/users/${encodeURIComponent(userId)}`, {
+      method: "PUT",
+      body: {
+        password,
+      },
+    });
+
+    return res.status(200).json({
+      ok: true,
+      userId,
+    });
+  } catch (error) {
+    const payload = formatErrorPayload(error, "Unable to change user password.");
+    return res.status(error.status || 500).json(payload);
+  }
+});
+
+app.post("/api/v1/admin/users/:id/tariff", async (req, res) => {
+  const context = await requireAdminContext(req, res);
+  if (!context) {
+    return;
+  }
+
+  const userId = sanitizeAdminUserId(req.params?.id);
+  if (!userId) {
+    return res.status(400).json({ error: "Invalid user id." });
+  }
+
+  const tariff = sanitizeAdminTariff(req.body?.tariff ?? req.body?.plan);
+  if (!tariff) {
+    return res.status(400).json({
+      error: "Invalid tariff. Allowed: free, pro, enterprise.",
+    });
+  }
+
+  try {
+    const user = await getAdminUserById(userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    const userMetadata = ensurePlainObject(user.user_metadata)
+      ? { ...user.user_metadata }
+      : {};
+
+    userMetadata.tariff = tariff;
+    userMetadata.plan = tariff;
+
+    const updated = await supabaseAuthAdmin(`/users/${encodeURIComponent(userId)}`, {
+      method: "PUT",
+      body: {
+        user_metadata: userMetadata,
+      },
+    });
+
+    const updatedUser =
+      ensurePlainObject(updated?.user) ? updated.user : ensurePlainObject(updated) ? updated : user;
+
+    return res.status(200).json({
+      ok: true,
+      user: mapAdminUser(updatedUser),
+    });
+  } catch (error) {
+    const payload = formatErrorPayload(error, "Unable to change user tariff.");
+    return res.status(error.status || 500).json(payload);
+  }
+});
+
+app.post("/api/v1/admin/users/:id/impersonate", async (req, res) => {
+  const context = await requireAdminContext(req, res);
+  if (!context) {
+    return;
+  }
+
+  const userId = sanitizeAdminUserId(req.params?.id);
+  if (!userId) {
+    return res.status(400).json({ error: "Invalid user id." });
+  }
+
+  try {
+    const user = await getAdminUserById(userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    const email = String(user.email || "").trim().toLowerCase();
+    if (!email) {
+      return res.status(400).json({ error: "User email is not available." });
+    }
+
+    const origin = `${req.protocol}://${req.get("host") || `localhost:${port}`}`;
+    const redirectToRaw = String(req.body?.redirectTo || "").trim();
+    const redirectTo = redirectToRaw || `${origin}/login`;
+
+    const payload = await supabaseAuthAdmin("/generate_link", {
+      method: "POST",
+      body: {
+        type: "magiclink",
+        email,
+        redirect_to: redirectTo,
+        options: {
+          redirectTo,
+          redirect_to: redirectTo,
+        },
+      },
+    });
+
+    const actionLink = getGenerateLinkFromPayload(payload);
+    if (!actionLink) {
+      return res.status(502).json({
+        error: "Unable to generate impersonation link.",
+      });
+    }
+
+    return res.status(200).json({
+      ok: true,
+      userId,
+      email,
+      redirectTo,
+      actionLink,
+    });
+  } catch (error) {
+    const payload = formatErrorPayload(error, "Unable to generate impersonation link.");
+    return res.status(error.status || 500).json(payload);
+  }
 });
 
 function runAssetUploadMiddleware(req, res) {
@@ -2841,6 +3233,14 @@ app.get("/builder", (_req, res) => {
   res.sendFile(path.join(publicDir, "builder", "index.html"));
 });
 
+app.get("/admin", (_req, res) => {
+  res.redirect(302, "/admin/users");
+});
+
+app.get("/admin/users", (_req, res) => {
+  res.sendFile(path.join(publicDir, "admin", "index.html"));
+});
+
 app.get("/assets", (_req, res) => {
   res.sendFile(path.join(publicDir, "assets", "index.html"));
 });
@@ -2936,7 +3336,49 @@ app.get("/embed.js", (req, res) => {
 });
 
 app.get("/", (_req, res) => {
-  res.redirect(302, "/register");
+  return res
+    .status(200)
+    .type("html")
+    .send(`<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Redirecting...</title>
+  </head>
+  <body>
+    <script>
+      (function () {
+        try {
+          var hash = String(window.location.hash || "");
+          if (hash && hash.indexOf("access_token=") >= 0) {
+            var params = new URLSearchParams(hash.slice(1));
+            var accessToken = String(params.get("access_token") || "").trim();
+            if (accessToken) {
+              var refreshToken = String(params.get("refresh_token") || "").trim();
+              var tokenType = String(params.get("token_type") || "bearer").trim().toLowerCase() || "bearer";
+              var expiresInRaw = Number(params.get("expires_in"));
+              var expiresIn = Number.isFinite(expiresInRaw) && expiresInRaw > 0 ? Math.trunc(expiresInRaw) : null;
+              var expiresAt = expiresIn ? Math.floor(Date.now() / 1000) + expiresIn : null;
+              var session = {
+                access_token: accessToken,
+                refresh_token: refreshToken || null,
+                token_type: tokenType,
+                expires_in: expiresIn,
+                expires_at: expiresAt
+              };
+              localStorage.setItem("dialogTrainerSession", JSON.stringify(session));
+              localStorage.setItem("dialogTrainerAccessToken", accessToken);
+              window.location.replace("/builder");
+              return;
+            }
+          }
+        } catch (_e) {}
+        window.location.replace("/register");
+      })();
+    </script>
+  </body>
+</html>`);
 });
 
 app.use((_req, res) => {

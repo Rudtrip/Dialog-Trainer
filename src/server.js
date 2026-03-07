@@ -36,6 +36,7 @@ const port = Number(process.env.PORT || 3000);
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY;
+const SUPABASE_SERVICE_ROLE_KEY = readOptionalEnv("SUPABASE_SERVICE_ROLE_KEY");
 const PLAYER_BASE_URL = String(process.env.PLAYER_BASE_URL || "").trim();
 const AWS_REGION = process.env.AWS_REGION || "us-east-1";
 const S3_BUCKET = readOptionalEnv("S3_BUCKET");
@@ -453,6 +454,45 @@ async function supabaseRest(pathname, options) {
   return data;
 }
 
+async function supabasePublicRest(pathname, options) {
+  const method = options?.method || "GET";
+  const body = options?.body;
+  const prefer = options?.prefer;
+
+  const headers = {
+    apikey: SUPABASE_PUBLISHABLE_KEY,
+  };
+
+  if (SUPABASE_SERVICE_ROLE_KEY) {
+    headers.Authorization = `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`;
+  }
+
+  if (body !== undefined) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  if (prefer) {
+    headers.Prefer = prefer;
+  }
+
+  const response = await fetch(`${SUPABASE_URL.replace(/\/+$/, "")}/rest/v1${pathname}`, {
+    method,
+    headers,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+
+  const data = await fetchJsonSafe(response);
+
+  if (!response.ok) {
+    const error = new Error(data?.message || "Supabase public REST request failed.");
+    error.status = response.status;
+    error.data = data;
+    throw error;
+  }
+
+  return data;
+}
+
 async function getWorkspaceMemberships(token, userId) {
   return supabaseRest(
     `/workspace_members?select=workspace_id,role&user_id=eq.${encodeURIComponent(userId)}`,
@@ -678,6 +718,28 @@ function buildExportArtifacts(publicationId, publicationKey, playerBaseUrl) {
       content_hash: crypto.createHash("sha1").update(htmlUrl).digest("hex"),
     },
   ];
+}
+
+function buildRuntimePayload(input) {
+  const graph = sanitizeEditorGraph(input?.graph || null);
+  const sceneType = sanitizeSceneType(input?.sceneType);
+  const assetCatalog = ensurePlainObject(input?.assetCatalog)
+    ? {
+        character: Array.isArray(input.assetCatalog.character) ? input.assetCatalog.character : [],
+        background: Array.isArray(input.assetCatalog.background) ? input.assetCatalog.background : [],
+      }
+    : { character: [], background: [] };
+
+  return {
+    dialogId: input?.dialogId || null,
+    dialogName: String(input?.dialogName || "Диалог").trim() || "Диалог",
+    sceneType,
+    graph,
+    assetCatalog,
+    publicationKey: input?.publicationKey || null,
+    publishedAt: input?.publishedAt || null,
+    source: input?.source || "publication",
+  };
 }
 
 function cleanupExpiredTempPreviewSessions() {
@@ -2168,11 +2230,20 @@ app.post("/api/v1/builder/dialogs/:id/publish", async (req, res) => {
       existingPublication?.publication_key ||
       crypto.randomUUID().replace(/-/g, "").slice(0, 16);
 
+    const publishedAtIso = new Date().toISOString();
+    const graph = sanitizeEditorGraph(latestVersion?.metadata_json?.editor_graph || null);
+    const sceneType = sanitizeSceneType(latestVersion?.metadata_json?.scene_type);
+    const assetCatalog = await buildPreviewAssetCatalog(context.token, graph);
+
     const snapshotJson = {
       simulatorId: simulator.id,
       scenarioVersionId: latestVersion.id,
       schemaVersion: latestVersion.schema_version || "1.0.0",
-      publishedAt: new Date().toISOString(),
+      publishedAt: publishedAtIso,
+      dialogName: simulator.name,
+      sceneType,
+      graph,
+      assetCatalog,
     };
 
     let publication = null;
@@ -2187,7 +2258,7 @@ app.post("/api/v1/builder/dialogs/:id/publish", async (req, res) => {
             is_active: true,
             snapshot_json: snapshotJson,
             published_by: context.user.id,
-            published_at: new Date().toISOString(),
+            published_at: publishedAtIso,
           },
         })
       )[0];
@@ -2204,7 +2275,7 @@ app.post("/api/v1/builder/dialogs/:id/publish", async (req, res) => {
             snapshot_json: snapshotJson,
             is_active: true,
             published_by: context.user.id,
-            published_at: new Date().toISOString(),
+            published_at: publishedAtIso,
           },
         })
       )[0];
@@ -2351,6 +2422,97 @@ app.get("/api/v1/builder/dialogs/:id/export", async (req, res) => {
     });
   } catch (error) {
     const payload = formatErrorPayload(error, "Unable to get export info.");
+    return res.status(error.status || 500).json(payload);
+  }
+});
+
+app.get("/api/v1/publications/:publicationKey/runtime", async (req, res) => {
+  if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+    return res.status(500).json({
+      error: "Backend is not configured. Missing SUPABASE_URL or SUPABASE_PUBLISHABLE_KEY.",
+    });
+  }
+
+  const publicationKey = String(req.params.publicationKey || "").trim();
+  if (!/^[a-zA-Z0-9_-]{6,80}$/.test(publicationKey)) {
+    return res.status(400).json({ error: "Invalid publication key." });
+  }
+
+  try {
+    const publication = (
+      await supabasePublicRest(
+        `/publications?select=id,simulator_id,scenario_version_id,publication_key,published_at,snapshot_json,is_active&publication_key=eq.${encodeURIComponent(
+          publicationKey
+        )}&is_active=eq.true&order=published_at.desc&limit=1`,
+        {}
+      )
+    )[0];
+
+    if (!publication) {
+      return res.status(404).json({ error: "Publication not found." });
+    }
+
+    const snapshot = ensurePlainObject(publication.snapshot_json) ? publication.snapshot_json : {};
+    let graph = ensurePlainObject(snapshot.graph) ? snapshot.graph : null;
+    let sceneType = sanitizeSceneType(snapshot.sceneType);
+    let dialogName = String(snapshot.dialogName || "").trim();
+    let assetCatalog = ensurePlainObject(snapshot.assetCatalog) ? snapshot.assetCatalog : null;
+
+    // Backward compatibility for publications created before runtime snapshot fields were added.
+    if ((!graph || !Array.isArray(graph.nodes)) && SUPABASE_SERVICE_ROLE_KEY) {
+      const scenarioVersionId =
+        String(publication.scenario_version_id || snapshot.scenarioVersionId || "").trim() || null;
+
+      if (scenarioVersionId) {
+        const versionRow = (
+          await supabasePublicRest(
+            `/scenario_versions?select=id,simulator_id,metadata_json&id=eq.${encodeURIComponent(
+              scenarioVersionId
+            )}&limit=1`
+          )
+        )[0];
+
+        if (versionRow) {
+          graph = sanitizeEditorGraph(versionRow?.metadata_json?.editor_graph || null);
+          sceneType = sanitizeSceneType(versionRow?.metadata_json?.scene_type || sceneType);
+          assetCatalog = await buildPreviewAssetCatalog(SUPABASE_SERVICE_ROLE_KEY, graph);
+        }
+      }
+    }
+
+    if (!dialogName && SUPABASE_SERVICE_ROLE_KEY) {
+      const simulatorId = String(publication.simulator_id || snapshot.simulatorId || "").trim();
+      if (simulatorId) {
+        const simulatorRow = (
+          await supabasePublicRest(
+            `/simulators?select=id,name&id=eq.${encodeURIComponent(simulatorId)}&limit=1`
+          )
+        )[0];
+        dialogName = String(simulatorRow?.name || "").trim();
+      }
+    }
+
+    if (!graph || !Array.isArray(graph.nodes) || !Array.isArray(graph.edges)) {
+      return res.status(409).json({
+        error:
+          "Publication snapshot is outdated. Please republish this dialog and try embedding again.",
+      });
+    }
+
+    const payload = buildRuntimePayload({
+      dialogId: publication.simulator_id || snapshot.simulatorId || null,
+      dialogName: dialogName || "Диалог",
+      sceneType,
+      graph,
+      assetCatalog,
+      publicationKey: publication.publication_key,
+      publishedAt: publication.published_at || snapshot.publishedAt || null,
+      source: "publication",
+    });
+
+    return res.status(200).json(payload);
+  } catch (error) {
+    const payload = formatErrorPayload(error, "Unable to load publication runtime.");
     return res.status(error.status || 500).json(payload);
   }
 });
@@ -2691,8 +2853,64 @@ app.get("/builder/dialog/:id", (_req, res) => {
   res.sendFile(path.join(publicDir, "builder", "editor", "index.html"));
 });
 
+app.get("/p/:publicationKey", (_req, res) => {
+  res.sendFile(path.join(publicDir, "preview", "index.html"));
+});
+
 app.get("/preview/:token", (_req, res) => {
   res.sendFile(path.join(publicDir, "preview", "index.html"));
+});
+
+app.get("/export/:publicationKey.html", (req, res) => {
+  const publicationKey = String(req.params.publicationKey || "").trim();
+  if (!/^[a-zA-Z0-9_-]{6,80}$/.test(publicationKey)) {
+    return res.status(400).send("Invalid publication key.");
+  }
+
+  const origin = `${req.protocol}://${req.get("host") || `localhost:${port}`}`;
+  const iframeSrc = `${origin}/p/${encodeURIComponent(publicationKey)}`;
+
+  return res
+    .status(200)
+    .type("html")
+    .send(`<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Dialog Runtime</title>
+    <style>
+      html,body{margin:0;padding:0;height:100%;background:#f1f5f9}
+      iframe{width:100%;height:100%;border:0;display:block}
+    </style>
+  </head>
+  <body>
+    <iframe src="${iframeSrc}" allowfullscreen loading="lazy"></iframe>
+  </body>
+</html>`);
+});
+
+app.get("/embed.js", (req, res) => {
+  const origin = `${req.protocol}://${req.get("host") || `localhost:${port}`}`;
+  res.type("application/javascript");
+  return res.send(`(function(){
+  try {
+    var script = document.currentScript;
+    if (!script) return;
+    var publicationKey = script.getAttribute("data-publication");
+    if (!publicationKey) return;
+    var iframe = document.createElement("iframe");
+    iframe.src = "${origin}/p/" + encodeURIComponent(publicationKey);
+    iframe.width = script.getAttribute("data-width") || "100%";
+    iframe.height = script.getAttribute("data-height") || "720";
+    iframe.frameBorder = "0";
+    iframe.setAttribute("allowfullscreen", "true");
+    iframe.style.border = "0";
+    iframe.style.width = iframe.width;
+    iframe.style.maxWidth = "100%";
+    script.parentNode.insertBefore(iframe, script.nextSibling);
+  } catch (_e) {}
+})();`);
 });
 
 app.get("/", (_req, res) => {

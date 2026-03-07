@@ -149,6 +149,8 @@
 
       const state = {
         token: "",
+        publicationKey: "",
+        sourceMode: "preview",
         data: null,
         selections: {},
         awaitFirstChoice: true,
@@ -185,9 +187,19 @@
         return normalized;
       }
 
-      function getTokenFromPath() {
+      function getRuntimeSourceFromPath() {
         const parts = window.location.pathname.split("/").filter(Boolean);
-        return String(parts[parts.length - 1] || "").trim();
+        const [first, second] = parts;
+
+        if (first === "preview" && second) {
+          return { mode: "preview", value: String(second || "").trim() };
+        }
+
+        if (first === "p" && second) {
+          return { mode: "publication", value: String(second || "").trim() };
+        }
+
+        return { mode: "preview", value: String(parts[parts.length - 1] || "").trim() };
       }
 
       function sortNodesByX(nodes) {
@@ -660,7 +672,12 @@
         render();
 
         try {
-          const response = await fetch(`/api/v1/preview/${encodeURIComponent(state.token)}`, {
+          const endpoint =
+            state.sourceMode === "publication"
+              ? `/api/v1/publications/${encodeURIComponent(state.publicationKey)}/runtime`
+              : `/api/v1/preview/${encodeURIComponent(state.token)}`;
+
+          const response = await fetch(endpoint, {
             method: "GET",
           });
           const payload = await response.json().catch(() => ({}));
@@ -706,10 +723,21 @@
       });
 
       function init() {
-        state.token = getTokenFromPath();
-        if (!state.token) {
+        const source = getRuntimeSourceFromPath();
+        state.sourceMode = source.mode;
+
+        if (source.mode === "publication") {
+          state.publicationKey = source.value;
+        } else {
+          state.token = source.value;
+        }
+
+        if (!source.value) {
           state.loading = false;
-          state.error = "Не найден токен предпросмотра в URL.";
+          state.error =
+            source.mode === "publication"
+              ? "Не найден ключ публикации в URL."
+              : "Не найден токен предпросмотра в URL.";
           render();
           return;
         }

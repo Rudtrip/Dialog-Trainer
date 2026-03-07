@@ -4,7 +4,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Dialog Trainer Builder</title>
+    <title>Тренажёр диалогов — Проекты</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -712,37 +712,37 @@
           <div class="brand-avatar" aria-hidden="true"></div>
           <div>
             <p class="brand-title">SimBuilder</p>
-            <p class="brand-subtitle" id="workspaceLabel">Workspace</p>
+            <p class="brand-subtitle" id="workspaceLabel">Рабочее пространство</p>
           </div>
         </div>
 
         <nav class="sidebar-nav" aria-label="Навигация">
           <a class="nav-item active" href="/builder">
             <span class="material-symbols-outlined">folder_open</span>
-            <span>Projects</span>
+            <span>Проекты</span>
           </a>
           <button class="nav-item" type="button" disabled>
             <span class="material-symbols-outlined">grid_view</span>
-            <span>Templates</span>
+            <span>Шаблоны</span>
           </button>
           <a class="nav-item" href="/assets">
             <span class="material-symbols-outlined">image</span>
-            <span>Assets</span>
+            <span>Ассеты</span>
           </a>
           <button class="nav-item" type="button" disabled>
             <span class="material-symbols-outlined">settings</span>
-            <span>Settings</span>
+            <span>Настройки</span>
           </button>
         </nav>
 
         <div class="sidebar-footer">
           <button class="nav-item" type="button">
             <span class="material-symbols-outlined">help</span>
-            <span>Help & Support</span>
+            <span>Помощь и поддержка</span>
           </button>
           <button class="nav-item" id="signOutBtn" type="button">
             <span class="material-symbols-outlined">logout</span>
-            <span>Sign Out</span>
+            <span>Выйти</span>
           </button>
         </div>
       </aside>
@@ -750,12 +750,12 @@
       <main class="main">
         <header class="topbar">
           <div>
-            <h1>My Projects</h1>
-            <p>Manage your dialogue simulations and course scenarios.</p>
+            <h1>Мои проекты</h1>
+            <p>Управляйте диалоговыми симуляциями и учебными сценариями.</p>
           </div>
           <button class="btn btn-primary" id="openCreateModalBtn" type="button">
             <span class="material-symbols-outlined">add</span>
-            <span>Create New Project</span>
+            <span>Создать проект</span>
           </button>
         </header>
 
@@ -766,21 +766,21 @@
               class="search-input"
               id="searchInput"
               type="search"
-              placeholder="Search projects by name..."
+              placeholder="Поиск проектов по названию..."
             />
           </label>
 
           <div class="filters" id="filterGroup">
-            <button class="filter-btn active" data-filter="all" type="button">All</button>
-            <button class="filter-btn" data-filter="published" type="button">Published</button>
-            <button class="filter-btn" data-filter="draft" type="button">Drafts</button>
+            <button class="filter-btn active" data-filter="all" type="button">Все</button>
+            <button class="filter-btn" data-filter="published" type="button">Опубликованные</button>
+            <button class="filter-btn" data-filter="draft" type="button">Черновики</button>
           </div>
         </section>
 
         <section class="content">
           <div class="state-panel" id="loadingState">
             <div class="spinner" aria-hidden="true"></div>
-            <h2>Loading projects</h2>
+            <h2>Загрузка проектов</h2>
             <p>Секунду, загружаем список диалогов.</p>
           </div>
 
@@ -822,7 +822,7 @@
         <div class="modal-header-image" aria-hidden="true"></div>
         <div class="modal-content">
           <div class="modal-topline">
-            <h2 class="modal-title" id="createDialogTitle">Create New Project</h2>
+            <h2 class="modal-title" id="createDialogTitle">Создать проект</h2>
             <button class="close-btn" id="closeCreateModalBtn" type="button">
               <span class="material-symbols-outlined">close</span>
             </button>
@@ -830,13 +830,13 @@
           <p class="modal-text">Выберите название. Остальные параметры можно настроить позже в редакторе.</p>
 
           <form id="createForm">
-            <label class="field-label" for="createNameInput">Project name</label>
+            <label class="field-label" for="createNameInput">Название проекта</label>
             <input
               class="field-input"
               id="createNameInput"
               name="name"
               maxlength="140"
-              placeholder="Например: Customer Service 101"
+              placeholder="Например: Обслуживание клиентов 101"
               required
             />
 
@@ -871,7 +871,7 @@
             </div>
 
             <div style="height: 10px"></div>
-            <label class="field-label" for="createImageFileInput">Upload image (optional)</label>
+            <label class="field-label" for="createImageFileInput">Изображение (необязательно)</label>
             <input class="field-input" id="createImageFileInput" name="imageFile" type="file" accept="image/*" />
 
             <div class="image-preview-wrap" id="createImagePreviewWrap" hidden>
@@ -880,8 +880,8 @@
 
             <div class="field-error" id="createFormError"></div>
             <div class="modal-actions">
-              <button class="btn" id="cancelCreateBtn" type="button">Cancel</button>
-              <button class="btn btn-primary" id="submitCreateBtn" type="submit">Create</button>
+              <button class="btn" id="cancelCreateBtn" type="button">Отмена</button>
+              <button class="btn btn-primary" id="submitCreateBtn" type="submit">Создать</button>
             </div>
           </form>
         </div>
@@ -892,7 +892,7 @@
       <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="exportDialogTitle">
         <div class="modal-content">
           <div class="modal-topline">
-            <h2 class="modal-title" id="exportDialogTitle">Export & Embed</h2>
+            <h2 class="modal-title" id="exportDialogTitle">Экспорт и встраивание</h2>
             <button class="close-btn" id="closeExportModalBtn" type="button">
               <span class="material-symbols-outlined">close</span>
             </button>
@@ -901,24 +901,24 @@
 
           <div class="export-block">
             <div class="export-head">
-              <span>iframe snippet</span>
-              <button class="btn" data-copy-target="iframeOutput" type="button">Copy</button>
+              <span>iframe-код</span>
+              <button class="btn" data-copy-target="iframeOutput" type="button">Копировать</button>
             </div>
             <textarea class="field-area" id="iframeOutput" readonly></textarea>
           </div>
 
           <div class="export-block">
             <div class="export-head">
-              <span>script embed</span>
-              <button class="btn" data-copy-target="scriptOutput" type="button">Copy</button>
+              <span>Скрипт встраивания</span>
+              <button class="btn" data-copy-target="scriptOutput" type="button">Копировать</button>
             </div>
             <textarea class="field-area" id="scriptOutput" readonly></textarea>
           </div>
 
           <div class="export-block">
             <div class="export-head">
-              <span>Self-contained HTML URL</span>
-              <button class="btn" data-copy-target="htmlOutput" type="button">Copy</button>
+              <span>URL автономного HTML</span>
+              <button class="btn" data-copy-target="htmlOutput" type="button">Копировать</button>
             </div>
             <textarea class="field-area" id="htmlOutput" readonly></textarea>
           </div>
@@ -1122,22 +1122,22 @@
       }
 
       function formatRelative(dateString) {
-        if (!dateString) return "Updated recently";
+        if (!dateString) return "Обновлено недавно";
 
         const source = new Date(dateString).getTime();
-        if (!Number.isFinite(source)) return "Updated recently";
+        if (!Number.isFinite(source)) return "Обновлено недавно";
 
         const diff = Date.now() - source;
-        if (diff < 60 * 1000) return "Updated now";
+        if (diff < 60 * 1000) return "Обновлено только что";
 
         const minutes = Math.floor(diff / (60 * 1000));
-        if (minutes < 60) return `Updated ${minutes}m ago`;
+        if (minutes < 60) return `Обновлено ${minutes} мин назад`;
 
         const hours = Math.floor(minutes / 60);
-        if (hours < 24) return `Updated ${hours}h ago`;
+        if (hours < 24) return `Обновлено ${hours} ч назад`;
 
         const days = Math.floor(hours / 24);
-        return `Updated ${days}d ago`;
+        return `Обновлено ${days} дн назад`;
       }
 
       function getCoverForDialog(dialog) {
@@ -1152,9 +1152,9 @@
       }
 
       function getStatusMeta(dialog) {
-        if (dialog.published) return { className: "published", label: "Published" };
-        if (dialog.status === "archived") return { className: "archived", label: "Archived" };
-        return { className: "draft", label: "Draft" };
+        if (dialog.published) return { className: "published", label: "Опубликован" };
+        if (dialog.status === "archived") return { className: "archived", label: "Архив" };
+        return { className: "draft", label: "Черновик" };
       }
       function getFilteredDialogs() {
         const query = state.search.trim().toLowerCase();
@@ -1196,23 +1196,23 @@
                   <span class="status-badge ${statusMeta.className}">${statusMeta.label}</span>
                 </div>
                 <div class="project-body">
-                  <h3 class="project-title">${escapeHtml(dialog.name || "Untitled")}</h3>
+                  <h3 class="project-title">${escapeHtml(dialog.name || "Без названия")}</h3>
                   <div class="project-meta">${formatRelative(dialog.updatedAt)}</div>
                   <p class="project-description">${escapeHtml(dialog.description || "")}</p>
                   <div class="project-actions">
-                    <button class="icon-btn" data-action="open" data-id="${escapeHtml(dialog.id)}" title="Open" type="button">
+                    <button class="icon-btn" data-action="open" data-id="${escapeHtml(dialog.id)}" title="Открыть" type="button">
                       <span class="material-symbols-outlined">edit</span>
                     </button>
-                    <button class="icon-btn" data-action="duplicate" data-id="${escapeHtml(dialog.id)}" title="Duplicate" type="button">
+                    <button class="icon-btn" data-action="duplicate" data-id="${escapeHtml(dialog.id)}" title="Дублировать" type="button">
                       <span class="material-symbols-outlined">content_copy</span>
                     </button>
-                    <button class="icon-btn" data-action="${dialog.published ? "unpublish" : "publish"}" data-id="${escapeHtml(dialog.id)}" title="${dialog.published ? "Unpublish" : "Publish"}" type="button">
+                    <button class="icon-btn" data-action="${dialog.published ? "unpublish" : "publish"}" data-id="${escapeHtml(dialog.id)}" title="${dialog.published ? "Снять с публикации" : "Опубликовать"}" type="button">
                       <span class="material-symbols-outlined">${dialog.published ? "cloud_off" : "cloud_upload"}</span>
                     </button>
-                    <button class="icon-btn" data-action="export" data-id="${escapeHtml(dialog.id)}" title="Export" type="button">
+                    <button class="icon-btn" data-action="export" data-id="${escapeHtml(dialog.id)}" title="Экспорт" type="button">
                       <span class="material-symbols-outlined">code</span>
                     </button>
-                    <button class="icon-btn danger" data-action="delete" data-id="${escapeHtml(dialog.id)}" title="Delete" type="button">
+                    <button class="icon-btn danger" data-action="delete" data-id="${escapeHtml(dialog.id)}" title="Удалить" type="button">
                       <span class="material-symbols-outlined">delete</span>
                     </button>
                   </div>
@@ -1236,7 +1236,7 @@
               <div class="plus">
                 <span class="material-symbols-outlined" style="font-size:34px">add</span>
               </div>
-              <div style="font-weight:700">Create New Project</div>
+              <div style="font-weight:700">Создать проект</div>
             </div>
           </button>
         `;
@@ -1265,7 +1265,7 @@
         }
 
         if (!response.ok) {
-          const message = data?.error || `Request failed with status ${response.status}`;
+          const message = data?.error || `Ошибка запроса, статус ${response.status}`;
           const error = new Error(message);
           error.status = response.status;
           throw error;
@@ -1277,7 +1277,7 @@
       async function fetchProfile() {
         try {
           const payload = await apiRequest("/api/v1/auth/me");
-          const email = payload?.user?.email || "Workspace";
+          const email = payload?.user?.email || "Рабочее пространство";
           elements.workspaceLabel.textContent = email;
         } catch (error) {
           if (error.status === 401) {
@@ -1421,7 +1421,7 @@
           openExportModal();
           try {
             const payload = await apiRequest(`/api/v1/builder/dialogs/${encodeURIComponent(id)}/export`);
-            elements.exportSubtitle.textContent = `Publication key: ${payload.publicationKey}`;
+            elements.exportSubtitle.textContent = `Ключ публикации: ${payload.publicationKey}`;
             elements.iframeOutput.value = payload.iframe || "";
             elements.scriptOutput.value = payload.script || "";
             elements.htmlOutput.value = payload.htmlUrl || "";
@@ -1554,3 +1554,4 @@
     </script>
   </body>
 </html>
+

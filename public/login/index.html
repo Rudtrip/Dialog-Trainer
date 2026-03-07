@@ -1,9 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
+﻿<!DOCTYPE html>
+<html lang="ru">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Builder Login Screen</title>
+  <title>Вход в конструктор</title>
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -80,7 +80,7 @@
             <div class="space-y-1.5">
               <label class="block text-sm font-semibold text-slate-700" for="email">Рабочая почта</label>
               <div class="relative">
-                <input id="email" name="email" type="email" placeholder="name@company.com" class="block w-full rounded-lg border-slate-200 bg-slate-50 p-3 pl-10 text-sm focus:border-primary focus:ring-primary transition-all placeholder:text-slate-400" />
+                <input id="email" name="email" type="email" placeholder="example@company.ru" class="block w-full rounded-lg border-slate-200 bg-slate-50 p-3 pl-10 text-sm focus:border-primary focus:ring-primary transition-all placeholder:text-slate-400" />
                 <span class="material-symbols-outlined absolute left-3 top-3 text-slate-400" style="font-size:20px;">mail</span>
                 <span id="emailStatusIcon" class="material-symbols-outlined absolute right-3 top-3 text-slate-300" style="font-size:20px;">alternate_email</span>
               </div>
@@ -92,7 +92,7 @@
               <div class="relative">
                 <input id="password" name="password" type="password" placeholder="Введите пароль" class="block w-full rounded-lg border-slate-200 bg-slate-50 p-3 pl-10 pr-10 text-sm focus:border-primary focus:ring-primary transition-all placeholder:text-slate-400" />
                 <span class="material-symbols-outlined absolute left-3 top-3 text-slate-400" style="font-size:20px;">lock</span>
-                <button id="togglePassword" class="absolute right-3 top-3 text-slate-400 hover:text-slate-600 transition-colors" type="button" aria-label="Toggle password visibility">
+                <button id="togglePassword" class="absolute right-3 top-3 text-slate-400 hover:text-slate-600 transition-colors" type="button" aria-label="Показать или скрыть пароль">
                   <span id="togglePasswordIcon" class="material-symbols-outlined" style="font-size:20px;">visibility_off</span>
                 </button>
               </div>
@@ -147,7 +147,7 @@
         <div class="relative z-10">
           <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/60 backdrop-blur-sm border border-white/20 mb-6 w-fit">
             <span class="flex h-2 w-2 rounded-full bg-emerald-500"></span>
-            <span class="text-xs font-semibold text-slate-600 uppercase tracking-wider">Builder Ready</span>
+            <span class="text-xs font-semibold text-slate-600 uppercase tracking-wider">Готово к работе</span>
           </div>
           <h2 class="text-3xl font-bold text-slate-900 mb-4 leading-tight">
             Возвращайтесь к сценариям,<br />
@@ -315,12 +315,12 @@
           localStorage.removeItem("dialogTrainerRememberedEmail");
         }
 
-        showNotice("success", "Вход выполнен. Переходим в Builder...");
+        showNotice("success", "Вход выполнен. Переходим в конструктор...");
         setTimeout(() => {
           window.location.href = "/builder";
         }, 400);
       } catch (_error) {
-        showNotice("error", "Ошибка сети. Проверьте backend и повторите попытку.");
+        showNotice("error", "Ошибка сети. Проверьте сервер и повторите попытку.");
       } finally {
         submitButton.disabled = false;
         submitText.textContent = "Войти";
@@ -336,3 +336,4 @@
   </script>
 </body>
 </html>
+

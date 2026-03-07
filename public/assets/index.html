@@ -1,9 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
+﻿<!DOCTYPE html>
+<html lang="ru">
 <head>
   <meta charset="utf-8" />
   <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-  <title>Asset Library</title>
+  <title>Библиотека ассетов</title>
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
@@ -27,18 +27,18 @@
         <div class="size-10 rounded-full border-2 border-slate-200 bg-cover bg-center" style='background-image: url("https://images.unsplash.com/photo-1627161684458-a62da52b51c3?auto=format&fit=crop&w=96&q=80");'></div>
         <div>
           <p class="text-xl font-extrabold tracking-tight text-slate-900">SimBuilder</p>
-          <p class="text-xs font-medium text-slate-500">Workspace</p>
+          <p class="text-xs font-medium text-slate-500">Рабочее пространство</p>
         </div>
       </div>
       <nav class="flex-1 space-y-1 p-4">
-        <a class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900" href="/builder"><span class="material-symbols-outlined text-xl">folder_open</span><span>Projects</span></a>
-        <button class="flex w-full cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-400" type="button" disabled><span class="material-symbols-outlined text-xl">grid_view</span><span>Templates</span></button>
-        <a class="flex items-center gap-3 rounded-lg bg-primary/10 px-3 py-2.5 text-sm font-semibold text-primary" href="/assets"><span class="material-symbols-outlined text-xl">image</span><span>Assets</span></a>
-        <button class="flex w-full cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-400" type="button" disabled><span class="material-symbols-outlined text-xl">settings</span><span>Settings</span></button>
+        <a class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900" href="/builder"><span class="material-symbols-outlined text-xl">folder_open</span><span>Проекты</span></a>
+        <button class="flex w-full cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-400" type="button" disabled><span class="material-symbols-outlined text-xl">grid_view</span><span>Шаблоны</span></button>
+        <a class="flex items-center gap-3 rounded-lg bg-primary/10 px-3 py-2.5 text-sm font-semibold text-primary" href="/assets"><span class="material-symbols-outlined text-xl">image</span><span>Ассеты</span></a>
+        <button class="flex w-full cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-400" type="button" disabled><span class="material-symbols-outlined text-xl">settings</span><span>Настройки</span></button>
       </nav>
       <div class="space-y-1 border-t border-slate-200 p-4">
-        <button class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900" type="button"><span class="material-symbols-outlined text-xl">help</span><span>Help & Support</span></button>
-        <button id="signOutBtn" class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900" type="button"><span class="material-symbols-outlined text-xl">logout</span><span>Sign out</span></button>
+        <button class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900" type="button"><span class="material-symbols-outlined text-xl">help</span><span>Помощь и поддержка</span></button>
+        <button id="signOutBtn" class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900" type="button"><span class="material-symbols-outlined text-xl">logout</span><span>Выйти</span></button>
       </div>
     </aside>
 
@@ -46,52 +46,52 @@
       <div class="mx-auto w-full max-w-[1440px] px-8 py-8">
         <div class="mb-8 flex flex-wrap items-end justify-between gap-4">
           <div class="flex flex-col gap-1">
-            <h1 class="text-4xl font-black leading-tight tracking-tight">Asset Library</h1>
-            <p class="text-base font-normal text-slate-500" id="workspaceCaption">Manage characters and backgrounds for your training simulations.</p>
+            <h1 class="text-4xl font-black leading-tight tracking-tight">Библиотека ассетов</h1>
+            <p class="text-base font-normal text-slate-500" id="workspaceCaption">Управляйте персонажами и фонами для ваших учебных симуляций.</p>
           </div>
-          <button id="openUploadModalBtn" class="flex h-11 items-center justify-center gap-2 rounded-lg bg-primary px-6 text-sm font-bold text-white shadow-lg shadow-primary/20 transition-all active:scale-95 hover:bg-primary/90"><span class="material-symbols-outlined text-lg">upload</span><span id="uploadActionLabel">Upload Character</span></button>
+          <button id="openUploadModalBtn" class="flex h-11 items-center justify-center gap-2 rounded-lg bg-primary px-6 text-sm font-bold text-white shadow-lg shadow-primary/20 transition-all active:scale-95 hover:bg-primary/90"><span class="material-symbols-outlined text-lg">upload</span><span id="uploadActionLabel">Загрузить персонажа</span></button>
         </div>
 
         <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
           <label class="flex h-11 w-full max-w-xl flex-col">
             <div class="flex h-full w-full flex-1 items-stretch rounded-lg border border-slate-200 bg-white">
               <div class="flex items-center justify-center pl-3 text-slate-500"><span class="material-symbols-outlined text-xl">search</span></div>
-              <input id="searchInput" class="form-input w-full border-none bg-transparent text-sm placeholder:text-slate-500 focus:ring-0" placeholder="Search assets..." />
+              <input id="searchInput" class="form-input w-full border-none bg-transparent text-sm placeholder:text-slate-500 focus:ring-0" placeholder="Поиск ассетов..." />
             </div>
           </label>
           <div class="inline-flex rounded-lg border border-slate-200 bg-white p-1">
-            <button type="button" class="asset-view-btn rounded-md px-3 py-1.5 text-xs font-bold transition-colors" data-view="grid">Grid</button>
-            <button type="button" class="asset-view-btn rounded-md px-3 py-1.5 text-xs font-bold transition-colors" data-view="table">Table</button>
+            <button type="button" class="asset-view-btn rounded-md px-3 py-1.5 text-xs font-bold transition-colors" data-view="grid">Сетка</button>
+            <button type="button" class="asset-view-btn rounded-md px-3 py-1.5 text-xs font-bold transition-colors" data-view="table">Таблица</button>
           </div>
         </div>
 
         <div class="mb-3 border-b border-slate-200">
           <div class="flex gap-8">
-            <button class="asset-tab-btn flex items-center justify-center border-b-2 border-primary px-1 pb-4 text-primary" data-tab="character"><span class="material-symbols-outlined mr-2 text-xl">person</span><span class="text-sm font-bold tracking-wide">Characters</span></button>
-            <button class="asset-tab-btn flex items-center justify-center border-b-2 border-transparent px-1 pb-4 text-slate-500 transition-colors hover:text-slate-700" data-tab="background"><span class="material-symbols-outlined mr-2 text-xl">image</span><span class="text-sm font-bold tracking-wide">Backgrounds</span></button>
+            <button class="asset-tab-btn flex items-center justify-center border-b-2 border-primary px-1 pb-4 text-primary" data-tab="character"><span class="material-symbols-outlined mr-2 text-xl">person</span><span class="text-sm font-bold tracking-wide">Персонажи</span></button>
+            <button class="asset-tab-btn flex items-center justify-center border-b-2 border-transparent px-1 pb-4 text-slate-500 transition-colors hover:text-slate-700" data-tab="background"><span class="material-symbols-outlined mr-2 text-xl">image</span><span class="text-sm font-bold tracking-wide">Фоны</span></button>
           </div>
         </div>
 
-        <div class="mb-6 flex items-center justify-between gap-4"><p id="assetsCountLabel" class="text-sm font-medium text-slate-500">0 items</p></div>
+        <div class="mb-6 flex items-center justify-between gap-4"><p id="assetsCountLabel" class="text-sm font-medium text-slate-500">0 элементов</p></div>
 
         <section id="loadingState" class="rounded-xl border border-slate-200 bg-white p-10 text-center">
           <div class="mx-auto mb-4 size-10 animate-spin rounded-full border-4 border-slate-200 border-t-primary"></div>
-          <p class="font-semibold text-slate-700">Loading assets...</p>
+          <p class="font-semibold text-slate-700">Загружаем ассеты...</p>
         </section>
 
         <section id="authState" hidden class="rounded-xl border border-slate-200 bg-white p-10 text-center">
-          <p class="mb-4 font-semibold text-slate-700">Authorization is required to access /assets.</p>
-          <a class="inline-flex h-11 items-center justify-center rounded-lg bg-primary px-5 text-sm font-bold text-white" href="/login">Go to login</a>
+          <p class="mb-4 font-semibold text-slate-700">Для доступа к /assets требуется авторизация.</p>
+          <a class="inline-flex h-11 items-center justify-center rounded-lg bg-primary px-5 text-sm font-bold text-white" href="/login">Перейти ко входу</a>
         </section>
 
         <section id="errorState" hidden class="rounded-xl border border-red-200 bg-red-50 p-10 text-center">
-          <p id="errorMessage" class="font-semibold text-red-700">Unable to load data.</p>
-          <button id="retryBtn" class="mt-4 inline-flex h-10 items-center justify-center rounded-lg border border-red-300 bg-white px-4 text-sm font-semibold text-red-700">Retry</button>
+          <p id="errorMessage" class="font-semibold text-red-700">Не удалось загрузить данные.</p>
+          <button id="retryBtn" class="mt-4 inline-flex h-10 items-center justify-center rounded-lg border border-red-300 bg-white px-4 text-sm font-semibold text-red-700">Повторить</button>
         </section>
 
         <section id="emptyState" hidden class="rounded-xl border border-slate-200 bg-white p-10 text-center">
-          <p id="emptyMessage" class="mb-4 font-semibold text-slate-700">No assets yet.</p>
-          <button id="emptyUploadBtn" class="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-bold text-white">Upload</button>
+          <p id="emptyMessage" class="mb-4 font-semibold text-slate-700">Ассетов пока нет.</p>
+          <button id="emptyUploadBtn" class="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-bold text-white">Загрузить</button>
         </section>
 
         <section id="tableState" hidden>
@@ -100,7 +100,7 @@
             <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
               <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm">
-                  <thead class="bg-slate-50 text-xs uppercase text-slate-500"><tr><th class="px-4 py-3">Preview</th><th class="px-4 py-3">Title</th><th class="px-4 py-3">Source</th><th class="px-4 py-3">Resolution</th><th class="px-4 py-3">Format</th><th class="px-4 py-3">Size</th><th class="px-4 py-3">Updated</th><th class="px-4 py-3 text-right">Actions</th></tr></thead>
+                  <thead class="bg-slate-50 text-xs uppercase text-slate-500"><tr><th class="px-4 py-3">Превью</th><th class="px-4 py-3">Название</th><th class="px-4 py-3">Источник</th><th class="px-4 py-3">Разрешение</th><th class="px-4 py-3">Формат</th><th class="px-4 py-3">Размер</th><th class="px-4 py-3">Обновлено</th><th class="px-4 py-3 text-right">Действия</th></tr></thead>
                   <tbody id="assetsTableBody" class="divide-y divide-slate-200"></tbody>
                 </table>
               </div>
@@ -114,18 +114,18 @@
   <div id="uploadModal" hidden class="fixed inset-0 z-[70] bg-slate-900/40 p-4 backdrop-blur-sm">
     <div class="mx-auto mt-20 w-full max-w-xl rounded-xl border border-slate-200 bg-white p-6 shadow-2xl">
       <div class="mb-4 flex items-center justify-between gap-3">
-        <h3 id="uploadModalTitle" class="text-xl font-bold text-slate-900">Upload asset</h3>
+        <h3 id="uploadModalTitle" class="text-xl font-bold text-slate-900">Загрузка ассета</h3>
         <button id="closeUploadModalBtn" class="inline-flex size-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"><span class="material-symbols-outlined text-xl">close</span></button>
       </div>
-      <p id="uploadHintText" class="mb-4 text-sm text-slate-500">Choose file and enter asset name.</p>
+      <p id="uploadHintText" class="mb-4 text-sm text-slate-500">Выберите файл и укажите название ассета.</p>
       <form id="uploadForm" class="space-y-4">
-        <div><label class="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-500">Title</label><input id="assetTitleInput" class="w-full rounded-lg border-slate-300 text-sm" maxlength="160" required /></div>
-        <div><label class="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-500">File</label><input id="assetFileInput" type="file" class="w-full rounded-lg border-slate-300 text-sm" required /><p id="uploadFileRules" class="mt-1 text-xs text-slate-500"></p></div>
+        <div><label class="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-500">Название</label><input id="assetTitleInput" class="w-full rounded-lg border-slate-300 text-sm" maxlength="160" required /></div>
+        <div><label class="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-500">Файл</label><input id="assetFileInput" type="file" class="w-full rounded-lg border-slate-300 text-sm" required /><p id="uploadFileRules" class="mt-1 text-xs text-slate-500"></p></div>
         <div><div class="h-2 overflow-hidden rounded-full bg-slate-200"><div id="uploadProgressBar" class="h-full w-0 bg-primary transition-all"></div></div><p id="uploadProgressText" class="mt-1 text-xs text-slate-500">0%</p></div>
         <p id="uploadFormError" class="min-h-5 text-xs font-medium text-red-600"></p>
         <div class="flex justify-end gap-2">
-          <button id="cancelUploadBtn" type="button" class="inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700">Cancel</button>
-          <button id="submitUploadBtn" type="submit" class="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-bold text-white"><span id="submitUploadLabel">Upload</span></button>
+          <button id="cancelUploadBtn" type="button" class="inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700">Отмена</button>
+          <button id="submitUploadBtn" type="submit" class="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-bold text-white"><span id="submitUploadLabel">Загрузить</span></button>
         </div>
       </form>
     </div>
@@ -247,7 +247,7 @@
     function formatDate(dateStr) {
       const date = new Date(dateStr || "");
       if (!Number.isFinite(date.getTime())) return "-";
-      return date.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "2-digit" });
+      return date.toLocaleDateString("ru-RU", { year: "numeric", month: "short", day: "2-digit" });
     }
 
     function getAllowedMimes(type) {
@@ -269,12 +269,12 @@
       });
 
       const isCharacter = state.activeTab === "character";
-      els.uploadActionLabel.textContent = isCharacter ? "Upload Character" : "Upload Background";
-      els.uploadModalTitle.textContent = isCharacter ? "Upload character" : "Upload background";
+      els.uploadActionLabel.textContent = isCharacter ? "Загрузить персонажа" : "Загрузить фон";
+      els.uploadModalTitle.textContent = isCharacter ? "Загрузить персонажа" : "Загрузить фон";
       els.uploadHintText.textContent = isCharacter
-        ? "Characters: PNG, SVG. Transparent PNG is recommended."
-        : "Backgrounds: JPG/JPEG, PNG, WEBP. Limit 1MB.";
-      els.uploadFileRules.textContent = `Limit: ${formatBytes(getSizeLimit(state.activeTab))}`;
+        ? "Персонажи: PNG, SVG. Рекомендуется PNG с прозрачностью."
+        : "Фоны: JPG/JPEG, PNG, WEBP. Лимит 1 МБ.";
+      els.uploadFileRules.textContent = `Лимит: ${formatBytes(getSizeLimit(state.activeTab))}`;
       els.assetFileInput.accept = isCharacter
         ? ".png,.svg,image/png,image/svg+xml"
         : ".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp";
@@ -310,7 +310,7 @@
       }
 
       if (!response.ok) {
-        const error = new Error(data?.error || `Request failed: ${response.status}`);
+        const error = new Error(data?.error || `Ошибка запроса: ${response.status}`);
         error.status = response.status;
         throw error;
       }
@@ -339,12 +339,12 @@
             resolve(payload);
             return;
           }
-          const error = new Error(payload.error || `Upload failed: ${xhr.status}`);
+          const error = new Error(payload.error || `Ошибка загрузки: ${xhr.status}`);
           error.status = xhr.status;
           reject(error);
         };
 
-        xhr.onerror = () => reject(new Error("Network error during upload."));
+        xhr.onerror = () => reject(new Error("Сетевая ошибка при загрузке."));
         xhr.send(formData);
       });
     }
@@ -358,42 +358,42 @@
     function renderGrid(rows) {
       const cards = rows.map((item) => {
         const format = String(item.mimeType || "").split("/")[1] || "-";
-        const sourceLabel = item.source === "preinstalled" ? "Preinstalled" : "My upload";
-        const resolution = item.width && item.height ? `${item.width}x${item.height}` : "unknown";
+        const sourceLabel = item.source === "preinstalled" ? "Предустановленный" : "Моя загрузка";
+        const resolution = item.width && item.height ? `${item.width}x${item.height}` : "неизвестно";
         const emotionsCount = Number(item?.metadata?.emotions_count || 0);
-        const metaSecondary = state.activeTab === "character" && emotionsCount > 0 ? `${emotionsCount} emotions` : `${resolution}`;
+        const metaSecondary = state.activeTab === "character" && emotionsCount > 0 ? `${emotionsCount} эмоций` : `${resolution}`;
         const canEditCharacter = state.activeTab === "character";
         const cardActionAttrs = canEditCharacter
           ? `data-action="edit" data-id="${escapeHtml(item.id)}" role="button" tabindex="0"`
           : "";
         const editButton = canEditCharacter
-          ? `<button class="rounded-lg border border-indigo-200 px-2 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-50" data-action="edit" data-id="${escapeHtml(item.id)}">Edit</button>`
+          ? `<button class="rounded-lg border border-indigo-200 px-2 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-50" data-action="edit" data-id="${escapeHtml(item.id)}">Редактировать</button>`
           : "";
         const deleteButton = item.canDelete
-          ? `<button class="rounded-lg border border-red-200 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-50" data-action="delete" data-id="${escapeHtml(item.id)}">Delete</button>`
+          ? `<button class="rounded-lg border border-red-200 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-50" data-action="delete" data-id="${escapeHtml(item.id)}">Удалить</button>`
           : "";
 
-        return `<article class="group flex min-h-[320px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg ${canEditCharacter ? "cursor-pointer" : ""}" ${cardActionAttrs}><div class="relative aspect-[16/10] overflow-hidden bg-slate-100"><img class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" src="${escapeHtml(item.thumbnailUrl || item.fileUrl || "")}" alt="${escapeHtml(item.title)}" /><span class="absolute right-3 top-3 inline-flex rounded-md px-2 py-1 text-[10px] font-black uppercase tracking-wide ${item.source === "preinstalled" ? "bg-sky-100 text-sky-700" : "bg-indigo-100 text-indigo-700"}">${escapeHtml(sourceLabel)}</span></div><div class="flex flex-1 flex-col gap-3 p-4"><h3 class="line-clamp-2 text-lg font-bold leading-tight text-slate-900">${escapeHtml(item.title)}</h3><div class="flex flex-wrap items-center gap-2 text-xs text-slate-500"><span class="rounded bg-slate-100 px-2 py-1 font-semibold text-slate-700">${escapeHtml(format.toUpperCase())}</span><span>${escapeHtml(metaSecondary)}</span><span>${escapeHtml(formatBytes(item.fileSizeBytes))}</span></div><div class="mt-auto flex items-center justify-between gap-2"><span class="text-xs text-slate-500">Updated ${escapeHtml(formatDate(item.updatedAt || item.createdAt))}</span><div class="inline-flex gap-2">${editButton}<button class="rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50" data-action="preview" data-url="${escapeHtml(item.fileUrl || "")}">Open</button>${deleteButton}</div></div></div></article>`;
+        return `<article class="group flex min-h-[320px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg ${canEditCharacter ? "cursor-pointer" : ""}" ${cardActionAttrs}><div class="relative aspect-[16/10] overflow-hidden bg-slate-100"><img class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" src="${escapeHtml(item.thumbnailUrl || item.fileUrl || "")}" alt="${escapeHtml(item.title)}" /><span class="absolute right-3 top-3 inline-flex rounded-md px-2 py-1 text-[10px] font-black uppercase tracking-wide ${item.source === "preinstalled" ? "bg-sky-100 text-sky-700" : "bg-indigo-100 text-indigo-700"}">${escapeHtml(sourceLabel)}</span></div><div class="flex flex-1 flex-col gap-3 p-4"><h3 class="line-clamp-2 text-lg font-bold leading-tight text-slate-900">${escapeHtml(item.title)}</h3><div class="flex flex-wrap items-center gap-2 text-xs text-slate-500"><span class="rounded bg-slate-100 px-2 py-1 font-semibold text-slate-700">${escapeHtml(format.toUpperCase())}</span><span>${escapeHtml(metaSecondary)}</span><span>${escapeHtml(formatBytes(item.fileSizeBytes))}</span></div><div class="mt-auto flex items-center justify-between gap-2"><span class="text-xs text-slate-500">Обновлено ${escapeHtml(formatDate(item.updatedAt || item.createdAt))}</span><div class="inline-flex gap-2">${editButton}<button class="rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50" data-action="preview" data-url="${escapeHtml(item.fileUrl || "")}">Открыть</button>${deleteButton}</div></div></div></article>`;
       }).join("");
 
-      const addCardTitle = state.activeTab === "character" ? "Add New Character" : "Add New Background";
-      const addCardHint = state.activeTab === "character" ? "Supports PNG and SVG" : "Supports JPG, PNG and WEBP";
+      const addCardTitle = state.activeTab === "character" ? "Добавить персонажа" : "Добавить фон";
+      const addCardHint = state.activeTab === "character" ? "Поддерживает PNG и SVG" : "Поддерживает JPG, PNG и WEBP";
 
       els.assetsGrid.innerHTML = cards + `<button type="button" data-action="upload" class="flex min-h-[320px] flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-slate-50/80 p-6 text-center transition-colors hover:border-primary hover:bg-primary/5"><span class="material-symbols-outlined mb-4 rounded-full bg-white p-3 text-4xl text-slate-400">add</span><span class="text-base font-bold text-slate-800">${addCardTitle}</span><span class="mt-1 text-xs text-slate-500">${addCardHint}</span></button>`;
     }
     function renderTableRows(rows) {
       els.assetsTableBody.innerHTML = rows.map((item) => {
         const format = String(item.mimeType || "").split("/")[1] || "-";
-        const sourceLabel = item.source === "preinstalled" ? "Preinstalled" : "My upload";
+        const sourceLabel = item.source === "preinstalled" ? "Предустановленный" : "Моя загрузка";
         const resolution = item.width && item.height ? `${item.width}x${item.height}` : "-";
         const editButton = state.activeTab === "character"
-          ? `<button class="rounded-lg border border-indigo-200 px-2 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-50" data-action="edit" data-id="${escapeHtml(item.id)}">Edit</button>`
+          ? `<button class="rounded-lg border border-indigo-200 px-2 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-50" data-action="edit" data-id="${escapeHtml(item.id)}">Редактировать</button>`
           : "";
         const deleteButton = item.canDelete
-          ? `<button class="rounded-lg border border-red-200 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-50" data-action="delete" data-id="${escapeHtml(item.id)}">Delete</button>`
+          ? `<button class="rounded-lg border border-red-200 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-50" data-action="delete" data-id="${escapeHtml(item.id)}">Удалить</button>`
           : "";
 
-        return `<tr class="hover:bg-slate-50"><td class="px-4 py-3"><img class="h-14 w-14 rounded-lg border border-slate-200 bg-slate-50 object-cover" src="${escapeHtml(item.thumbnailUrl || item.fileUrl || "")}" alt="${escapeHtml(item.title)}" /></td><td class="px-4 py-3"><div class="font-semibold text-slate-900">${escapeHtml(item.title)}</div></td><td class="px-4 py-3"><span class="inline-flex rounded-full border px-2 py-1 text-xs font-bold ${item.source === "preinstalled" ? "border-sky-200 bg-sky-50 text-sky-700" : "border-indigo-200 bg-indigo-50 text-indigo-700"}">${escapeHtml(sourceLabel)}</span></td><td class="px-4 py-3 text-slate-600">${escapeHtml(resolution)}</td><td class="px-4 py-3 text-slate-600">${escapeHtml(format.toUpperCase())}</td><td class="px-4 py-3 text-slate-600">${escapeHtml(formatBytes(item.fileSizeBytes))}</td><td class="px-4 py-3 text-slate-600">${escapeHtml(formatDate(item.updatedAt || item.createdAt))}</td><td class="px-4 py-3 text-right"><div class="inline-flex gap-2">${editButton}<button class="rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50" data-action="preview" data-url="${escapeHtml(item.fileUrl || "")}">Open</button>${deleteButton}</div></td></tr>`;
+        return `<tr class="hover:bg-slate-50"><td class="px-4 py-3"><img class="h-14 w-14 rounded-lg border border-slate-200 bg-slate-50 object-cover" src="${escapeHtml(item.thumbnailUrl || item.fileUrl || "")}" alt="${escapeHtml(item.title)}" /></td><td class="px-4 py-3"><div class="font-semibold text-slate-900">${escapeHtml(item.title)}</div></td><td class="px-4 py-3"><span class="inline-flex rounded-full border px-2 py-1 text-xs font-bold ${item.source === "preinstalled" ? "border-sky-200 bg-sky-50 text-sky-700" : "border-indigo-200 bg-indigo-50 text-indigo-700"}">${escapeHtml(sourceLabel)}</span></td><td class="px-4 py-3 text-slate-600">${escapeHtml(resolution)}</td><td class="px-4 py-3 text-slate-600">${escapeHtml(format.toUpperCase())}</td><td class="px-4 py-3 text-slate-600">${escapeHtml(formatBytes(item.fileSizeBytes))}</td><td class="px-4 py-3 text-slate-600">${escapeHtml(formatDate(item.updatedAt || item.createdAt))}</td><td class="px-4 py-3 text-right"><div class="inline-flex gap-2">${editButton}<button class="rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50" data-action="preview" data-url="${escapeHtml(item.fileUrl || "")}">Открыть</button>${deleteButton}</div></td></tr>`;
       }).join("");
     }
 
@@ -401,12 +401,12 @@
       const rows = filteredItems();
       if (rows.length === 0) {
         els.emptyMessage.textContent = state.activeTab === "character"
-          ? "No characters yet. Upload your first character."
-          : "No backgrounds yet. Upload your first background.";
+          ? "Пока нет персонажей. Загрузите первого персонажа."
+          : "Пока нет фонов. Загрузите первый фон.";
         showState("empty");
         return;
       }
-      const label = state.activeTab === "character" ? "characters" : "backgrounds";
+      const label = state.activeTab === "character" ? "персонажей" : "фонов";
       els.assetsCountLabel.textContent = `${rows.length} ${label}`;
       renderGrid(rows);
       renderTableRows(rows);
@@ -418,7 +418,7 @@
       try {
         const payload = await apiRequest("/api/v1/auth/me");
         const email = payload?.user?.email || "";
-        if (email) els.workspaceCaption.textContent = `Signed in as ${email}`;
+        if (email) els.workspaceCaption.textContent = `Выполнен вход: ${email}`;
       } catch (error) {
         if (error.status === 401) signOut();
       }
@@ -440,7 +440,7 @@
           showState("auth");
           return;
         }
-        els.errorMessage.textContent = error.message || "Unable to load assets.";
+        els.errorMessage.textContent = error.message || "Не удалось загрузить ассеты.";
         showState("error");
       }
     }
@@ -463,24 +463,24 @@
       const file = els.assetFileInput.files?.[0] || null;
 
       if (!title) {
-        els.uploadFormError.textContent = "Title is required.";
+        els.uploadFormError.textContent = "Название обязательно.";
         return;
       }
       if (!file) {
-        els.uploadFormError.textContent = "File is required.";
+        els.uploadFormError.textContent = "Файл обязателен.";
         return;
       }
       if (!getAllowedMimes(state.activeTab).includes(file.type)) {
-        els.uploadFormError.textContent = "Unsupported file format for selected tab.";
+        els.uploadFormError.textContent = "Неподдерживаемый формат файла для выбранной вкладки.";
         return;
       }
       if (file.size > getSizeLimit(state.activeTab)) {
-        els.uploadFormError.textContent = `File is too large. Limit: ${formatBytes(getSizeLimit(state.activeTab))}.`;
+        els.uploadFormError.textContent = `Файл слишком большой. Лимит: ${formatBytes(getSizeLimit(state.activeTab))}.`;
         return;
       }
 
       els.submitUploadBtn.disabled = true;
-      els.submitUploadLabel.textContent = "Uploading...";
+      els.submitUploadLabel.textContent = "Загрузка...";
 
       try {
         const formData = new FormData();
@@ -491,33 +491,33 @@
 
         await uploadWithProgress(formData);
         closeUploadModal();
-        toast(state.activeTab === "character" ? "Character uploaded." : "Background uploaded.");
+        toast(state.activeTab === "character" ? "Персонаж загружен." : "Фон загружен.");
         await loadAssets();
       } catch (error) {
         if (error.status === 401) {
           signOut();
           return;
         }
-        els.uploadFormError.textContent = error.message || "Upload failed.";
+        els.uploadFormError.textContent = error.message || "Ошибка загрузки.";
       } finally {
         els.submitUploadBtn.disabled = false;
-        els.submitUploadLabel.textContent = "Upload";
+        els.submitUploadLabel.textContent = "Загрузить";
       }
     }
 
     async function handleDelete(assetId) {
-      const approved = window.confirm("Delete asset?");
+      const approved = window.confirm("Удалить ассет?");
       if (!approved) return;
       try {
         await apiRequest(`/api/v1/assets/${encodeURIComponent(assetId)}`, { method: "DELETE" });
-        toast("Asset deleted.");
+        toast("Ассет удалён.");
         await loadAssets();
       } catch (error) {
         if (error.status === 401) {
           signOut();
           return;
         }
-        toast(error.message || "Unable to delete asset.", "error");
+        toast(error.message || "Не удалось удалить ассет.", "error");
       }
     }
 
@@ -575,7 +575,7 @@
         if (action === "edit") {
           const id = String(actionElement.dataset.id || "").trim();
           if (id && state.activeTab === "character") {
-            window.location.href = `/assets/characters/${encodeURIComponent(id)}`;
+            window.location.href = `/assets/персонажей/${encodeURIComponent(id)}`;
           }
           return;
         }
@@ -605,3 +605,5 @@
   </script>
 </body>
 </html>
+
+

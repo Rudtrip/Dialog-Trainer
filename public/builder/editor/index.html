@@ -4,7 +4,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Scenario Editor</title>
+    <title>Редактор сценария</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet" />
     <link
@@ -215,11 +215,11 @@
           <span class="material-symbols-outlined">account_tree</span>
         </div>
         <div class="flex flex-col">
-          <h2 class="text-text-primary text-lg font-bold leading-tight tracking-[-0.015em]">Scenario Editor</h2>
+          <h2 class="text-text-primary text-lg font-bold leading-tight tracking-[-0.015em]">Редактор сценария</h2>
           <div class="flex items-center gap-2 text-xs text-text-secondary">
-            <span>Dialog Trainer</span>
+            <span>Тренажер диалогов</span>
             <span class="material-symbols-outlined text-[10px]">chevron_right</span>
-            <span id="dialogNameLabel">Loading...</span>
+            <span id="dialogNameLabel">Загрузка...</span>
           </div>
         </div>
       </div>
@@ -229,14 +229,14 @@
           class="flex items-center justify-center gap-2 rounded-lg h-9 px-4 bg-gray-100 text-text-primary hover:bg-gray-200 transition-colors text-sm font-semibold border border-gray-200"
         >
           <span class="material-symbols-outlined text-[18px]">visibility</span>
-          <span>Preview</span>
+          <span>Предпросмотр</span>
         </button>
         <button
           id="publishBtn"
           class="flex items-center justify-center gap-2 rounded-lg h-9 px-4 bg-primary text-white hover:bg-primary-hover transition-colors text-sm font-semibold shadow-md shadow-indigo-200"
         >
           <span class="material-symbols-outlined text-[18px]">publish</span>
-          <span>Publish</span>
+          <span>Публикация</span>
         </button>
       </div>
     </header>
@@ -248,21 +248,21 @@
         <button
           id="toolSelectBtn"
           class="size-10 rounded-lg flex items-center justify-center text-text-secondary hover:bg-primary/5 hover:text-primary transition-colors tool-active"
-          title="Select"
+          title="Выбор"
         >
           <span class="material-symbols-outlined">near_me</span>
         </button>
         <button
           id="toolAddBtn"
           class="size-10 rounded-lg flex items-center justify-center text-text-secondary hover:bg-primary/5 hover:text-primary transition-colors"
-          title="Add Node"
+          title="Добавить ноду"
         >
           <span class="material-symbols-outlined">add_box</span>
         </button>
         <button
           id="toolConnectBtn"
           class="size-10 rounded-lg hidden items-center justify-center text-text-secondary hover:bg-primary/5 hover:text-primary transition-colors"
-          title="Connect"
+          title="Связать"
         >
           <span class="material-symbols-outlined">cable</span>
         </button>
@@ -270,14 +270,14 @@
         <button
           id="toolPhonePreviewBtn"
           class="size-10 rounded-lg hidden items-center justify-center text-text-secondary hover:bg-primary/5 hover:text-primary transition-colors"
-          title="Phone Preview"
+          title="Предпросмотр в телефоне"
         >
           <span class="material-symbols-outlined">smartphone</span>
         </button>
         <button
           id="toolDialogPreviewBtn"
           class="size-10 rounded-lg hidden items-center justify-center text-text-secondary hover:bg-primary/5 hover:text-primary transition-colors"
-          title="Dialog Preview"
+          title="Предпросмотр диалога"
         >
           <span class="material-symbols-outlined">forum</span>
         </button>
@@ -300,7 +300,7 @@
             </button>
             <div id="quickAddMenu" class="absolute top-14 left-1/2 -translate-x-1/2 bg-white rounded-xl shadow-xl border border-gray-100 w-56 overflow-hidden hidden">
               <div class="bg-gray-50 px-3 py-2 border-b border-gray-100">
-                <span class="text-[10px] font-bold uppercase text-gray-500 tracking-wider">Add Next Step</span>
+                <span class="text-[10px] font-bold uppercase text-gray-500 tracking-wider">Добавить следующий шаг</span>
               </div>
               <div class="p-1 flex flex-col gap-0.5">
                 <button data-add-type="message" class="add-option-btn flex items-center gap-3 w-full p-2 hover:bg-gray-50 rounded-lg text-left group transition-colors">
@@ -308,8 +308,8 @@
                     <span class="material-symbols-outlined text-lg">smart_toy</span>
                   </div>
                   <div class="flex flex-col">
-                    <span class="text-sm font-medium text-gray-700">NPC Reply</span>
-                    <span class="text-[10px] text-gray-400">Bot creates dialogue</span>
+                    <span class="text-sm font-medium text-gray-700">Реплика персонажа</span>
+                    <span class="text-[10px] text-gray-400">Персонаж формирует реплику</span>
                   </div>
                 </button>
                 <button data-add-type="response" class="add-option-btn flex items-center gap-3 w-full p-2 hover:bg-gray-50 rounded-lg text-left group transition-colors">
@@ -317,8 +317,8 @@
                     <span class="material-symbols-outlined text-lg">chat_bubble</span>
                   </div>
                   <div class="flex flex-col">
-                    <span class="text-sm font-medium text-gray-700">Student Response</span>
-                    <span class="text-[10px] text-gray-400">User selection choice</span>
+                    <span class="text-sm font-medium text-gray-700">Ответ ученика</span>
+                    <span class="text-[10px] text-gray-400">Выбор пользователя</span>
                   </div>
                 </button>
                 <button data-add-type="end" class="add-option-btn flex items-center gap-3 w-full p-2 hover:bg-gray-50 rounded-lg text-left group transition-colors">
@@ -326,8 +326,8 @@
                     <span class="material-symbols-outlined text-lg">flag</span>
                   </div>
                   <div class="flex flex-col">
-                    <span class="text-sm font-medium text-gray-700">End</span>
-                    <span class="text-[10px] text-gray-400">Finalize branch</span>
+                    <span class="text-sm font-medium text-gray-700">Финиш</span>
+                    <span class="text-[10px] text-gray-400">Завершить ветку</span>
                   </div>
                 </button>
               </div>
@@ -356,7 +356,7 @@
               <span id="inspectorIcon" class="material-symbols-outlined">tune</span>
             </div>
             <div>
-              <h3 id="inspectorTitle" class="text-sm font-bold text-text-primary">Node</h3>
+              <h3 id="inspectorTitle" class="text-sm font-bold text-text-primary">Нода</h3>
               <p id="inspectorNodeId" class="text-xs text-text-secondary">ID: -</p>
             </div>
           </div>
@@ -368,12 +368,12 @@
         <div id="inspectorBody" class="flex-1 overflow-y-auto p-6 flex flex-col gap-5 text-sm"></div>
 
         <div class="p-4 border-t border-border-light bg-gray-50/50">
-          <div class="mb-2 text-xs text-text-secondary" id="saveStatusLabel">No changes</div>
+          <div class="mb-2 text-xs text-text-secondary" id="saveStatusLabel">Без изменений</div>
           <button
             id="saveGraphBtn"
             class="w-full py-2.5 bg-primary hover:bg-primary-hover text-white font-bold rounded-lg transition-colors text-sm shadow-md shadow-indigo-200"
           >
-            Save Changes
+            Сохранить изменения
           </button>
         </div>
       </aside>
@@ -393,8 +393,8 @@
               <span class="material-symbols-outlined text-sm">person</span>
             </div>
             <div class="flex flex-col min-w-0">
-              <span id="phonePreviewHeaderName" class="text-xs font-bold truncate">NPC</span>
-              <span class="text-[10px] text-green-500 font-medium">Active now</span>
+              <span id="phonePreviewHeaderName" class="text-xs font-bold truncate">Персонаж</span>
+              <span class="text-[10px] text-green-500 font-medium">В сети</span>
             </div>
             <div class="ml-auto flex gap-1">
               <span class="material-symbols-outlined text-primary text-base">call</span>
@@ -413,14 +413,14 @@
         <button
           id="phonePreviewResetBtn"
           class="absolute top-4 right-14 h-8 rounded-full bg-white border border-gray-200 px-3 text-[11px] font-semibold text-gray-600 hover:text-primary hover:border-primary/30 shadow-sm"
-          title="Reset Conversation"
+          title="Сбросить диалог"
         >
           Сбросить
         </button>
         <button
           id="phonePreviewCloseBtn"
           class="absolute top-4 right-4 size-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-600 shadow-sm"
-          title="Close Phone Preview"
+          title="Закрыть предпросмотр телефона"
         >
           <span class="material-symbols-outlined text-sm">close</span>
         </button>
@@ -438,15 +438,15 @@
               <div class="flex items-center gap-3">
                 <span class="material-symbols-outlined text-primary">forum</span>
                 <div class="flex flex-col">
-                  <span class="text-sm font-bold text-slate-800">Dialogue Preview</span>
-                  <span id="dialogPreviewProgressText" class="text-[11px] text-slate-500">Live from current graph</span>
+                  <span class="text-sm font-bold text-slate-800">Предпросмотр диалога</span>
+                  <span id="dialogPreviewProgressText" class="text-[11px] text-slate-500">В реальном времени из текущего графа</span>
                 </div>
               </div>
               <div class="flex items-center gap-3">
                 <button
                   id="dialogPreviewResetBtn"
                   class="h-8 rounded-full bg-white border border-gray-200 px-3 text-[11px] font-semibold text-gray-600 hover:text-primary hover:border-primary/30 shadow-sm"
-                  title="Reset Conversation"
+                  title="Сбросить диалог"
                 >
                   Сбросить
                 </button>
@@ -462,21 +462,21 @@
                 <div class="relative w-full max-w-[290px] h-full max-h-[640px] flex items-end justify-center">
                   <img
                     id="dialogPreviewCharacterImg"
-                    alt="Character"
+                    alt="Персонаж"
                     class="max-h-full w-full object-contain drop-shadow-xl hidden"
                   />
                   <div
                     id="dialogPreviewCharacterFallback"
                     class="h-[75%] w-full rounded-2xl border border-dashed border-slate-300 bg-white/70 text-slate-400 flex items-center justify-center text-xs font-medium"
                   >
-                    Character not selected
+                    Персонаж не выбран
                   </div>
                   <div
                     id="dialogPreviewEmotionBadge"
                     class="absolute bottom-24 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl items-center gap-2 shadow border border-white hidden"
                   >
                     <span id="dialogPreviewEmotionIcon" class="material-symbols-outlined text-primary text-[18px]">sentiment_neutral</span>
-                    <span id="dialogPreviewEmotionLabel" class="text-[10px] font-bold text-slate-700 uppercase tracking-widest">Neutral</span>
+                    <span id="dialogPreviewEmotionLabel" class="text-[10px] font-bold text-slate-700 uppercase tracking-widest">Нейтрально</span>
                   </div>
                 </div>
               </div>
@@ -484,11 +484,11 @@
               <div class="w-[56%] flex flex-col gap-4 mb-4">
                 <div class="bg-white rounded-2xl p-7 border border-slate-100 shadow-lg shadow-slate-200/40 relative min-h-[150px]">
                   <div id="dialogPreviewSpeakerBadge" class="absolute -top-3.5 left-6 bg-primary text-white px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow">
-                    NPC
+                    Персонаж
                   </div>
                   <span class="material-symbols-outlined text-slate-100 text-6xl absolute right-6 top-5 select-none">format_quote</span>
                   <p id="dialogPreviewMessageText" class="relative z-10 text-slate-800 text-xl font-medium leading-relaxed">
-                    Add a Message node to see preview.
+                    Добавьте ноду «Сообщение», чтобы увидеть предпросмотр.
                   </p>
                 </div>
 
@@ -506,7 +506,7 @@
         <button
           id="dialogPreviewCloseBtn"
           class="absolute top-4 right-4 size-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-600 shadow-sm"
-          title="Close Dialog Preview"
+          title="Закрыть предпросмотр диалога"
         >
           <span class="material-symbols-outlined text-sm">close</span>
         </button>
@@ -522,10 +522,10 @@
       };
 
       const MESSAGE_EMOTION_STATES = [
-        { key: "neutral", label: "Neutral", icon: "sentiment_neutral" },
-        { key: "happy", label: "Happy", icon: "sentiment_satisfied" },
-        { key: "concerned", label: "Concerned", icon: "sentiment_dissatisfied" },
-        { key: "angry", label: "Angry", icon: "sentiment_very_dissatisfied" },
+        { key: "neutral", label: "Нейтрально", icon: "sentiment_neutral" },
+        { key: "happy", label: "Радость", icon: "sentiment_satisfied" },
+        { key: "concerned", label: "Тревога", icon: "sentiment_dissatisfied" },
+        { key: "angry", label: "Злость", icon: "sentiment_very_dissatisfied" },
       ];
 
       const app = {
@@ -876,7 +876,7 @@
 
       function shouldUseCharacterNameAsSpeaker(node, previousCharacterName) {
         const currentSpeakerName = String(node?.data?.speakerName || "").trim();
-        if (!currentSpeakerName || currentSpeakerName.toLowerCase() === "npc") {
+        if (!currentSpeakerName || ["npc", "персонаж"].includes(currentSpeakerName.toLowerCase())) {
           return true;
         }
         if (previousCharacterName && currentSpeakerName === String(previousCharacterName)) {
@@ -895,7 +895,7 @@
           return false;
         }
 
-        const nextSpeakerName = String(characterAsset.title || "").trim() || "NPC";
+        const nextSpeakerName = String(characterAsset.title || "").trim() || "Персонаж";
         if (String(node.data?.speakerName || "") === nextSpeakerName) {
           return false;
         }
@@ -978,7 +978,7 @@
           }
 
           if (!String(node.data?.speakerName || "").trim()) {
-            node.data.speakerName = "NPC";
+            node.data.speakerName = "Персонаж";
             changed = true;
           }
         });
@@ -1072,7 +1072,7 @@
 
       function renderCharacterThumbOrRobotIcon(imageUrl, titleText, sizeClass) {
         if (imageUrl) {
-          return `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(titleText || "Character")}" class="${sizeClass} rounded-full object-cover" />`;
+          return `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(titleText || "Персонаж")}" class="${sizeClass} rounded-full object-cover" />`;
         }
         return `<span class="material-symbols-outlined text-xs">smart_toy</span>`;
       }
@@ -1094,7 +1094,7 @@
             const imageUrl = getMessageCharacterImageUrl(node);
             if (imageUrl) {
               wrapExtraClass = "bg-slate-100";
-              iconMarkup = `<img src="${escapeHtml(imageUrl)}" alt="Character" class="size-8 object-cover" />`;
+              iconMarkup = `<img src="${escapeHtml(imageUrl)}" alt="Персонаж" class="size-8 object-cover" />`;
             } else {
               wrapExtraClass = "bg-primary/10 text-primary border border-primary/20";
               iconMarkup = '<span class="material-symbols-outlined text-[18px]">smart_toy</span>';
@@ -1149,19 +1149,19 @@
         const awaitFirstChoice = Boolean(previewRuntime?.awaitFirstChoice);
 
         const baseState = {
-          headerName: "NPC",
+          headerName: "Персонаж",
           headerAvatarUrl: "",
           backgroundImageUrl: "",
           activeBackgroundImageUrl: "",
           bubbles: [],
           choices: [],
           activeMessageId: null,
-          activeSpeakerName: "NPC",
+          activeSpeakerName: "Персонаж",
           activeMessageText: "",
           activeCharacterImageUrl: "",
-          activeCharacterTitle: "NPC",
+          activeCharacterTitle: "Персонаж",
           activeEmotionState: "neutral",
-          activeEmotionLabel: "Neutral",
+          activeEmotionLabel: "Нейтрально",
           activeEmotionIcon: "sentiment_neutral",
           empty: true,
           totalScore: 0,
@@ -1184,7 +1184,7 @@
         }
 
         const bubbles = [];
-        let headerName = "NPC";
+        let headerName = "Персонаж";
         let headerAvatarUrl = "";
         let backgroundImageUrl = "";
         let activeBackgroundImageUrl = "";
@@ -1202,8 +1202,8 @@
           visited.add(currentMessage.id);
           depth += 1;
 
-          const speakerName = String(currentMessage.data?.speakerName || "").trim() || "NPC";
-          const messageText = String(currentMessage.data?.text || "").trim() || "Empty message";
+          const speakerName = String(currentMessage.data?.speakerName || "").trim() || "Персонаж";
+          const messageText = String(currentMessage.data?.text || "").trim() || "Пустое сообщение";
           const characterAsset = getMessageCharacterAsset(currentMessage);
           const characterImageUrl = getMessageCharacterImageUrl(currentMessage);
           const backgroundUrl = getMessageBackgroundImageUrl(currentMessage);
@@ -1214,7 +1214,7 @@
           if (!headerAvatarUrl && characterImageUrl) {
             headerAvatarUrl = characterImageUrl;
           }
-          if (headerName === "NPC" && (characterAsset?.title || speakerName)) {
+          if (headerName === "Персонаж" && (characterAsset?.title || speakerName)) {
             headerName = String(characterAsset?.title || speakerName);
           }
           if (!backgroundImageUrl && backgroundUrl) {
@@ -1229,9 +1229,9 @@
             speakerName,
             messageText,
             characterImageUrl,
-            characterTitle: String(characterAsset?.title || speakerName || "NPC"),
+            characterTitle: String(characterAsset?.title || speakerName || "Персонаж"),
             emotionState,
-            emotionLabel: emotionMeta?.label || "Neutral",
+            emotionLabel: emotionMeta?.label || "Нейтрально",
             emotionIcon: emotionMeta?.icon || "sentiment_neutral",
           };
 
@@ -1251,14 +1251,14 @@
           activeMessageId = currentMessage.id;
           choices = responseNodes.map((responseNode) => ({
             id: responseNode.id,
-            text: String(responseNode.data?.responseText || "").trim() || "Empty response",
+            text: String(responseNode.data?.responseText || "").trim() || "Пустой ответ",
           }));
 
           if (awaitFirstChoice) {
             break;
           }
 
-          // Stop traversal on cycles after rendering the revisited NPC message and choices.
+          // Останавливаем обход на циклах после повторно встреченного сообщения и вариантов ответа.
           if (revisitedMessage) {
             break;
           }
@@ -1280,7 +1280,7 @@
           bubbles.push({
             key: `r_${selectedResponse.id}`,
             side: "right",
-            text: String(selectedResponse.data?.responseText || "").trim() || "Empty response",
+            text: String(selectedResponse.data?.responseText || "").trim() || "Пустой ответ",
           });
 
           const nextMessage = sortNodesByX(getOutgoingNodes(selectedResponse.id, "message"))[0] || null;
@@ -1291,7 +1291,7 @@
 
           finishNode = sortNodesByX(getOutgoingNodes(selectedResponse.id, "end"))[0] || {
             id: "finish_auto",
-            data: { endingType: "neutral", title: "Finish" },
+            data: { endingType: "neutral", title: "Финиш" },
           };
           finished = true;
           choices = [];
@@ -1318,7 +1318,7 @@
         const completionKey = finished
           ? `${String(finishNode?.id || "finish")}|${totalScore}|${passScore ?? "none"}|${selectionKey}`
           : "";
-        const finishLabel = String(finishNode?.data?.title || "").trim() || "Finish";
+        const finishLabel = String(finishNode?.data?.title || "").trim() || "Финиш";
 
         return {
           headerName,
@@ -1328,12 +1328,12 @@
           bubbles,
           choices,
           activeMessageId,
-          activeSpeakerName: activeMessageMeta?.speakerName || headerName || "NPC",
+          activeSpeakerName: activeMessageMeta?.speakerName || headerName || "Персонаж",
           activeMessageText: activeMessageMeta?.messageText || "",
           activeCharacterImageUrl: activeMessageMeta?.characterImageUrl || headerAvatarUrl,
-          activeCharacterTitle: activeMessageMeta?.characterTitle || headerName || "NPC",
+          activeCharacterTitle: activeMessageMeta?.characterTitle || headerName || "Персонаж",
           activeEmotionState: activeMessageMeta?.emotionState || "neutral",
-          activeEmotionLabel: activeMessageMeta?.emotionLabel || "Neutral",
+          activeEmotionLabel: activeMessageMeta?.emotionLabel || "Нейтрально",
           activeEmotionIcon: activeMessageMeta?.emotionIcon || "sentiment_neutral",
           empty: bubbles.length === 0,
           totalScore,
@@ -1401,7 +1401,7 @@
           }
         } catch (error) {
           if (error?.status === 404) {
-            // Preview can work for unpublished drafts; skip DB tracking in this case.
+            // Предпросмотр может работать для неопубликованных черновиков; пропускаем запись попытки в БД.
             app.phonePreview.loggedCompletionKey = completionKey;
           } else if (error?.status === 409) {
             const used = Number(error?.data?.attemptsUsed);
@@ -1457,7 +1457,7 @@
           els.phonePreviewHeaderAvatar.innerHTML = avatarMarkup;
         }
         if (els.phonePreviewHeaderName) {
-          els.phonePreviewHeaderName.textContent = preview.headerName || "NPC";
+          els.phonePreviewHeaderName.textContent = preview.headerName || "Персонаж";
         }
 
         const resetBlocked =
@@ -1470,7 +1470,7 @@
           els.phonePreviewResetBtn.classList.toggle("cursor-not-allowed", resetBlocked);
           els.phonePreviewResetBtn.title = resetBlocked
             ? "Попытки закончились"
-            : "Reset Conversation";
+            : "Сбросить диалог";
         }
 
         const backgroundStyle = preview.backgroundImageUrl
@@ -1482,7 +1482,7 @@
         if (preview.empty) {
           els.phonePreviewMessages.innerHTML = `
             <div class="h-full flex items-center justify-center text-center text-xs text-slate-400">
-              Add a Message node to see messenger preview.
+              Добавьте ноду «Сообщение», чтобы увидеть предпросмотр мессенджера.
             </div>
           `;
           if (els.phonePreviewChoices) {
@@ -1508,12 +1508,12 @@
         const attemptsLine =
           preview.maxAttempts === null
             ? ""
-            : `<p class="text-[10px] text-center text-slate-400 mt-1">Attempts: ${escapeHtml(
+            : `<p class="text-[10px] text-center text-slate-400 mt-1">Попытки: ${escapeHtml(
                 String(app.phonePreview.attemptsUsed || 0)
               )} / ${escapeHtml(String(preview.maxAttempts))}${
                 app.phonePreview.attemptsRemaining === null
                   ? ""
-                  : ` (remaining: ${escapeHtml(String(app.phonePreview.attemptsRemaining))})`
+                  : ` (осталось: ${escapeHtml(String(app.phonePreview.attemptsRemaining))})`
               }</p>`;
 
         const finishedMarkup = preview.finished
@@ -1531,8 +1531,8 @@
                     ? `, проходной балл: <b>${escapeHtml(String(preview.passScore))}</b>`
                     : ""
                 }</div>
-                <div class="mt-1 text-[10px] opacity-80">Finish: ${escapeHtml(
-                  preview.finishLabel || "Finish"
+                <div class="mt-1 text-[10px] opacity-80">Финиш: ${escapeHtml(
+                  preview.finishLabel || "Финиш"
                 )}</div>
                 ${attemptsLine}
               </div>
@@ -1550,7 +1550,7 @@
             `
             : preview.choices.length
             ? `
-              <p class="text-[10px] text-center text-gray-400 uppercase font-bold tracking-widest mb-1">Select Response</p>
+              <p class="text-[10px] text-center text-gray-400 uppercase font-bold tracking-widest mb-1">Выберите ответ</p>
               ${preview.choices
                 .map((choice) => {
                   const selectedId = String(app.phonePreview.selections[preview.activeMessageId] || "");
@@ -1599,10 +1599,10 @@
         const preview = buildDialogPreviewState();
         const hasActiveStep = !preview.finished && preview.choices.length > 0;
         const hasAnyDialogue = !preview.empty;
-        const progressText = hasActiveStep ? "Choose response to continue" : "Dialogue summary";
+        const progressText = hasActiveStep ? "Выберите ответ для продолжения" : "Сводка диалога";
 
         if (els.dialogPreviewProgressText) {
-          els.dialogPreviewProgressText.textContent = hasAnyDialogue ? progressText : "Live from current graph";
+          els.dialogPreviewProgressText.textContent = hasAnyDialogue ? progressText : "В реальном времени из текущего графа";
         }
         if (els.dialogPreviewScore) {
           els.dialogPreviewScore.textContent = String(preview.totalScore || 0);
@@ -1615,24 +1615,24 @@
             : "none";
         }
 
-        const messageText = preview.activeMessageText || "Add a Message node to see preview.";
+        const messageText = preview.activeMessageText || "Добавьте ноду «Сообщение», чтобы увидеть предпросмотр.";
         if (els.dialogPreviewMessageText) {
           els.dialogPreviewMessageText.textContent = messageText;
         }
         if (els.dialogPreviewSpeakerBadge) {
-          els.dialogPreviewSpeakerBadge.textContent = preview.activeSpeakerName || preview.headerName || "NPC";
+          els.dialogPreviewSpeakerBadge.textContent = preview.activeSpeakerName || preview.headerName || "Персонаж";
         }
 
         const characterImageUrl = preview.activeCharacterImageUrl || preview.headerAvatarUrl || "";
         if (els.dialogPreviewCharacterImg && els.dialogPreviewCharacterFallback) {
           if (characterImageUrl) {
             els.dialogPreviewCharacterImg.src = characterImageUrl;
-            els.dialogPreviewCharacterImg.alt = preview.activeCharacterTitle || preview.headerName || "Character";
+            els.dialogPreviewCharacterImg.alt = preview.activeCharacterTitle || preview.headerName || "Персонаж";
             els.dialogPreviewCharacterImg.classList.remove("hidden");
             els.dialogPreviewCharacterFallback.classList.add("hidden");
           } else {
             els.dialogPreviewCharacterImg.src = "";
-            els.dialogPreviewCharacterImg.alt = "Character";
+            els.dialogPreviewCharacterImg.alt = "Персонаж";
             els.dialogPreviewCharacterImg.classList.add("hidden");
             els.dialogPreviewCharacterFallback.classList.remove("hidden");
           }
@@ -1643,7 +1643,7 @@
             els.dialogPreviewEmotionBadge.classList.remove("hidden");
             els.dialogPreviewEmotionBadge.classList.add("flex");
             els.dialogPreviewEmotionIcon.textContent = preview.activeEmotionIcon || "sentiment_neutral";
-            els.dialogPreviewEmotionLabel.textContent = preview.activeEmotionLabel || "Neutral";
+            els.dialogPreviewEmotionLabel.textContent = preview.activeEmotionLabel || "Нейтрально";
           } else {
             els.dialogPreviewEmotionBadge.classList.add("hidden");
             els.dialogPreviewEmotionBadge.classList.remove("flex");
@@ -1693,7 +1693,7 @@
             els.dialogPreviewFinish.innerHTML = `
               <div class="font-semibold">${preview.passed ? "Тест пройден" : "Тест провален"}</div>
               <div class="mt-1">PTS: <b>${escapeHtml(String(preview.totalScore))}</b>${thresholdText}</div>
-              <div class="mt-1 text-xs opacity-80">Finish: ${escapeHtml(preview.finishLabel || "Finish")}</div>
+              <div class="mt-1 text-xs opacity-80">Финиш: ${escapeHtml(preview.finishLabel || "Финиш")}</div>
             `;
           }
         }
@@ -1732,7 +1732,7 @@
               type: "start",
               position: { x: 520, y: 80 },
               data: {
-                title: "Scenario Initialization",
+                title: "Инициализация сценария",
                 passScore: null,
                 maxAttempts: null,
               },
@@ -1844,7 +1844,7 @@
         }
 
         if (!response.ok) {
-          const error = new Error(data?.error || `Request failed: ${response.status}`);
+          const error = new Error(data?.error || `Ошибка запроса: ${response.status}`);
           error.status = response.status;
           error.data = data;
           throw error;
@@ -1878,7 +1878,7 @@
 
       function setDirty(nextDirty) {
         app.dirty = nextDirty;
-        els.saveStatusLabel.textContent = app.dirty ? "Unsaved changes" : "No changes";
+        els.saveStatusLabel.textContent = app.dirty ? "Есть несохраненные изменения" : "Без изменений";
       }
 
       function updateToolButtons() {
@@ -1957,21 +1957,21 @@
             <div class="p-3">
               <div class="flex items-center gap-2 mb-2">
                 <span class="material-symbols-outlined text-green-500 text-sm">play_circle</span>
-                <span class="text-xs font-bold uppercase tracking-wider text-text-secondary">Start</span>
+                <span class="text-xs font-bold uppercase tracking-wider text-text-secondary">Старт</span>
               </div>
-              <p class="text-sm font-medium text-text-primary">${node.data?.title || "Scenario Initialization"}</p>
+              <p class="text-sm font-medium text-text-primary">${node.data?.title || "Инициализация сценария"}</p>
               <div class="mt-2 flex flex-wrap items-center gap-1.5">
                 ${
                   passScore === null
                     ? ""
-                    : `<span class="text-[10px] px-1.5 py-0.5 rounded border border-blue-200 bg-blue-50 text-blue-700 font-semibold">Pass: ${escapeHtml(
+                    : `<span class="text-[10px] px-1.5 py-0.5 rounded border border-blue-200 bg-blue-50 text-blue-700 font-semibold">Проходной: ${escapeHtml(
                         String(passScore)
                       )} pts</span>`
                 }
                 ${
                   maxAttempts === null
                     ? ""
-                    : `<span class="text-[10px] px-1.5 py-0.5 rounded border border-amber-200 bg-amber-50 text-amber-700 font-semibold">Attempts: ${escapeHtml(
+                    : `<span class="text-[10px] px-1.5 py-0.5 rounded border border-amber-200 bg-amber-50 text-amber-700 font-semibold">Попытки: ${escapeHtml(
                         String(maxAttempts)
                       )}</span>`
                 }
@@ -1981,12 +1981,12 @@
         }
 
         if (node.type === "message") {
-          const speakerName = String(node.data?.speakerName || "NPC").trim().slice(0, 80) || "NPC";
-          const messageText = String(node.data?.text || "Empty message").slice(0, 120);
+          const speakerName = String(node.data?.speakerName || "Персонаж").trim().slice(0, 80) || "Персонаж";
+          const messageText = String(node.data?.text || "Пустое сообщение").slice(0, 120);
           const emotionState = getMessageEmotionState(node);
           const emotionMeta =
             MESSAGE_EMOTION_STATES.find((emotion) => emotion.key === emotionState) || MESSAGE_EMOTION_STATES[0];
-          const emotionLabel = emotionMeta?.label || "Neutral";
+          const emotionLabel = emotionMeta?.label || "Нейтрально";
           const emotionIcon = emotionMeta?.icon || "sentiment_neutral";
           const characterAsset = getMessageCharacterAsset(node);
           const characterImageUrl = getMessageCharacterImageUrl(node);
@@ -2004,14 +2004,14 @@
                 <div class="size-6 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100">
                   ${avatarMarkup}
                 </div>
-                <span class="text-xs font-bold uppercase tracking-wider text-text-secondary">NPC: ${escapeHtml(
+                <span class="text-xs font-bold uppercase tracking-wider text-text-secondary">ПЕРСОНАЖ: ${escapeHtml(
                   speakerName
                 )}</span>
               </div>
               <p class="text-sm text-text-primary">${escapeHtml(messageText)}</p>
               <div class="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded border border-indigo-200 bg-indigo-50 text-indigo-700">
                 <span class="material-symbols-outlined text-[13px]">${emotionIcon}</span>
-                <span class="text-[10px] font-semibold uppercase tracking-wide">Emotion: ${escapeHtml(
+                <span class="text-[10px] font-semibold uppercase tracking-wide">Эмоция: ${escapeHtml(
                   emotionLabel
                 )}</span>
               </div>
@@ -2033,9 +2033,9 @@
             <div class="p-3">
               <div class="flex items-center gap-2 mb-2">
                 <span class="material-symbols-outlined text-primary text-sm">chat_bubble</span>
-                <span class="text-xs font-bold uppercase tracking-wider text-primary">Response</span>
+                <span class="text-xs font-bold uppercase tracking-wider text-primary">Ответ</span>
               </div>
-              <p class="text-sm font-medium text-text-primary">${(node.data?.responseText || "Empty response").slice(0, 120)}</p>
+              <p class="text-sm font-medium text-text-primary">${(node.data?.responseText || "Пустой ответ").slice(0, 120)}</p>
               <div class="mt-2">
                 <span class="text-[10px] px-1.5 py-0.5 rounded border font-medium ${scoreClass}">
                   ${scoreDelta > 0 ? "+" : ""}${scoreDelta} pts
@@ -2049,9 +2049,9 @@
           <div class="p-3">
             <div class="flex items-center gap-2 mb-2">
               <span class="material-symbols-outlined text-rose-500 text-sm">flag</span>
-              <span class="text-xs font-bold uppercase tracking-wider text-rose-600">End</span>
+              <span class="text-xs font-bold uppercase tracking-wider text-rose-600">Финиш</span>
             </div>
-            <p class="text-sm font-medium text-text-primary">${(node.data?.title || "Outcome").slice(0, 120)}</p>
+            <p class="text-sm font-medium text-text-primary">${(node.data?.title || "Результат").slice(0, 120)}</p>
           </div>
         `;
       }
@@ -2116,7 +2116,7 @@
                 }"
               >
                 <div class="bg-gray-50 px-3 py-2 border-b border-gray-100">
-                  <span class="text-[10px] font-bold uppercase text-gray-500 tracking-wider">Response Next Step</span>
+                  <span class="text-[10px] font-bold uppercase text-gray-500 tracking-wider">Следующий шаг ответа</span>
                 </div>
                 <div class="p-1 flex flex-col gap-0.5">
                   <button
@@ -2129,8 +2129,8 @@
                       <span class="material-symbols-outlined text-lg">smart_toy</span>
                     </div>
                     <div class="flex flex-col">
-                      <span class="text-sm font-medium text-gray-700">Message</span>
-                      <span class="text-[10px] text-gray-400">Continue dialogue</span>
+                      <span class="text-sm font-medium text-gray-700">Сообщение</span>
+                      <span class="text-[10px] text-gray-400">Продолжить диалог</span>
                     </div>
                   </button>
                   <button
@@ -2143,8 +2143,8 @@
                       <span class="material-symbols-outlined text-lg">flag</span>
                     </div>
                     <div class="flex flex-col">
-                      <span class="text-sm font-medium text-gray-700">End</span>
-                      <span class="text-[10px] text-gray-400">Finalize branch</span>
+                      <span class="text-sm font-medium text-gray-700">Финиш</span>
+                      <span class="text-[10px] text-gray-400">Завершить ветку</span>
                     </div>
                   </button>
                 </div>
@@ -2205,9 +2205,9 @@
         if (!node) {
           els.inspectorPanel.classList.add("hidden");
           updateInspectorHeaderVisual(null);
-          els.inspectorTitle.textContent = "Node";
+          els.inspectorTitle.textContent = "Нода";
           els.inspectorNodeId.textContent = "ID: -";
-          els.inspectorBody.innerHTML = '<p class="text-text-secondary">Select node on canvas.</p>';
+          els.inspectorBody.innerHTML = '<p class="text-text-secondary">Выберите ноду на канвасе.</p>';
           els.deleteNodeBtn.disabled = true;
           return;
         }
@@ -2215,9 +2215,9 @@
         els.inspectorPanel.classList.remove("hidden");
         updateInspectorHeaderVisual(node);
         if (node.type === "message") {
-          els.inspectorTitle.textContent = "NPC Node Settings";
+          els.inspectorTitle.textContent = "Настройки ноды персонажа";
         } else {
-          els.inspectorTitle.textContent = `${node.type.charAt(0).toUpperCase()}${node.type.slice(1)} Node`;
+          els.inspectorTitle.textContent = `${node.type.charAt(0).toUpperCase()}${node.type.slice(1)} нода`;
         }
         els.inspectorNodeId.textContent = `ID: ${node.id}`;
         els.deleteNodeBtn.disabled = node.type === "start";
@@ -2236,8 +2236,8 @@
 
           els.inspectorBody.innerHTML = `
             <div class="flex flex-col gap-1">
-              <label class="text-xs font-bold uppercase text-text-secondary tracking-wider">Title</label>
-              <input id="fieldStartTitle" class="w-full rounded-lg border-gray-300 bg-white text-sm" value="${node.data?.title || "Scenario Initialization"}" />
+              <label class="text-xs font-bold uppercase text-text-secondary tracking-wider">Заголовок</label>
+              <input id="fieldStartTitle" class="w-full rounded-lg border-gray-300 bg-white text-sm" value="${node.data?.title || "Инициализация сценария"}" />
             </div>
             <div class="grid grid-cols-2 gap-3">
               <div class="flex flex-col gap-1">
@@ -2265,7 +2265,7 @@
                 />
               </div>
             </div>
-            <p class="text-xs text-text-secondary">Start node is required and cannot be deleted.</p>
+            <p class="text-xs text-text-secondary">Нода «Старт» обязательна и не может быть удалена.</p>
           `;
 
           const input = document.getElementById("fieldStartTitle");
@@ -2318,10 +2318,10 @@
         if (node.type === "message") {
           const selectedCharacterAsset = getMessageCharacterAsset(node);
           const selectedCharacterImage = getMessageCharacterImageUrl(node);
-          const selectedCharacterName = selectedCharacterAsset?.title || "Not selected";
+          const selectedCharacterName = selectedCharacterAsset?.title || "Не выбран";
           const messageTextValue = String(node.data?.text || "");
           const messageChars = messageTextValue.length;
-          const speakerValue = String(node.data?.speakerName || "NPC");
+          const speakerValue = String(node.data?.speakerName || "Персонаж");
           const emotionState = getMessageEmotionState(node);
 
           const characterOptions = app.assetCatalog.character
@@ -2329,7 +2329,7 @@
               (asset) =>
                 `<option value="${escapeHtml(asset.id)}" ${
                   node.data?.characterAssetId === asset.id ? "selected" : ""
-                }>${escapeHtml(asset.title || "Character")}</option>`
+                }>${escapeHtml(asset.title || "Персонаж")}</option>`
             )
             .join("");
           const backgroundOptions = app.assetCatalog.background
@@ -2337,7 +2337,7 @@
               (asset) =>
                 `<option value="${escapeHtml(asset.id)}" ${
                   node.data?.backgroundAssetId === asset.id ? "selected" : ""
-                }>${escapeHtml(asset.title || "Background")}</option>`
+                }>${escapeHtml(asset.title || "Фон")}</option>`
             )
             .join("");
           const emotionButtonsMarkup = MESSAGE_EMOTION_STATES.map((emotion) => {
@@ -2360,10 +2360,10 @@
 
           els.inspectorBody.innerHTML = `
             <div class="flex flex-col gap-2">
-              <label class="text-[11px] font-bold uppercase text-text-secondary tracking-widest">Selected Character</label>
+              <label class="text-[11px] font-bold uppercase text-text-secondary tracking-widest">Выбранный персонаж</label>
               <div class="relative group">
                 <select id="fieldMessageCharacterAsset" class="w-full bg-white border border-slate-200 rounded-lg pl-10 pr-8 py-2.5 text-sm text-text-primary font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary appearance-none cursor-pointer transition-all">
-                  <option value="">Not selected</option>
+                  <option value="">Не выбран</option>
                   ${characterOptions}
                 </select>
                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg group-hover:text-primary">person</span>
@@ -2384,35 +2384,35 @@
             </div>
 
             <div class="flex flex-col gap-2 mt-1">
-              <label class="text-[11px] font-bold uppercase text-text-secondary tracking-widest">Speaker Name</label>
+              <label class="text-[11px] font-bold uppercase text-text-secondary tracking-widest">Имя спикера</label>
               <input id="fieldMessageSpeaker" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-text-primary focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" value="${escapeHtml(
                 speakerValue
               )}" />
             </div>
 
             <div class="flex flex-col gap-2">
-              <label class="text-[11px] font-bold uppercase text-text-secondary tracking-widest">Character Message</label>
-              <textarea id="fieldMessageText" class="w-full h-32 bg-white border border-slate-200 rounded-xl p-4 text-sm text-text-primary focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none placeholder-slate-400 leading-relaxed shadow-sm transition-all" placeholder="What should the NPC say?">${escapeHtml(
+              <label class="text-[11px] font-bold uppercase text-text-secondary tracking-widest">Сообщение персонажа</label>
+              <textarea id="fieldMessageText" class="w-full h-32 bg-white border border-slate-200 rounded-xl p-4 text-sm text-text-primary focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none placeholder-slate-400 leading-relaxed shadow-sm transition-all" placeholder="Что должен сказать персонаж?">${escapeHtml(
                 messageTextValue
               )}</textarea>
               <div class="flex justify-between items-center px-1">
-                <span id="fieldMessageTextCounter" class="text-[10px] text-slate-400">${messageChars} / 4000 characters</span>
-                <button id="fieldMessageInsertVar" type="button" class="text-[10px] text-primary font-bold uppercase hover:underline">Insert Variable</button>
+                <span id="fieldMessageTextCounter" class="text-[10px] text-slate-400">${messageChars} / 4000 символов</span>
+                <button id="fieldMessageInsertVar" type="button" class="text-[10px] text-primary font-bold uppercase hover:underline">Вставить переменную</button>
               </div>
             </div>
 
             <div class="flex flex-col gap-3">
-              <label class="text-[11px] font-bold uppercase text-text-secondary tracking-widest">Emotion State</label>
+              <label class="text-[11px] font-bold uppercase text-text-secondary tracking-widest">Эмоциональное состояние</label>
               <div class="grid grid-cols-4 gap-2">
                 ${emotionButtonsMarkup}
               </div>
             </div>
 
             <div class="flex flex-col gap-2">
-              <label class="text-[11px] font-bold uppercase text-text-secondary tracking-widest">Background Asset</label>
+              <label class="text-[11px] font-bold uppercase text-text-secondary tracking-widest">Фоновый ассет</label>
               <div class="relative group">
                 <select id="fieldMessageBackgroundAsset" class="w-full bg-white border border-slate-200 rounded-lg pl-10 pr-8 py-2.5 text-sm text-text-primary font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary appearance-none cursor-pointer transition-all">
-                  <option value="">Not selected</option>
+                  <option value="">Не выбран</option>
                   ${backgroundOptions}
                 </select>
                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg group-hover:text-primary">image</span>
@@ -2431,7 +2431,7 @@
 
           const updateTextCounter = () => {
             if (!textCounter) return;
-            textCounter.textContent = `${String(text.value || "").length} / 4000 characters`;
+            textCounter.textContent = `${String(text.value || "").length} / 4000 символов`;
           };
 
           speaker.addEventListener("input", () => {
@@ -2451,7 +2451,7 @@
           });
           if (insertVarBtn) {
             insertVarBtn.addEventListener("click", () => {
-              toast("Variables will be added in the next MVP iteration.", "warn");
+              toast("Переменные будут добавлены в следующей итерации MVP.", "warn");
             });
           }
           characterSelect.addEventListener("change", () => {
@@ -2463,8 +2463,8 @@
             if (nextValue) {
               maybeFillSpeakerNameFromCharacter(node, previousCharacterName);
             } else if (shouldUseCharacterNameAsSpeaker(node, previousCharacterName)) {
-              if (String(node.data?.speakerName || "") !== "NPC") {
-                node.data.speakerName = "NPC";
+              if (String(node.data?.speakerName || "") !== "Персонаж") {
+                node.data.speakerName = "Персонаж";
               }
             }
 
@@ -2507,25 +2507,25 @@
         if (node.type === "response") {
           const scoreValue = Number(node.data?.scoreDelta || 0);
           els.inspectorBody.innerHTML = `
-            <label class="text-xs font-bold uppercase text-text-secondary tracking-wider">Response text</label>
+            <label class="text-xs font-bold uppercase text-text-secondary tracking-wider">Текст ответа</label>
             <textarea id="fieldResponseText" class="w-full h-28 rounded-lg border-gray-300 bg-white text-sm">${node.data?.responseText || ""}</textarea>
             <div class="grid grid-cols-2 gap-3 mt-2">
               <div>
-                <label class="text-xs font-bold uppercase text-text-secondary tracking-wider">Points</label>
+                <label class="text-xs font-bold uppercase text-text-secondary tracking-wider">Баллы</label>
                 <input id="fieldResponseScore" type="number" class="w-full rounded-lg border-gray-300 bg-white text-sm" value="${scoreValue}" />
               </div>
               <div>
-                <label class="text-xs font-bold uppercase text-text-secondary tracking-wider">Feedback</label>
+                <label class="text-xs font-bold uppercase text-text-secondary tracking-wider">Тип обратной связи</label>
                 <select id="fieldResponseFeedback" class="w-full rounded-lg border-gray-300 bg-white text-sm">
-                  <option value="positive" ${node.data?.feedbackType === "positive" ? "selected" : ""}>Positive</option>
-                  <option value="neutral" ${node.data?.feedbackType !== "positive" && node.data?.feedbackType !== "negative" ? "selected" : ""}>Neutral</option>
-                  <option value="negative" ${node.data?.feedbackType === "negative" ? "selected" : ""}>Negative</option>
+                  <option value="positive" ${node.data?.feedbackType === "positive" ? "selected" : ""}>Позитивная</option>
+                  <option value="neutral" ${node.data?.feedbackType !== "positive" && node.data?.feedbackType !== "negative" ? "selected" : ""}>Нейтральная</option>
+                  <option value="negative" ${node.data?.feedbackType === "negative" ? "selected" : ""}>Негативная</option>
                 </select>
               </div>
             </div>
             <label class="inline-flex items-center gap-2 mt-4">
               <input id="fieldResponseHintEnabled" type="checkbox" ${node.data?.hintEnabled ? "checked" : ""} />
-              <span class="text-xs font-bold uppercase text-text-secondary tracking-wider">Hint enabled</span>
+              <span class="text-xs font-bold uppercase text-text-secondary tracking-wider">Подсказка включена</span>
             </label>
             <textarea id="fieldResponseHintText" class="w-full h-20 rounded-lg border-gray-300 bg-white text-sm ${node.data?.hintEnabled ? "" : "opacity-60"}" ${
               node.data?.hintEnabled ? "" : "disabled"
@@ -2575,13 +2575,13 @@
         }
 
         els.inspectorBody.innerHTML = `
-          <label class="text-xs font-bold uppercase text-text-secondary tracking-wider">Ending title</label>
-          <input id="fieldEndTitle" class="w-full rounded-lg border-gray-300 bg-white text-sm" value="${node.data?.title || "Outcome"}" />
-          <label class="text-xs font-bold uppercase text-text-secondary tracking-wider mt-3">Ending type</label>
+          <label class="text-xs font-bold uppercase text-text-secondary tracking-wider">Заголовок завершения</label>
+          <input id="fieldEndTitle" class="w-full rounded-lg border-gray-300 bg-white text-sm" value="${node.data?.title || "Результат"}" />
+          <label class="text-xs font-bold uppercase text-text-secondary tracking-wider mt-3">Тип завершения</label>
           <select id="fieldEndType" class="w-full rounded-lg border-gray-300 bg-white text-sm">
-            <option value="success" ${node.data?.endingType === "success" ? "selected" : ""}>Success</option>
-            <option value="neutral" ${node.data?.endingType !== "success" && node.data?.endingType !== "fail" ? "selected" : ""}>Neutral</option>
-            <option value="fail" ${node.data?.endingType === "fail" ? "selected" : ""}>Fail</option>
+            <option value="success" ${node.data?.endingType === "success" ? "selected" : ""}>Успех</option>
+            <option value="neutral" ${node.data?.endingType !== "success" && node.data?.endingType !== "fail" ? "selected" : ""}>Нейтрально</option>
+            <option value="fail" ${node.data?.endingType === "fail" ? "selected" : ""}>Провал</option>
           </select>
         `;
 
@@ -2648,6 +2648,14 @@
         return false;
       }
 
+      function formatNodeTypeLabel(type) {
+        if (type === "start") return "Старт";
+        if (type === "message") return "Сообщение";
+        if (type === "response") return "Ответ";
+        if (type === "end") return "Финиш";
+        return String(type || "");
+      }
+
       function hasResponseOutgoingEdge(sourceId) {
         return app.graph.edges.some((edge) => edge.source === sourceId);
       }
@@ -2662,7 +2670,7 @@
           const defaultCharacterAsset = defaultCharacterId
             ? getAssetById("character", defaultCharacterId)
             : null;
-          const defaultSpeakerName = String(defaultCharacterAsset?.title || "").trim() || "NPC";
+          const defaultSpeakerName = String(defaultCharacterAsset?.title || "").trim() || "Персонаж";
           return {
             speakerType: "npc",
             speakerName: defaultSpeakerName,
@@ -2682,7 +2690,7 @@
             nextStepRef: null,
           };
         }
-        return { endingType: "neutral", title: "Outcome", description: "" };
+        return { endingType: "neutral", title: "Результат", description: "" };
       }
 
       function addEdge(sourceId, targetId) {
@@ -2691,26 +2699,26 @@
         const target = getNodeById(targetId);
         if (!source || !target) return false;
         if (source.type === "end") {
-          toast("Нельзя вести связь из End.", "warn");
+          toast("Нельзя вести связь из ноды «Финиш».", "warn");
           return false;
         }
         if (target.type === "start") {
-          toast("Нельзя вести связь в Start.", "warn");
+          toast("Нельзя вести связь в ноду «Старт».", "warn");
           return false;
         }
 
         if (!isConnectionAllowed(source.type, target.type)) {
-          toast(`Связь ${source.type} -> ${target.type} не разрешена.`, "warn");
+          toast(`Связь ${formatNodeTypeLabel(source.type)} -> ${formatNodeTypeLabel(target.type)} не разрешена.`, "warn");
           return false;
         }
 
         if (source.type === "start" && hasStartOutgoingMessageEdge(sourceId)) {
-          toast("Из Start может быть только один Message.", "warn");
+          toast("Из ноды «Старт» может быть только один переход в «Сообщение».", "warn");
           return false;
         }
 
         if (source.type === "response" && hasResponseOutgoingEdge(sourceId)) {
-          toast("У Response может быть только один следующий шаг (Message или End).", "warn");
+          toast("У ноды «Ответ» может быть только один следующий шаг («Сообщение» или «Финиш»).", "warn");
           return false;
         }
 
@@ -2735,7 +2743,7 @@
         const node = getNodeById(app.selectedNodeId);
         if (!node) return;
         if (node.type === "start") {
-          toast("Start удалить нельзя.", "warn");
+          toast("Ноду «Старт» удалить нельзя.", "warn");
           return;
         }
 
@@ -2812,17 +2820,17 @@
         }
 
         if (sourceNode.type === "response" && hasResponseOutgoingEdge(sourceNode.id)) {
-          toast("Для Response уже задан следующий шаг.", "warn");
+          toast("Для ноды «Ответ» уже задан следующий шаг.", "warn");
           return null;
         }
 
         if (sourceNode.type === "start" && hasStartOutgoingMessageEdge(sourceNode.id)) {
-          toast("Из Start может быть только один Message.", "warn");
+          toast("Из ноды «Старт» может быть только один переход в «Сообщение».", "warn");
           return null;
         }
 
         if (!isConnectionAllowed(sourceNode.type, targetType)) {
-          toast(`Для ${sourceNode.type} нельзя добавить ${targetType}.`, "warn");
+          toast(`Для ноды «${formatNodeTypeLabel(sourceNode.type)}» нельзя добавить «${formatNodeTypeLabel(targetType)}».`, "warn");
           return null;
         }
 
@@ -2929,12 +2937,12 @@
       }
 
       function addNodeByPrompt() {
-        const type = String(window.prompt("Тип ноды: message | response | end", "message") || "")
+        const type = String(window.prompt("Тип ноды: сообщение (message) | ответ (response) | финиш (end)", "message") || "")
           .trim()
           .toLowerCase();
 
         if (!["message", "response", "end"].includes(type)) {
-          if (type) toast("Поддерживаются: message, response, end.", "warn");
+          if (type) toast("Поддерживаются типы: message, response, end.", "warn");
           return;
         }
 
@@ -2946,7 +2954,7 @@
         }
 
         if (type === "response") {
-          toast("Response можно создать только от Message.", "warn");
+          toast("Ноду «Ответ» можно создать только от ноды «Сообщение».", "warn");
           return;
         }
 
@@ -3086,7 +3094,7 @@
 
       async function loadEditor() {
         const payload = await apiRequest(`/api/v1/builder/dialogs/${encodeURIComponent(app.dialogId)}/editor`);
-        app.dialogName = payload.dialogName || "Scenario";
+        app.dialogName = payload.dialogName || "Сценарий";
         app.sceneType = normalizeSceneType(payload.sceneType);
         app.phonePreview.selections = {};
         app.phonePreview.open = false;
@@ -3107,7 +3115,7 @@
         app.graph = ensureGraph(payload.graph);
         normalizeMessageNodeDataForEditor();
         els.dialogNameLabel.textContent = app.dialogName;
-        document.title = `Scenario Editor - ${app.dialogName}`;
+        document.title = `Редактор сценария - ${app.dialogName}`;
 
         app.selectedNodeId = null;
         setDirty(false);
@@ -3117,7 +3125,7 @@
       async function saveEditor() {
         try {
           els.saveGraphBtn.disabled = true;
-          els.saveGraphBtn.textContent = "Saving...";
+          els.saveGraphBtn.textContent = "Сохранение...";
 
           const payload = await apiRequest(
             `/api/v1/builder/dialogs/${encodeURIComponent(app.dialogId)}/editor`,
@@ -3143,7 +3151,7 @@
           }
         } finally {
           els.saveGraphBtn.disabled = false;
-          els.saveGraphBtn.textContent = "Save Changes";
+          els.saveGraphBtn.textContent = "Сохранить изменения";
         }
       }
 
@@ -3176,7 +3184,7 @@
 
           const previewUrl = String(payload?.previewUrl || payload?.previewPath || "").trim();
           if (!previewUrl) {
-            throw new Error("Preview URL is empty.");
+            throw new Error("URL предпросмотра пуст.");
           }
 
           const win = window.open(previewUrl, "_blank", "noopener,noreferrer");
@@ -3185,9 +3193,9 @@
             return;
           }
 
-          toast("Открыт runtime preview.");
+          toast("Предпросмотр открыт.");
         } catch (error) {
-          toast(error.message || "Не удалось открыть preview.", "error");
+          toast(error.message || "Не удалось открыть предпросмотр.", "error");
         }
       }
       function registerEvents() {
@@ -3386,7 +3394,7 @@
           await loadAssetCatalog();
           await loadEditor();
         } catch (error) {
-          toast(error.message || "Не удалось загрузить editor.", "error");
+          toast(error.message || "Не удалось загрузить редактор.", "error");
           if (error.status === 401) {
             window.location.href = "/login";
           }
@@ -3397,3 +3405,5 @@
     </script>
   </body>
 </html>
+
+

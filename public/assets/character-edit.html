@@ -1,9 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
+﻿<!DOCTYPE html>
+<html lang="ru">
 <head>
   <meta charset="utf-8" />
   <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-  <title>Edit Character</title>
+  <title>Редактирование персонажа</title>
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
@@ -27,18 +27,18 @@
         <div class="size-10 rounded-full border-2 border-slate-200 bg-cover bg-center" style='background-image: url("https://images.unsplash.com/photo-1627161684458-a62da52b51c3?auto=format&fit=crop&w=96&q=80");'></div>
         <div>
           <p class="text-xl font-extrabold tracking-tight text-slate-900">SimBuilder</p>
-          <p class="text-xs font-medium text-slate-500">Workspace</p>
+          <p class="text-xs font-medium text-slate-500">Рабочее пространство</p>
         </div>
       </div>
       <nav class="flex-1 space-y-1 p-4">
-        <a class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900" href="/builder"><span class="material-symbols-outlined text-xl">folder_open</span><span>Projects</span></a>
-        <button class="flex w-full cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-400" type="button" disabled><span class="material-symbols-outlined text-xl">grid_view</span><span>Templates</span></button>
-        <a class="flex items-center gap-3 rounded-lg bg-primary/10 px-3 py-2.5 text-sm font-semibold text-primary" href="/assets"><span class="material-symbols-outlined text-xl">image</span><span>Assets</span></a>
-        <button class="flex w-full cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-400" type="button" disabled><span class="material-symbols-outlined text-xl">settings</span><span>Settings</span></button>
+        <a class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900" href="/builder"><span class="material-symbols-outlined text-xl">folder_open</span><span>Проекты</span></a>
+        <button class="flex w-full cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-400" type="button" disabled><span class="material-symbols-outlined text-xl">grid_view</span><span>Шаблоны</span></button>
+        <a class="flex items-center gap-3 rounded-lg bg-primary/10 px-3 py-2.5 text-sm font-semibold text-primary" href="/assets"><span class="material-symbols-outlined text-xl">image</span><span>Ассеты</span></a>
+        <button class="flex w-full cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-400" type="button" disabled><span class="material-symbols-outlined text-xl">settings</span><span>Настройки</span></button>
       </nav>
       <div class="space-y-1 border-t border-slate-200 p-4">
-        <button class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900" type="button"><span class="material-symbols-outlined text-xl">help</span><span>Help & Support</span></button>
-        <button id="signOutBtn" class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900" type="button"><span class="material-symbols-outlined text-xl">logout</span><span>Sign out</span></button>
+        <button class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900" type="button"><span class="material-symbols-outlined text-xl">help</span><span>Помощь и поддержка</span></button>
+        <button id="signOutBtn" class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900" type="button"><span class="material-symbols-outlined text-xl">logout</span><span>Выйти</span></button>
       </div>
     </aside>
 
@@ -46,67 +46,67 @@
       <div class="mx-auto w-full max-w-[1440px] px-8 py-8">
         <div id="loadingState" class="rounded-xl border border-slate-200 bg-white p-10 text-center">
           <div class="mx-auto mb-4 size-10 animate-spin rounded-full border-4 border-slate-200 border-t-primary"></div>
-          <p class="font-semibold text-slate-700">Loading character...</p>
+          <p class="font-semibold text-slate-700">Загрузка персонажа...</p>
         </div>
 
         <div id="authState" hidden class="rounded-xl border border-slate-200 bg-white p-10 text-center">
-          <p class="mb-4 font-semibold text-slate-700">Authorization is required.</p>
-          <a class="inline-flex h-11 items-center justify-center rounded-lg bg-primary px-5 text-sm font-bold text-white" href="/login">Go to login</a>
+          <p class="mb-4 font-semibold text-slate-700">Требуется авторизация.</p>
+          <a class="inline-flex h-11 items-center justify-center rounded-lg bg-primary px-5 text-sm font-bold text-white" href="/login">Перейти ко входу</a>
         </div>
 
         <div id="errorState" hidden class="rounded-xl border border-red-200 bg-red-50 p-10 text-center">
-          <p id="errorMessage" class="font-semibold text-red-700">Unable to load character.</p>
+          <p id="errorMessage" class="font-semibold text-red-700">Не удалось загрузить персонажа.</p>
           <div class="mt-4 inline-flex gap-2">
-            <button id="retryBtn" class="inline-flex h-10 items-center justify-center rounded-lg border border-red-300 bg-white px-4 text-sm font-semibold text-red-700">Retry</button>
-            <a href="/assets" class="inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700">Back to assets</a>
+            <button id="retryBtn" class="inline-flex h-10 items-center justify-center rounded-lg border border-red-300 bg-white px-4 text-sm font-semibold text-red-700">Повторить</button>
+            <a href="/assets" class="inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700">Назад к ассетам</a>
           </div>
         </div>
 
         <section id="contentState" hidden>
           <nav class="mb-5 flex items-center gap-2 text-sm text-slate-500">
-            <a class="hover:text-primary" href="/assets">Asset Library</a>
+            <a class="hover:text-primary" href="/assets">Библиотека ассетов</a>
             <span>/</span>
-            <a class="hover:text-primary" href="/assets">Characters</a>
+            <a class="hover:text-primary" href="/assets">Персонажи</a>
             <span>/</span>
-            <span id="crumbTitle" class="font-semibold text-slate-900">Character</span>
+            <span id="crumbTitle" class="font-semibold text-slate-900">Персонаж</span>
           </nav>
 
           <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
             <div>
-              <h1 id="pageTitle" class="text-3xl font-black tracking-tight text-slate-900">Edit Character</h1>
-              <p id="subtitle" class="mt-1 text-sm text-slate-500">Manage character profile and emotion images.</p>
+              <h1 id="pageTitle" class="text-3xl font-black tracking-tight text-slate-900">Редактировать персонажа</h1>
+              <p id="subtitle" class="mt-1 text-sm text-slate-500">Управляйте профилем персонажа и изображениями эмоций.</p>
             </div>
             <div class="inline-flex gap-2">
               <button id="saveBtn" class="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-primary px-5 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:bg-primary/90">
                 <span class="material-symbols-outlined text-lg">save</span>
-                <span>Save Changes</span>
+                <span>Сохранить изменения</span>
               </button>
               <button id="deleteBtn" class="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-5 text-sm font-bold text-red-700 transition hover:bg-red-50">
                 <span class="material-symbols-outlined text-lg">delete</span>
-                <span>Delete Character</span>
+                <span>Удалить персонажа</span>
               </button>
             </div>
           </div>
 
           <div id="readOnlyBanner" hidden class="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            This is a preinstalled character. You can view its data, but editing and uploads are disabled.
+            Это предустановленный персонаж. Можно просматривать данные, но редактирование и загрузка отключены.
           </div>
 
           <div class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
             <section class="space-y-6">
               <article class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                 <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-                  <h2 class="text-lg font-bold">Emotion Preview</h2>
-                  <span id="activeEmotionBadge" class="rounded bg-primary/10 px-2 py-1 text-xs font-bold text-primary">Neutral</span>
+                  <h2 class="text-lg font-bold">Превью эмоции</h2>
+                  <span id="activeEmotionBadge" class="rounded bg-primary/10 px-2 py-1 text-xs font-bold text-primary">Нейтрально</span>
                 </div>
                 <div class="relative aspect-video w-full overflow-hidden bg-slate-100">
                   <div class="absolute inset-0 opacity-20" style="background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 20px 20px;"></div>
-                  <img id="primaryPreviewImage" class="relative z-10 h-full w-full object-contain" alt="Character preview" />
+                  <img id="primaryPreviewImage" class="relative z-10 h-full w-full object-contain" alt="Превью персонажа" />
                 </div>
               </article>
 
               <article class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                <h3 class="mb-4 text-base font-bold text-slate-900">Emotion Slots</h3>
+                <h3 class="mb-4 text-base font-bold text-slate-900">Слоты эмоций</h3>
                 <div id="emotionSlots" class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"></div>
               </article>
             </section>
@@ -115,43 +115,43 @@
               <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                 <div class="mb-5 flex items-center gap-2">
                   <span class="material-symbols-outlined text-primary">person_edit</span>
-                  <h3 class="text-lg font-bold text-slate-900">Character Info</h3>
+                  <h3 class="text-lg font-bold text-slate-900">Данные персонажа</h3>
                 </div>
                 <div class="space-y-4">
                   <label class="block">
-                    <span class="mb-1 block text-sm font-semibold text-slate-700">Character Name</span>
+                    <span class="mb-1 block text-sm font-semibold text-slate-700">Имя персонажа</span>
                     <input id="nameInput" class="w-full rounded-lg border-slate-300 text-sm" maxlength="160" />
                   </label>
                   <label class="block">
-                    <span class="mb-1 block text-sm font-semibold text-slate-700">Specialization</span>
+                    <span class="mb-1 block text-sm font-semibold text-slate-700">Специализация</span>
                     <select id="specializationInput" class="w-full rounded-lg border-slate-300 text-sm">
-                      <option value="">Not specified</option>
-                      <option>Medicine & Healthcare</option>
-                      <option>Corporate Office</option>
-                      <option>Technical Support</option>
-                      <option>Customer Service</option>
+                      <option value="">Не указано</option>
+                      <option>Медицина и здравоохранение</option>
+                      <option>Корпоративный офис</option>
+                      <option>Техническая поддержка</option>
+                      <option>Клиентский сервис</option>
                     </select>
                   </label>
                   <label class="block">
-                    <span class="mb-1 block text-sm font-semibold text-slate-700">Description</span>
-                    <textarea id="descriptionInput" class="w-full rounded-lg border-slate-300 text-sm" rows="6" maxlength="2000" placeholder="Describe this character..."></textarea>
+                    <span class="mb-1 block text-sm font-semibold text-slate-700">Описание</span>
+                    <textarea id="descriptionInput" class="w-full rounded-lg border-slate-300 text-sm" rows="6" maxlength="2000" placeholder="Опишите этого персонажа..."></textarea>
                   </label>
                   <p id="formError" class="min-h-5 text-xs font-medium text-red-600"></p>
                   <button id="savePanelBtn" class="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-bold text-white transition hover:bg-primary/90">
                     <span class="material-symbols-outlined text-lg">save</span>
-                    <span>Save Character</span>
+                    <span>Сохранить персонажа</span>
                   </button>
                 </div>
               </article>
 
               <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                <h4 class="mb-4 text-xs font-bold uppercase tracking-widest text-slate-400">Statistics</h4>
+                <h4 class="mb-4 text-xs font-bold uppercase tracking-widest text-slate-400">Статистика</h4>
                 <div class="flex items-center justify-between border-b border-slate-100 py-2">
-                  <span class="text-sm text-slate-500">Emotion images</span>
+                  <span class="text-sm text-slate-500">Изображения эмоций</span>
                   <strong id="emotionCountStat">0</strong>
                 </div>
                 <div class="flex items-center justify-between py-2">
-                  <span class="text-sm text-slate-500">Source</span>
+                  <span class="text-sm text-slate-500">Источник</span>
                   <strong id="sourceStat">-</strong>
                 </div>
               </article>
@@ -168,10 +168,10 @@
   <script>
     const storageKeys = { accessToken: "dialogTrainerAccessToken", session: "dialogTrainerSession" };
     const EMOTION_STATES = [
-      { key: "neutral", label: "Neutral", icon: "sentiment_neutral" },
-      { key: "happy", label: "Happy", icon: "sentiment_satisfied" },
-      { key: "concerned", label: "Concerned", icon: "sentiment_dissatisfied" },
-      { key: "angry", label: "Angry", icon: "sentiment_very_dissatisfied" }
+      { key: "neutral", label: "Нейтрально", icon: "sentiment_neutral" },
+      { key: "happy", label: "Радость", icon: "sentiment_satisfied" },
+      { key: "concerned", label: "Тревога", icon: "sentiment_dissatisfied" },
+      { key: "angry", label: "Злость", icon: "sentiment_very_dissatisfied" }
     ];
     const EMOTION_MAX_BYTES = 2 * 1024 * 1024;
     const EMOTION_ALLOWED_MIME = new Set(["image/png", "image/jpeg", "image/webp", "image/svg+xml"]);
@@ -385,7 +385,7 @@
             </button>
             <button type="button" data-action="upload-emotion" data-state="${emotion.key}" class="mt-2 inline-flex w-full items-center justify-center gap-1 rounded-lg border border-indigo-200 px-2 py-1.5 text-xs font-bold uppercase tracking-wide text-indigo-700 transition hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-60" ${readOnly ? "disabled" : ""}>
               <span class="material-symbols-outlined text-sm">${uploading ? "hourglass_top" : "upload"}</span>
-              <span>${uploading ? "Uploading..." : hasImage ? "Update" : "Upload"}</span>
+              <span>${uploading ? "Загрузка..." : hasImage ? "Обновить" : "Загрузить"}</span>
             </button>
           </article>
         `;
@@ -406,7 +406,7 @@
       const asset = state.asset;
       if (!asset) return;
 
-      const title = String(asset.title || "Untitled character");
+      const title = String(asset.title || "Персонаж без названия");
       const metadata = asset.metadata && typeof asset.metadata === "object" && !Array.isArray(asset.metadata)
         ? asset.metadata
         : {};
@@ -414,8 +414,8 @@
       els.crumbTitle.textContent = title;
       els.pageTitle.textContent = title;
       els.subtitle.textContent = asset.source === "preinstalled"
-        ? "Preinstalled character (read-only)"
-        : "Edit profile and upload emotion images";
+        ? "Предустановленный character (read-only)"
+        : "Редактируйте профиль и загружайте эмоции";
 
       els.nameInput.value = title;
 
@@ -435,7 +435,7 @@
 
       els.descriptionInput.value = String(metadata.description || "");
       els.emotionCountStat.textContent = String(countEmotionImages(asset));
-      els.sourceStat.textContent = asset.source === "preinstalled" ? "Preinstalled" : "My upload";
+      els.sourceStat.textContent = asset.source === "preinstalled" ? "Предустановленный" : "Моя загрузка";
       els.readOnlyBanner.hidden = !isReadOnlyAsset();
       els.deleteBtn.hidden = !canDeleteAsset();
 
@@ -465,7 +465,7 @@
       }
 
       if (!response.ok) {
-        const error = new Error(data?.error || `Request failed: ${response.status}`);
+        const error = new Error(data?.error || `Ошибка запроса: ${response.status}`);
         error.status = response.status;
         throw error;
       }
@@ -475,11 +475,11 @@
     async function uploadEmotion(emotionState, file) {
       if (!file) return;
       if (!EMOTION_ALLOWED_MIME.has(String(file.type || "").toLowerCase())) {
-        toast("Unsupported format. Use PNG/JPEG/WEBP/SVG.", "error");
+        toast("Неподдерживаемый формат. Используйте PNG/JPEG/WEBP/SVG.", "error");
         return;
       }
       if (file.size > EMOTION_MAX_BYTES) {
-        toast("File is too large. Maximum is 2MB.", "error");
+        toast("Файл слишком большой. Максимум 2 МБ.", "error");
         return;
       }
 
@@ -507,7 +507,7 @@
         }
 
         if (!response.ok) {
-          throw new Error(payload?.error || `Upload failed: ${response.status}`);
+          throw new Error(payload?.error || `Ошибка загрузки: ${response.status}`);
         }
 
         if (payload?.item) {
@@ -515,9 +515,9 @@
         }
 
         state.previewEmotion = emotionState;
-        toast("Emotion image uploaded.");
+        toast("Изображение эмоции загружено.");
       } catch (error) {
-        toast(error.message || "Unable to upload emotion image.", "error");
+        toast(error.message || "Не удалось загрузить изображение эмоции.", "error");
       } finally {
         state.uploadingEmotion = "";
         renderAsset();
@@ -534,7 +534,7 @@
       const description = String(els.descriptionInput.value || "").trim();
 
       if (!title) {
-        els.formError.textContent = "Character name is required.";
+        els.formError.textContent = "Имя персонажа обязательно.";
         return;
       }
 
@@ -555,9 +555,9 @@
         if (payload?.item) {
           state.asset = payload.item;
         }
-        toast("Character saved.");
+        toast("Персонаж сохранён.");
       } catch (error) {
-        els.formError.textContent = error.message || "Unable to save character.";
+        els.formError.textContent = error.message || "Не удалось сохранить персонажа.";
       } finally {
         state.isSaving = false;
         renderAsset();
@@ -566,17 +566,17 @@
 
     async function deleteCharacter() {
       if (!state.asset || !canDeleteAsset()) return;
-      const approved = window.confirm("Delete this character?");
+      const approved = window.confirm("Удалить этого персонажа?");
       if (!approved) return;
 
       state.isDeleting = true;
       setBusyState();
       try {
         await apiRequest(`/api/v1/assets/${encodeURIComponent(state.assetId)}`, { method: "DELETE" });
-        toast("Character deleted.");
+        toast("Персонаж удалён.");
         window.location.href = "/assets";
       } catch (error) {
-        toast(error.message || "Unable to delete character.", "error");
+        toast(error.message || "Не удалось удалить персонажа.", "error");
         state.isDeleting = false;
         setBusyState();
       }
@@ -589,7 +589,7 @@
         const item = payload?.item;
 
         if (!item || item.type !== "character") {
-          throw new Error("Character not found.");
+          throw new Error("Персонаж не найден.");
         }
 
         state.asset = item;
@@ -602,7 +602,7 @@
           return;
         }
 
-        els.errorMessage.textContent = error.message || "Unable to load character.";
+        els.errorMessage.textContent = error.message || "Не удалось загрузить персонажа.";
         showState("error");
       }
     }
@@ -688,7 +688,7 @@
 
       state.assetId = getAssetIdFromPath();
       if (!state.assetId) {
-        els.errorMessage.textContent = "Character id is missing in URL.";
+        els.errorMessage.textContent = "В URL отсутствует id персонажа.";
         showState("error");
         return;
       }
@@ -701,3 +701,5 @@
   </script>
 </body>
 </html>
+
+

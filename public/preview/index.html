@@ -1,9 +1,9 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="ru">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dialog Preview</title>
+    <title>Предпросмотр диалога</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
@@ -141,10 +141,10 @@
 
     <script>
       const MESSAGE_EMOTION_STATES = [
-        { key: "neutral", label: "Neutral", icon: "sentiment_neutral" },
-        { key: "happy", label: "Happy", icon: "sentiment_satisfied" },
-        { key: "concerned", label: "Concerned", icon: "sentiment_dissatisfied" },
-        { key: "angry", label: "Angry", icon: "sentiment_very_dissatisfied" },
+        { key: "neutral", label: "Нейтрально", icon: "sentiment_neutral" },
+        { key: "happy", label: "Радость", icon: "sentiment_satisfied" },
+        { key: "concerned", label: "Тревога", icon: "sentiment_dissatisfied" },
+        { key: "angry", label: "Злость", icon: "sentiment_very_dissatisfied" },
       ];
 
       const state = {
@@ -276,23 +276,23 @@
 
         const baseState = {
           sceneType: normalizeSceneType(state.data?.sceneType),
-          dialogName: String(state.data?.dialogName || "Preview").trim() || "Preview",
+          dialogName: String(state.data?.dialogName || "Предпросмотр").trim() || "Предпросмотр",
           empty: true,
           bubbles: [],
           choices: [],
           activeMessageId: null,
-          activeSpeakerName: "NPC",
+          activeSpeakerName: "Персонаж",
           activeMessageText: "",
           activeCharacterImageUrl: "",
-          activeCharacterTitle: "NPC",
+          activeCharacterTitle: "Персонаж",
           activeBackgroundImageUrl: "",
-          activeEmotionLabel: "Neutral",
+          activeEmotionLabel: "Нейтрально",
           activeEmotionIcon: "sentiment_neutral",
           totalScore: 0,
           passScore,
           finished: false,
           passed: true,
-          finishLabel: "Finish",
+          finishLabel: "Финиш",
         };
 
         const firstMessageFromStart = sortNodesByX(getOutgoingNodes(startNode?.id, "message"))[0] || null;
@@ -319,8 +319,8 @@
           visited.add(currentMessage.id);
           depth += 1;
 
-          const speakerName = String(currentMessage.data?.speakerName || "NPC").trim() || "NPC";
-          const messageText = String(currentMessage.data?.text || "").trim() || "Empty message";
+          const speakerName = String(currentMessage.data?.speakerName || "Персонаж").trim() || "Персонаж";
+          const messageText = String(currentMessage.data?.text || "").trim() || "Пустое сообщение";
           const emotionState = normalizeEmotionState(currentMessage.data?.emotionState);
           const emotionMeta =
             MESSAGE_EMOTION_STATES.find((emotion) => emotion.key === emotionState) || MESSAGE_EMOTION_STATES[0];
@@ -339,8 +339,8 @@
             speakerName,
             messageText,
             characterImageUrl,
-            characterTitle: String(characterAsset?.title || speakerName || "NPC"),
-            emotionLabel: emotionMeta?.label || "Neutral",
+            characterTitle: String(characterAsset?.title || speakerName || "Персонаж"),
+            emotionLabel: emotionMeta?.label || "Нейтрально",
             emotionIcon: emotionMeta?.icon || "sentiment_neutral",
           };
 
@@ -356,7 +356,7 @@
           activeMessageId = currentMessage.id;
           choices = responseNodes.map((responseNode) => ({
             id: responseNode.id,
-            text: String(responseNode.data?.responseText || "").trim() || "Empty response",
+            text: String(responseNode.data?.responseText || "").trim() || "Пустой ответ",
           }));
 
           if (state.awaitFirstChoice) {
@@ -383,7 +383,7 @@
           bubbles.push({
             key: `r_${selectedResponse.id}`,
             side: "right",
-            text: String(selectedResponse.data?.responseText || "").trim() || "Empty response",
+            text: String(selectedResponse.data?.responseText || "").trim() || "Пустой ответ",
           });
 
           const nextMessage = sortNodesByX(getOutgoingNodes(selectedResponse.id, "message"))[0] || null;
@@ -394,7 +394,7 @@
 
           finishNode = sortNodesByX(getOutgoingNodes(selectedResponse.id, "end"))[0] || {
             id: "finish_auto",
-            data: { endingType: "neutral", title: "Finish" },
+            data: { endingType: "neutral", title: "Финиш" },
           };
           finished = true;
           choices = [];
@@ -414,23 +414,23 @@
 
         return {
           sceneType: normalizeSceneType(state.data?.sceneType),
-          dialogName: String(state.data?.dialogName || "Preview").trim() || "Preview",
+          dialogName: String(state.data?.dialogName || "Предпросмотр").trim() || "Предпросмотр",
           empty: bubbles.length === 0,
           bubbles,
           choices,
           activeMessageId,
-          activeSpeakerName: activeMeta?.speakerName || "NPC",
+          activeSpeakerName: activeMeta?.speakerName || "Персонаж",
           activeMessageText: activeMeta?.messageText || "",
           activeCharacterImageUrl: activeMeta?.characterImageUrl || "",
-          activeCharacterTitle: activeMeta?.characterTitle || "NPC",
+          activeCharacterTitle: activeMeta?.characterTitle || "Персонаж",
           activeBackgroundImageUrl,
-          activeEmotionLabel: activeMeta?.emotionLabel || "Neutral",
+          activeEmotionLabel: activeMeta?.emotionLabel || "Нейтрально",
           activeEmotionIcon: activeMeta?.emotionIcon || "sentiment_neutral",
           totalScore,
           passScore,
           finished,
           passed,
-          finishLabel: String(finishNode?.data?.title || "").trim() || "Finish",
+          finishLabel: String(finishNode?.data?.title || "").trim() || "Финиш",
         };
       }
 
@@ -490,8 +490,8 @@
                     }
                   </div>
                   <div class="flex flex-col min-w-0">
-                    <span class="text-xs font-bold truncate">${escapeHtml(preview.activeSpeakerName || "NPC")}</span>
-                    <span class="text-[10px] text-green-500 font-medium">Active now</span>
+                    <span class="text-xs font-bold truncate">${escapeHtml(preview.activeSpeakerName || "Персонаж")}</span>
+                    <span class="text-[10px] text-green-500 font-medium">В сети</span>
                   </div>
                   <div class="ml-auto flex gap-1">
                     <span class="material-symbols-outlined text-primary text-base">call</span>
@@ -561,7 +561,7 @@
                           ? `<img src="${escapeHtml(preview.activeCharacterImageUrl)}" alt="${escapeHtml(
                               preview.activeCharacterTitle
                             )}" class="h-full w-auto max-w-full object-contain object-bottom drop-shadow-2xl" />`
-                          : `<div class="h-[70%] w-full rounded-2xl border border-dashed border-slate-300 bg-white/70 text-slate-500 flex items-center justify-center text-sm font-medium">Character not selected</div>`
+                          : `<div class="h-[70%] w-full rounded-2xl border border-dashed border-slate-300 bg-white/70 text-slate-500 flex items-center justify-center text-sm font-medium">Персонаж не выбран</div>`
                       }
                       ${
                         preview.activeCharacterImageUrl
@@ -580,11 +580,11 @@
                   <div class="w-full md:w-[58%] flex flex-col gap-3 md:gap-4 mb-0 md:mb-4 max-w-none md:max-w-3xl order-1 md:order-2">
                     <div class="bg-white rounded-2xl p-4 sm:p-5 md:p-7 border border-slate-100 shadow-lg shadow-slate-200/40 relative min-h-[110px] sm:min-h-[140px]">
                       <div class="absolute -top-3.5 left-4 sm:left-6 bg-primary text-white px-3 sm:px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow">
-                        ${escapeHtml(preview.activeSpeakerName || "NPC")}
+                        ${escapeHtml(preview.activeSpeakerName || "Персонаж")}
                       </div>
                       <span class="material-symbols-outlined text-slate-100 text-5xl sm:text-6xl absolute right-4 sm:right-6 top-3 sm:top-5 select-none">format_quote</span>
                       <p class="relative z-10 text-slate-800 text-lg sm:text-xl md:text-2xl font-medium leading-relaxed">${escapeHtml(
-                        preview.activeMessageText || "Add a Message node to see preview."
+                        preview.activeMessageText || "Добавьте ноду «Сообщение», чтобы увидеть предпросмотр."
                       )}</p>
                     </div>
                     <div class="flex flex-col gap-2.5">${choicesMarkup}</div>
@@ -609,7 +609,7 @@
                 ? ""
                 : `, проходной: <b>${escapeHtml(String(preview.passScore))}</b>`
             }</div>
-            <div class="mt-1 text-xs opacity-80">Finish: ${escapeHtml(preview.finishLabel || "Finish")}</div>
+            <div class="mt-1 text-xs opacity-80">Финиш: ${escapeHtml(preview.finishLabel || "Финиш")}</div>
           </div>
         `;
       }
@@ -619,7 +619,7 @@
           <div class="min-h-screen flex items-center justify-center p-6">
             <div class="max-w-xl w-full rounded-xl border border-rose-200 bg-rose-50 p-5 text-rose-700">
               <div class="font-semibold mb-1">Не удалось открыть предпросмотр</div>
-              <div class="text-sm">${escapeHtml(message || "Unknown error.")}</div>
+              <div class="text-sm">${escapeHtml(message || "Неизвестная ошибка.")}</div>
             </div>
           </div>
         `;
@@ -665,17 +665,17 @@
           });
           const payload = await response.json().catch(() => ({}));
           if (!response.ok) {
-            throw new Error(payload?.error || `Request failed: ${response.status}`);
+            throw new Error(payload?.error || `Ошибка запроса: ${response.status}`);
           }
 
           state.data = payload;
-          document.title = `${payload?.dialogName || "Dialog"} - Preview`;
+          document.title = `${payload?.dialogName || "Диалог"} - Предпросмотр`;
           state.loading = false;
           state.error = "";
           render();
         } catch (error) {
           state.loading = false;
-          state.error = error?.message || "Не удалось загрузить runtime preview.";
+          state.error = error?.message || "Не удалось загрузить предпросмотр.";
           render();
         }
       }
@@ -709,7 +709,7 @@
         state.token = getTokenFromPath();
         if (!state.token) {
           state.loading = false;
-          state.error = "Не найден preview token в URL.";
+          state.error = "Не найден токен предпросмотра в URL.";
           render();
           return;
         }
@@ -720,3 +720,4 @@
     </script>
   </body>
 </html>
+

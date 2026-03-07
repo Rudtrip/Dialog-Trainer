@@ -566,18 +566,18 @@
                   </div>
                 </header>
                 <main class="flex-1 flex flex-col md:flex-row items-stretch md:items-end justify-between gap-3 md:gap-6 px-2 sm:px-4 md:px-8 pb-2 md:pb-0 pt-3">
-                  <div class="w-full md:w-[42%] h-auto md:h-full self-end flex items-end justify-center order-2 md:order-1">
-                    <div class="relative w-full max-w-[300px] sm:max-w-[340px] md:max-w-[420px] h-[34vh] sm:h-[42vh] md:h-[72vh] max-h-[300px] sm:max-h-[420px] md:max-h-[calc(100vh-180px)] flex items-end justify-center">
+                  <div class="w-full md:w-[42%] h-auto md:h-full self-end flex flex-col items-center justify-end order-2 md:order-1">
+                    <div class="relative w-full max-w-[300px] sm:max-w-[340px] md:max-w-[420px] h-[34vh] sm:h-[42vh] md:h-[72vh] max-h-[300px] sm:max-h-[420px] md:max-h-[calc(100vh-180px)] flex flex-col items-center justify-end">
                       ${
                         preview.activeCharacterImageUrl
                           ? `<img src="${escapeHtml(preview.activeCharacterImageUrl)}" alt="${escapeHtml(
                               preview.activeCharacterTitle
-                            )}" class="h-full w-auto max-w-full object-contain object-bottom drop-shadow-2xl" />`
+                            )}" class="h-auto max-h-[88%] w-auto max-w-full object-contain object-bottom drop-shadow-2xl" />`
                           : `<div class="h-[70%] w-full rounded-2xl border border-dashed border-slate-300 bg-white/70 text-slate-500 flex items-center justify-center text-sm font-medium">Персонаж не выбран</div>`
                       }
                       ${
                         preview.activeCharacterImageUrl
-                          ? `<div class="absolute bottom-0 md:bottom-24 left-1/2 -translate-x-1/2 translate-y-full md:translate-y-0 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl flex items-center gap-2 shadow border border-white">
+                          ? `<div class="mt-2 md:mt-3 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl flex items-center gap-2 shadow border border-white">
                               <span class="material-symbols-outlined text-primary text-[18px]">${escapeHtml(
                                 preview.activeEmotionIcon
                               )}</span>

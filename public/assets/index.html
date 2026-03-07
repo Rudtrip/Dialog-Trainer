@@ -19,26 +19,170 @@
       }
     };
   </script>
+  <style>
+    :root {
+      --line: #d8e1ec;
+      --text: #0f172a;
+      --muted: #64748b;
+      --primary: #3b82f6;
+    }
+
+    .material-symbols-outlined {
+      font-variation-settings: "FILL" 0, "wght" 500, "GRAD" 0, "opsz" 24;
+    }
+
+    .app-shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 252px 1fr;
+    }
+
+    .sidebar {
+      background: #ffffff;
+      border-right: 1px solid var(--line);
+      display: flex;
+      flex-direction: column;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 24px 20px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand-copy {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .brand-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--primary);
+      background: #eaf3ff;
+      border: 2px solid #dce6f4;
+    }
+
+    .brand-title {
+      margin: 0;
+      font-weight: 800;
+      font-size: 26px;
+      line-height: 1.1;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: clip;
+      overflow-wrap: anywhere;
+    }
+
+    .brand-subtitle {
+      margin: 2px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .sidebar-nav {
+      padding: 20px 14px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .nav-item {
+      border: 0;
+      background: transparent;
+      color: #4b5f79;
+      width: 100%;
+      font: inherit;
+      text-align: left;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 12px;
+      border-radius: 10px;
+      text-decoration: none;
+    }
+
+    .nav-item.active {
+      background: #eaf3ff;
+      color: var(--primary);
+      font-weight: 700;
+    }
+
+    .nav-item[disabled] {
+      color: #94a3b8;
+      cursor: not-allowed;
+    }
+
+    .sidebar-footer {
+      margin-top: auto;
+      border-top: 1px solid var(--line);
+      padding: 18px 14px 24px;
+      display: grid;
+      gap: 8px;
+    }
+
+    @media (max-width: 960px) {
+      .app-shell {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        position: static;
+        height: auto;
+      }
+    }
+  </style>
 </head>
 <body class="bg-background-light font-display text-slate-900">
-  <div class="flex min-h-screen w-full overflow-x-hidden">
-    <aside class="flex w-72 shrink-0 flex-col border-r border-slate-200 bg-white">
-      <div class="flex items-center gap-3 border-b border-slate-200 px-5 py-5">
-        <div class="size-10 rounded-full border-2 border-slate-200 bg-cover bg-center" style='background-image: url("https://images.unsplash.com/photo-1627161684458-a62da52b51c3?auto=format&fit=crop&w=96&q=80");'></div>
-        <div>
-          <p class="text-xl font-extrabold tracking-tight text-slate-900">SimBuilder</p>
-          <p class="text-xs font-medium text-slate-500">Рабочее пространство</p>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-avatar" id="brandAvatarInitials" aria-hidden="true">--</div>
+        <div class="brand-copy">
+          <p class="brand-title" id="profileNameLabel">Имя</p>
+          <p class="brand-subtitle" id="workspaceLabel">Рабочее пространство</p>
         </div>
       </div>
-      <nav class="flex-1 space-y-1 p-4">
-        <a class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900" href="/builder"><span class="material-symbols-outlined text-xl">folder_open</span><span>Проекты</span></a>
-        <button class="flex w-full cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-400" type="button" disabled><span class="material-symbols-outlined text-xl">grid_view</span><span>Шаблоны</span></button>
-        <a class="flex items-center gap-3 rounded-lg bg-primary/10 px-3 py-2.5 text-sm font-semibold text-primary" href="/assets"><span class="material-symbols-outlined text-xl">image</span><span>Ассеты</span></a>
-        <button class="flex w-full cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-400" type="button" disabled><span class="material-symbols-outlined text-xl">settings</span><span>Настройки</span></button>
+
+      <nav class="sidebar-nav" aria-label="Навигация">
+        <a class="nav-item" href="/builder">
+          <span class="material-symbols-outlined">folder_open</span>
+          <span>Проекты</span>
+        </a>
+        <button class="nav-item" type="button" disabled>
+          <span class="material-symbols-outlined">grid_view</span>
+          <span>Шаблоны</span>
+        </button>
+        <a class="nav-item active" href="/assets">
+          <span class="material-symbols-outlined">image</span>
+          <span>Ассеты</span>
+        </a>
+        <button class="nav-item" type="button" disabled>
+          <span class="material-symbols-outlined">settings</span>
+          <span>Настройки</span>
+        </button>
       </nav>
-      <div class="space-y-1 border-t border-slate-200 p-4">
-        <button class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900" type="button"><span class="material-symbols-outlined text-xl">help</span><span>Помощь и поддержка</span></button>
-        <button id="signOutBtn" class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900" type="button"><span class="material-symbols-outlined text-xl">logout</span><span>Выйти</span></button>
+
+      <div class="sidebar-footer">
+        <button class="nav-item" type="button">
+          <span class="material-symbols-outlined">help</span>
+          <span>Помощь и поддержка</span>
+        </button>
+        <button id="signOutBtn" class="nav-item" type="button">
+          <span class="material-symbols-outlined">logout</span>
+          <span>Выйти</span>
+        </button>
       </div>
     </aside>
 
@@ -184,6 +328,39 @@
       submitUploadLabel: document.getElementById("submitUploadLabel"),
       toastContainer: document.getElementById("toastContainer")
     };
+
+    function getInitialsFromName(fullName, email) {
+      const name = String(fullName || "").trim();
+      if (name) {
+        const parts = name.split(/\s+/).filter(Boolean).slice(0, 2);
+        const initials = parts.map((part) => part[0]).join("").toUpperCase();
+        if (initials) return initials;
+      }
+
+      const localPart = String(email || "").trim().split("@")[0] || "";
+      if (localPart) {
+        return localPart.slice(0, 2).toUpperCase();
+      }
+
+      return "--";
+    }
+
+    function fitProfileNameFont() {
+      const label = document.getElementById("profileNameLabel");
+      if (!label) return;
+
+      const maxFontSize = 26;
+      const minFontSize = 8;
+      const step = 0.5;
+      let current = maxFontSize;
+
+      label.style.fontSize = `${current}px`;
+
+      while (label.scrollWidth > label.clientWidth && current > minFontSize) {
+        current = Math.max(minFontSize, current - step);
+        label.style.fontSize = `${current}px`;
+      }
+    }
 
     function getTokenFromStorage() {
       const direct = localStorage.getItem(storageKeys.accessToken);
@@ -417,7 +594,20 @@
     async function loadProfile() {
       try {
         const payload = await apiRequest("/api/v1/auth/me");
-        const email = payload?.user?.email || "";
+        const email = String(payload?.user?.email || "").trim();
+        const fullName = String(payload?.user?.user_metadata?.full_name || "").trim();
+        const fallbackName = email ? email.split("@")[0] : "";
+        const displayName = fullName || fallbackName || "Имя";
+
+        const profileNameLabel = document.getElementById("profileNameLabel");
+        const workspaceLabel = document.getElementById("workspaceLabel");
+        const brandAvatarInitials = document.getElementById("brandAvatarInitials");
+
+        if (profileNameLabel) profileNameLabel.textContent = displayName;
+        if (workspaceLabel) workspaceLabel.textContent = email || "Рабочее пространство";
+        if (brandAvatarInitials) brandAvatarInitials.textContent = getInitialsFromName(displayName, email);
+        requestAnimationFrame(fitProfileNameFont);
+
         if (email) els.workspaceCaption.textContent = `Выполнен вход: ${email}`;
       } catch (error) {
         if (error.status === 401) signOut();
@@ -584,6 +774,8 @@
           if (id) handleDelete(id);
         }
       });
+
+      window.addEventListener("resize", fitProfileNameFont);
     }
 
     async function init() {
@@ -598,6 +790,9 @@
       }
 
       await loadProfile();
+      if (document.fonts?.ready) {
+        document.fonts.ready.then(() => fitProfileNameFont());
+      }
       await loadAssets();
     }
 

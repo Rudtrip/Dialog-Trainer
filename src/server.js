@@ -58,6 +58,12 @@ const LOCAL_ASSET_PREFIX = String(process.env.LOCAL_ASSET_PREFIX || "uploads/lib
 const TEMP_PREVIEW_TTL_SEC = Number(process.env.TEMP_PREVIEW_TTL_SEC || 1800);
 const ADMIN_USERS_MAX_PAGE_SIZE = 100;
 const ADMIN_TARIFF_VALUES = new Set(["free", "pro", "enterprise"]);
+const PREINSTALLED_MANAGER_EMAILS = new Set(
+  String(process.env.PREINSTALLED_MANAGER_EMAILS || "salekh@reezonly.ru")
+    .split(",")
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean)
+);
 
 const ASSET_ALLOWED_MIME = {
   character: new Set(["image/png", "image/svg+xml"]),
@@ -325,7 +331,8 @@ async function resolveSignedAssetUrl(assetRow) {
   }
 }
 
-async function mapLibraryAsset(assetRow) {
+async function mapLibraryAsset(assetRow, options) {
+  const canDeletePreinstalled = Boolean(options?.canDeletePreinstalled);
   const signedUrl = await resolveSignedAssetUrl(assetRow);
   const thumbnailUrl =
     assetRow.source === "user_upload"
@@ -348,7 +355,7 @@ async function mapLibraryAsset(assetRow) {
     width: assetRow.width || null,
     height: assetRow.height || null,
     workspaceId: assetRow.workspace_id || null,
-    canDelete: assetRow.source === "user_upload",
+    canDelete: assetRow.source === "user_upload" || (canDeletePreinstalled && assetRow.source === "preinstalled"),
     metadata: ensureJsonObject(assetRow.metadata_json) ? assetRow.metadata_json : {},
   };
 }
@@ -435,6 +442,14 @@ function isAdminUser(user) {
     return false;
   }
   return ADMIN_EMAILS.has(email);
+}
+
+function isPreinstalledAssetManager(user) {
+  const email = getUserEmailLower(user);
+  if (!email) {
+    return false;
+  }
+  return PREINSTALLED_MANAGER_EMAILS.has(email);
 }
 
 async function requireAdminContext(req, res) {
@@ -1750,9 +1765,12 @@ app.get("/api/v1/assets", async (req, res) => {
       context.user,
       req.query.workspaceId
     );
+    const canDeletePreinstalled = isPreinstalledAssetManager(context.user);
 
     const rows = await listLibraryAssetsRows(context.token, workspaceId, assetType);
-    const items = await Promise.all(rows.map((row) => mapLibraryAsset(row)));
+    const items = await Promise.all(
+      rows.map((row) => mapLibraryAsset(row, { canDeletePreinstalled }))
+    );
 
     return res.status(200).json({
       workspaceId,
@@ -1818,53 +1836,98 @@ app.post("/api/v1/assets", async (req, res) => {
   }
 
   try {
-    const workspaceId = await resolveWorkspaceForAssetWrite(
-      context.token,
-      context.user,
-      req.body?.workspaceId
-    );
+    const canManagePreinstalled = isPreinstalledAssetManager(context.user);
+    const workspaceId = canManagePreinstalled
+      ? null
+      : await resolveWorkspaceForAssetWrite(
+          context.token,
+          context.user,
+          req.body?.workspaceId
+        );
 
     const extension = getUploadExtFromMime(normalizedMime);
     const assetId = crypto.randomUUID();
-    const objectKey = `${LOCAL_ASSET_PREFIX}/${workspaceId}/${assetType}/${assetId}.${extension}`;
+    const objectKey = canManagePreinstalled
+      ? `${LOCAL_ASSET_PREFIX}/preinstalled/${assetType}/${assetId}.${extension}`
+      : `${LOCAL_ASSET_PREFIX}/${workspaceId}/${assetType}/${assetId}.${extension}`;
     const { width, height } = parseImageDimensions(file.buffer);
     const fileUrl = await putAssetObject(objectKey, file.buffer, normalizedMime);
 
     let insertedRow = null;
     try {
-      insertedRow = (
-        await supabaseRest("/library_assets", {
-          method: "POST",
-          token: context.token,
-          prefer: "return=representation",
-          body: {
-            id: assetId,
-            type: assetType,
-            title,
-            source: "user_upload",
-            file_url: fileUrl,
-            thumbnail_url: fileUrl,
-            mime_type: normalizedMime,
-            file_size_bytes: Number(file.size || 0),
-            width,
-            height,
-            workspace_id: workspaceId,
-            owner_id: context.user.id,
-            s3_key: objectKey,
-            metadata_json: {
-              originalFilename: String(file.originalname || "").slice(0, 260),
-              storageDriver: ASSET_STORAGE_DRIVER,
+      if (canManagePreinstalled) {
+        if (!SUPABASE_SERVICE_ROLE_KEY) {
+          const configError = new Error(
+            "Preinstalled upload is not configured. Missing SUPABASE_SERVICE_ROLE_KEY."
+          );
+          configError.status = 500;
+          throw configError;
+        }
+
+        insertedRow = (
+          await supabasePublicRest("/library_assets", {
+            method: "POST",
+            prefer: "return=representation",
+            body: {
+              id: assetId,
+              type: assetType,
+              title,
+              source: "preinstalled",
+              file_url: fileUrl,
+              thumbnail_url: fileUrl,
+              mime_type: normalizedMime,
+              file_size_bytes: Number(file.size || 0),
+              width,
+              height,
+              workspace_id: null,
+              owner_id: null,
+              s3_key: null,
+              metadata_json: {
+                originalFilename: String(file.originalname || "").slice(0, 260),
+                storageDriver: ASSET_STORAGE_DRIVER,
+                storageObjectKey: objectKey,
+              },
+              is_active: true,
             },
-            is_active: true,
-          },
-        })
-      )[0];
+          })
+        )[0];
+      } else {
+        insertedRow = (
+          await supabaseRest("/library_assets", {
+            method: "POST",
+            token: context.token,
+            prefer: "return=representation",
+            body: {
+              id: assetId,
+              type: assetType,
+              title,
+              source: "user_upload",
+              file_url: fileUrl,
+              thumbnail_url: fileUrl,
+              mime_type: normalizedMime,
+              file_size_bytes: Number(file.size || 0),
+              width,
+              height,
+              workspace_id: workspaceId,
+              owner_id: context.user.id,
+              s3_key: objectKey,
+              metadata_json: {
+                originalFilename: String(file.originalname || "").slice(0, 260),
+                storageDriver: ASSET_STORAGE_DRIVER,
+              },
+              is_active: true,
+            },
+          })
+        )[0];
+      }
     } catch (error) {
       await deleteAssetObject(objectKey, fileUrl);
       throw error;
     }
 
-    const mapped = await mapLibraryAsset(insertedRow);
+    const mapped = await mapLibraryAsset(insertedRow, {
+      canDeletePreinstalled: canManagePreinstalled,
+    });
     return res.status(201).json({ item: mapped });
   } catch (error) {
     const payload = formatErrorPayload(error, "Unable to upload asset.");
@@ -1884,12 +1947,13 @@ app.get("/api/v1/assets/:id", async (req, res) => {
   }
 
   try {
+    const canDeletePreinstalled = isPreinstalledAssetManager(context.user);
     const row = await getLibraryAssetRowById(context.token, assetId);
     if (!row || !row.is_active) {
       return res.status(404).json({ error: "Asset not found." });
     }
 
-    const item = await mapLibraryAsset(row);
+    const item = await mapLibraryAsset(row, { canDeletePreinstalled });
     return res.status(200).json({ item });
   } catch (error) {
     const payload = formatErrorPayload(error, "Unable to load asset.");
@@ -1977,7 +2041,9 @@ app.patch("/api/v1/assets/:id", async (req, res) => {
     });
 
     const updated = updatedRows[0] || row;
-    const item = await mapLibraryAsset(updated);
+    const item = await mapLibraryAsset(updated, {
+      canDeletePreinstalled: isPreinstalledAssetManager(context.user),
+    });
     return res.status(200).json({ item });
   } catch (error) {
     const payload = formatErrorPayload(error, "Unable to update asset.");
@@ -2096,7 +2162,9 @@ app.post("/api/v1/assets/:id/emotions/:state", async (req, res) => {
     }
 
     const updated = updatedRows[0] || row;
-    const item = await mapLibraryAsset(updated);
+    const item = await mapLibraryAsset(updated, {
+      canDeletePreinstalled: isPreinstalledAssetManager(context.user),
+    });
     return res.status(200).json({ item });
   } catch (error) {
     const payload = formatErrorPayload(error, "Unable to upload emotion image.");
@@ -2116,6 +2184,7 @@ app.delete("/api/v1/assets/:id", async (req, res) => {
   }
 
   try {
+    const canManagePreinstalled = isPreinstalledAssetManager(context.user);
     const row = (
       await supabaseRest(
         `/library_assets?select=id,source,workspace_id,s3_key,file_url,metadata_json,is_active&id=eq.${encodeURIComponent(assetId)}&limit=1`,
@@ -2127,36 +2196,60 @@ app.delete("/api/v1/assets/:id", async (req, res) => {
       return res.status(404).json({ error: "Asset not found." });
     }
 
-    if (row.source !== "user_upload") {
+    if (row.source !== "user_upload" && !canManagePreinstalled) {
       return res.status(403).json({ error: "Preinstalled assets cannot be deleted." });
     }
 
-    const membership = await getMembershipForWorkspace(
-      context.token,
-      context.user.id,
-      row.workspace_id
-    );
+    if (row.source === "user_upload") {
+      const membership = await getMembershipForWorkspace(
+        context.token,
+        context.user.id,
+        row.workspace_id
+      );
 
-    if (!membership || (membership.role !== "owner" && membership.role !== "editor")) {
-      return res.status(403).json({ error: "No permission to delete this asset." });
+      if (!membership || (membership.role !== "owner" && membership.role !== "editor")) {
+        return res.status(403).json({ error: "No permission to delete this asset." });
+      }
     }
 
-    await supabaseRest(`/library_assets?id=eq.${encodeURIComponent(assetId)}`, {
-      method: "PATCH",
-      token: context.token,
-      prefer: "return=minimal",
-      body: {
-        is_active: false,
-      },
-    });
+    if (row.source === "preinstalled" && canManagePreinstalled) {
+      if (!SUPABASE_SERVICE_ROLE_KEY) {
+        return res.status(500).json({
+          error: "Preinstalled delete is not configured. Missing SUPABASE_SERVICE_ROLE_KEY.",
+        });
+      }
+      await supabasePublicRest(`/library_assets?id=eq.${encodeURIComponent(assetId)}`, {
+        method: "PATCH",
+        prefer: "return=minimal",
+        body: {
+          is_active: false,
+        },
+      });
+    } else {
+      await supabaseRest(`/library_assets?id=eq.${encodeURIComponent(assetId)}`, {
+        method: "PATCH",
+        token: context.token,
+        prefer: "return=minimal",
+        body: {
+          is_active: false,
+        },
+      });
+    }
 
-    if (row.s3_key) {
-      await deleteAssetObject(row.s3_key, row.file_url);
+    const metadataObjectKey = ensurePlainObject(row.metadata_json)
+      ? normalizeAssetObjectKey(row.metadata_json.storageObjectKey || "")
+      : "";
+    const primaryObjectKey =
+      normalizeAssetObjectKey(row.s3_key || "") ||
+      metadataObjectKey ||
+      resolveObjectKeyFromAssetUrl(row.file_url);
+    if (primaryObjectKey) {
+      await deleteAssetObject(primaryObjectKey, row.file_url).catch(() => null);
     }
 
     const emotionRefs = collectEmotionAssetRefs(row.metadata_json);
     for (const ref of emotionRefs) {
-      await deleteAssetObject(ref.key, ref.url);
+      await deleteAssetObject(ref.key, ref.url).catch(() => null);
     }
 
     return res.status(204).send();

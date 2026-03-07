@@ -74,12 +74,22 @@
         border-bottom: 1px solid var(--line);
       }
 
+      .brand-copy {
+        min-width: 0;
+        flex: 1;
+      }
+
       .brand-avatar {
         width: 36px;
         height: 36px;
         border-radius: 999px;
-        background: center / cover no-repeat
-          url("https://images.unsplash.com/photo-1627161684458-a62da52b51c3?auto=format&fit=crop&w=96&q=80");
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 800;
+        color: var(--primary);
+        background: #eaf3ff;
         border: 2px solid #dce6f4;
       }
 
@@ -88,6 +98,10 @@
         font-weight: 800;
         font-size: 26px;
         line-height: 1.1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: clip;
+        overflow-wrap: anywhere;
       }
 
       .brand-subtitle {
@@ -776,9 +790,9 @@
     <div class="app-shell">
       <aside class="sidebar">
         <div class="brand">
-          <div class="brand-avatar" aria-hidden="true"></div>
-          <div>
-            <p class="brand-title">SimBuilder</p>
+          <div class="brand-avatar" id="brandAvatarInitials" aria-hidden="true">--</div>
+          <div class="brand-copy">
+            <p class="brand-title" id="profileNameLabel">Имя</p>
             <p class="brand-subtitle" id="workspaceLabel">Рабочее пространство</p>
           </div>
         </div>
@@ -1094,9 +1108,44 @@
         exportOpenHtmlBtn: document.getElementById("exportOpenHtmlBtn"),
         toastStack: document.getElementById("toastStack"),
         retryBtn: document.getElementById("retryBtn"),
+        profileNameLabel: document.getElementById("profileNameLabel"),
+        brandAvatarInitials: document.getElementById("brandAvatarInitials"),
         workspaceLabel: document.getElementById("workspaceLabel"),
         signOutBtn: document.getElementById("signOutBtn"),
       };
+
+      function getInitialsFromName(fullName, email) {
+        const name = String(fullName || "").trim();
+        if (name) {
+          const parts = name.split(/\s+/).filter(Boolean).slice(0, 2);
+          const initials = parts.map((part) => part[0]).join("").toUpperCase();
+          if (initials) return initials;
+        }
+
+        const localPart = String(email || "").trim().split("@")[0] || "";
+        if (localPart) {
+          return localPart.slice(0, 2).toUpperCase();
+        }
+
+        return "--";
+      }
+
+      function fitProfileNameFont() {
+        const label = elements.profileNameLabel;
+        if (!label) return;
+
+        const maxFontSize = 26;
+        const minFontSize = 8;
+        const step = 0.5;
+        let current = maxFontSize;
+
+        label.style.fontSize = `${current}px`;
+
+        while (label.scrollWidth > label.clientWidth && current > minFontSize) {
+          current = Math.max(minFontSize, current - step);
+          label.style.fontSize = `${current}px`;
+        }
+      }
 
       function getTokenFromStorage() {
         const directToken = localStorage.getItem(storageKeys.accessToken);
@@ -1432,8 +1481,17 @@
       async function fetchProfile() {
         try {
           const payload = await apiRequest("/api/v1/auth/me");
-          const email = payload?.user?.email || "Рабочее пространство";
-          elements.workspaceLabel.textContent = email;
+          const email = String(payload?.user?.email || "").trim();
+          const fullName = String(payload?.user?.user_metadata?.full_name || "").trim();
+          const fallbackName = email ? email.split("@")[0] : "";
+          const displayName = fullName || fallbackName || "Имя";
+
+          elements.profileNameLabel.textContent = displayName;
+          elements.brandAvatarInitials.textContent = getInitialsFromName(displayName, email);
+
+          const subtitle = email || "Рабочее пространство";
+          elements.workspaceLabel.textContent = subtitle;
+          requestAnimationFrame(fitProfileNameFont);
         } catch (error) {
           if (error.status === 401) {
             showToast("Сессия истекла, нужно войти снова.", "error");
@@ -1739,6 +1797,8 @@
           if (!elements.createModal.hidden) closeCreateModal();
           if (!elements.exportModal.hidden) closeExportModal();
         });
+
+        window.addEventListener("resize", fitProfileNameFont);
       }
 
       async function init() {
@@ -1753,6 +1813,9 @@
         }
 
         await fetchProfile();
+        if (document.fonts?.ready) {
+          document.fonts.ready.then(() => fitProfileNameFont());
+        }
         await loadDialogs();
       }
 

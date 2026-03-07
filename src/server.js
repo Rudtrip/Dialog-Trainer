@@ -36,7 +36,7 @@ const port = Number(process.env.PORT || 3000);
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY;
-const PLAYER_BASE_URL = process.env.PLAYER_BASE_URL || "https://player.dialog-trainer.local";
+const PLAYER_BASE_URL = String(process.env.PLAYER_BASE_URL || "").trim();
 const AWS_REGION = process.env.AWS_REGION || "us-east-1";
 const S3_BUCKET = readOptionalEnv("S3_BUCKET");
 const AWS_ACCESS_KEY_ID = readOptionalEnv("AWS_ACCESS_KEY_ID");
@@ -619,11 +619,44 @@ function sanitizeSceneType(value) {
   return "messenger";
 }
 
-function buildExportArtifacts(publicationId, publicationKey) {
-  const iframeSrc = `${PLAYER_BASE_URL}/p/${publicationKey}`;
+function normalizeBaseUrl(value) {
+  return String(value || "")
+    .trim()
+    .replace(/\/+$/g, "");
+}
+
+function resolvePlayerBaseUrl(req) {
+  const configured = normalizeBaseUrl(PLAYER_BASE_URL);
+  if (configured && !/player\.dialog-trainer\.local/i.test(configured)) {
+    return configured;
+  }
+
+  const forwardedProto = String(req?.headers?.["x-forwarded-proto"] || "")
+    .split(",")[0]
+    .trim();
+  const forwardedHost = String(req?.headers?.["x-forwarded-host"] || "")
+    .split(",")[0]
+    .trim();
+  const host = forwardedHost || String(req?.headers?.host || "").trim();
+
+  if (host) {
+    const proto = forwardedProto || (req?.socket?.encrypted ? "https" : "http");
+    return `${proto}://${host}`;
+  }
+
+  if (configured) {
+    return configured;
+  }
+
+  return "http://localhost:3000";
+}
+
+function buildExportArtifacts(publicationId, publicationKey, playerBaseUrl) {
+  const baseUrl = normalizeBaseUrl(playerBaseUrl) || "http://localhost:3000";
+  const iframeSrc = `${baseUrl}/p/${publicationKey}`;
   const iframeSnippet = `<iframe src=\"${iframeSrc}\" width=\"100%\" height=\"720\" frameborder=\"0\" allowfullscreen></iframe>`;
-  const scriptSnippet = `<script src=\"${PLAYER_BASE_URL}/embed.js\" data-publication=\"${publicationKey}\"></script>`;
-  const htmlUrl = `${PLAYER_BASE_URL}/export/${publicationKey}.html`;
+  const scriptSnippet = `<script src=\"${baseUrl}/embed.js\" data-publication=\"${publicationKey}\"></script>`;
+  const htmlUrl = `${baseUrl}/export/${publicationKey}.html`;
 
   return [
     {
@@ -2194,11 +2227,13 @@ app.post("/api/v1/builder/dialogs/:id/publish", async (req, res) => {
       body: { status: "published" },
     });
 
+    const playerBaseUrl = resolvePlayerBaseUrl(req);
+
     await supabaseRest("/export_artifacts?on_conflict=publication_id,type", {
       method: "POST",
       token: context.token,
       prefer: "resolution=merge-duplicates,return=minimal",
-      body: buildExportArtifacts(publication.id, publication.publication_key),
+      body: buildExportArtifacts(publication.id, publication.publication_key, playerBaseUrl),
     });
 
     return res.status(200).json({
@@ -2293,21 +2328,15 @@ app.get("/api/v1/builder/dialogs/:id/export", async (req, res) => {
       return res.status(404).json({ error: "Dialog is not published yet." });
     }
 
-    let artifacts = await supabaseRest(
-      `/export_artifacts?select=type,url_or_snippet,content_hash&publication_id=eq.${encodeURIComponent(publication.id)}`,
-      { token: context.token }
-    );
+    const playerBaseUrl = resolvePlayerBaseUrl(req);
+    const artifacts = buildExportArtifacts(publication.id, publication.publication_key, playerBaseUrl);
 
-    if (artifacts.length === 0) {
-      const generated = buildExportArtifacts(publication.id, publication.publication_key);
-      await supabaseRest("/export_artifacts", {
-        method: "POST",
-        token: context.token,
-        prefer: "return=minimal",
-        body: generated,
-      });
-      artifacts = generated;
-    }
+    await supabaseRest("/export_artifacts?on_conflict=publication_id,type", {
+      method: "POST",
+      token: context.token,
+      prefer: "resolution=merge-duplicates,return=minimal",
+      body: artifacts,
+    });
 
     const byType = new Map();
     artifacts.forEach((item) => byType.set(item.type, item.url_or_snippet));

@@ -120,6 +120,7 @@
         border: 0;
         background: transparent;
         color: #4b5f79;
+        cursor: pointer;
         width: 100%;
         font: inherit;
         text-align: left;
@@ -129,12 +130,18 @@
         padding: 11px 12px;
         border-radius: 10px;
         text-decoration: none;
+        transition: background-color 140ms ease, color 140ms ease;
       }
 
       .nav-item.active {
         background: #eaf3ff;
         color: var(--primary);
         font-weight: 700;
+      }
+
+      .nav-item:hover:not(.active):not([disabled]) {
+        background: #f1f5f9;
+        color: #1e293b;
       }
 
       .sidebar-footer {
@@ -481,6 +488,18 @@
         background: #ffffff;
       }
 
+      .create-modal-card {
+        max-height: calc(100vh - 40px);
+        display: flex;
+        flex-direction: column;
+      }
+
+      .create-modal-card .modal-content {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+      }
+
       .modal-header-image {
         height: 170px;
         background: center / cover no-repeat
@@ -648,6 +667,15 @@
         gap: 8px;
       }
 
+      .create-modal-card .modal-actions {
+        position: sticky;
+        bottom: 0;
+        margin-top: 10px;
+        padding-top: 10px;
+        background: #ffffff;
+        border-top: 1px solid var(--line-soft);
+      }
+
       .export-block {
         margin-top: 12px;
       }
@@ -783,6 +811,10 @@
         .toolbar {
           grid-template-columns: 1fr;
         }
+
+        .create-modal-card {
+          max-height: calc(100vh - 16px);
+        }
       }
     </style>
   </head>
@@ -899,7 +931,7 @@
     </div>
 
     <div class="modal" id="createModal" hidden>
-      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="createDialogTitle">
+      <div class="modal-card create-modal-card" role="dialog" aria-modal="true" aria-labelledby="createDialogTitle">
         <div class="modal-header-image" aria-hidden="true"></div>
         <div class="modal-content">
           <div class="modal-topline">

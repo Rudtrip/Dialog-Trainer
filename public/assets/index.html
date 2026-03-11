@@ -102,6 +102,7 @@
       border: 0;
       background: transparent;
       color: #4b5f79;
+      cursor: pointer;
       width: 100%;
       font: inherit;
       text-align: left;
@@ -111,12 +112,18 @@
       padding: 11px 12px;
       border-radius: 10px;
       text-decoration: none;
+      transition: background-color 140ms ease, color 140ms ease;
     }
 
     .nav-item.active {
       background: #eaf3ff;
       color: var(--primary);
       font-weight: 700;
+    }
+
+    .nav-item:hover:not(.active):not([disabled]) {
+      background: #f1f5f9;
+      color: #1e293b;
     }
 
     .nav-item[disabled] {
@@ -141,6 +148,53 @@
         position: static;
         height: auto;
       }
+    }
+
+    .asset-action-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: 1px solid #d6e0ec;
+      background: #f8fafc;
+      color: #334155;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: border-color 140ms ease, background-color 140ms ease, color 140ms ease;
+    }
+
+    .asset-action-btn:hover {
+      border-color: #94a3b8;
+      background: #f1f5f9;
+      color: #0f172a;
+    }
+
+    .asset-action-btn .material-symbols-outlined {
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .asset-action-btn.edit {
+      border-color: #c7d2fe;
+      color: #4338ca;
+    }
+
+    .asset-action-btn.edit:hover {
+      border-color: #818cf8;
+      background: #eef2ff;
+      color: #312e81;
+    }
+
+    .asset-action-btn.delete {
+      border-color: #fecaca;
+      color: #b91c1c;
+    }
+
+    .asset-action-btn.delete:hover {
+      border-color: #fca5a5;
+      background: #fef2f2;
+      color: #991b1b;
     }
   </style>
 </head>
@@ -544,13 +598,13 @@
           ? `data-action="edit" data-id="${escapeHtml(item.id)}" role="button" tabindex="0"`
           : "";
         const editButton = canEditCharacter
-          ? `<button class="rounded-lg border border-indigo-200 px-2 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-50" data-action="edit" data-id="${escapeHtml(item.id)}">Редактировать</button>`
+          ? `<button class="asset-action-btn edit" data-action="edit" data-id="${escapeHtml(item.id)}" title="Редактировать" aria-label="Редактировать"><span class="material-symbols-outlined">edit</span></button>`
           : "";
         const deleteButton = item.canDelete
-          ? `<button class="rounded-lg border border-red-200 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-50" data-action="delete" data-id="${escapeHtml(item.id)}">Удалить</button>`
+          ? `<button class="asset-action-btn delete" data-action="delete" data-id="${escapeHtml(item.id)}" title="Удалить" aria-label="Удалить"><span class="material-symbols-outlined">delete</span></button>`
           : "";
 
-        return `<article class="group flex min-h-[320px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg ${canEditCharacter ? "cursor-pointer" : ""}" ${cardActionAttrs}><div class="relative aspect-[16/10] overflow-hidden bg-slate-100"><img class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" src="${escapeHtml(item.thumbnailUrl || item.fileUrl || "")}" alt="${escapeHtml(item.title)}" /><span class="absolute right-3 top-3 inline-flex rounded-md px-2 py-1 text-[10px] font-black uppercase tracking-wide ${item.source === "preinstalled" ? "bg-sky-100 text-sky-700" : "bg-indigo-100 text-indigo-700"}">${escapeHtml(sourceLabel)}</span></div><div class="flex flex-1 flex-col gap-3 p-4"><h3 class="line-clamp-2 text-lg font-bold leading-tight text-slate-900">${escapeHtml(item.title)}</h3><div class="flex flex-wrap items-center gap-2 text-xs text-slate-500"><span class="rounded bg-slate-100 px-2 py-1 font-semibold text-slate-700">${escapeHtml(format.toUpperCase())}</span><span>${escapeHtml(metaSecondary)}</span><span>${escapeHtml(formatBytes(item.fileSizeBytes))}</span></div><div class="mt-auto flex items-center justify-between gap-2"><span class="text-xs text-slate-500">Обновлено ${escapeHtml(formatDate(item.updatedAt || item.createdAt))}</span><div class="inline-flex gap-2">${editButton}<button class="rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50" data-action="preview" data-url="${escapeHtml(item.fileUrl || "")}">Открыть</button>${deleteButton}</div></div></div></article>`;
+        return `<article class="group flex min-h-[320px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg ${canEditCharacter ? "cursor-pointer" : ""}" ${cardActionAttrs}><div class="relative aspect-[16/10] overflow-hidden bg-slate-100"><img class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" src="${escapeHtml(item.thumbnailUrl || item.fileUrl || "")}" alt="${escapeHtml(item.title)}" /><span class="absolute right-3 top-3 inline-flex rounded-md px-2 py-1 text-[10px] font-black uppercase tracking-wide ${item.source === "preinstalled" ? "bg-sky-100 text-sky-700" : "bg-indigo-100 text-indigo-700"}">${escapeHtml(sourceLabel)}</span></div><div class="flex flex-1 flex-col gap-3 p-4"><h3 class="line-clamp-2 text-lg font-bold leading-tight text-slate-900">${escapeHtml(item.title)}</h3><div class="flex flex-wrap items-center gap-2 text-xs text-slate-500"><span class="rounded bg-slate-100 px-2 py-1 font-semibold text-slate-700">${escapeHtml(format.toUpperCase())}</span><span>${escapeHtml(metaSecondary)}</span><span>${escapeHtml(formatBytes(item.fileSizeBytes))}</span></div><div class="mt-auto flex items-center justify-between gap-2"><span class="text-xs text-slate-500">Обновлено ${escapeHtml(formatDate(item.updatedAt || item.createdAt))}</span><div class="inline-flex items-center gap-2">${editButton}<button class="asset-action-btn" data-action="preview" data-url="${escapeHtml(item.fileUrl || "")}" title="Открыть" aria-label="Открыть"><span class="material-symbols-outlined">open_in_new</span></button>${deleteButton}</div></div></div></article>`;
       }).join("");
 
       const addCardTitle = state.activeTab === "character" ? "Добавить персонажа" : "Добавить фон";
@@ -564,13 +618,13 @@
         const sourceLabel = item.source === "preinstalled" ? "Предустановленный" : "Моя загрузка";
         const resolution = item.width && item.height ? `${item.width}x${item.height}` : "-";
         const editButton = state.activeTab === "character"
-          ? `<button class="rounded-lg border border-indigo-200 px-2 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-50" data-action="edit" data-id="${escapeHtml(item.id)}">Редактировать</button>`
+          ? `<button class="asset-action-btn edit" data-action="edit" data-id="${escapeHtml(item.id)}" title="Редактировать" aria-label="Редактировать"><span class="material-symbols-outlined">edit</span></button>`
           : "";
         const deleteButton = item.canDelete
-          ? `<button class="rounded-lg border border-red-200 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-50" data-action="delete" data-id="${escapeHtml(item.id)}">Удалить</button>`
+          ? `<button class="asset-action-btn delete" data-action="delete" data-id="${escapeHtml(item.id)}" title="Удалить" aria-label="Удалить"><span class="material-symbols-outlined">delete</span></button>`
           : "";
 
-        return `<tr class="hover:bg-slate-50"><td class="px-4 py-3"><img class="h-14 w-14 rounded-lg border border-slate-200 bg-slate-50 object-cover" src="${escapeHtml(item.thumbnailUrl || item.fileUrl || "")}" alt="${escapeHtml(item.title)}" /></td><td class="px-4 py-3"><div class="font-semibold text-slate-900">${escapeHtml(item.title)}</div></td><td class="px-4 py-3"><span class="inline-flex rounded-full border px-2 py-1 text-xs font-bold ${item.source === "preinstalled" ? "border-sky-200 bg-sky-50 text-sky-700" : "border-indigo-200 bg-indigo-50 text-indigo-700"}">${escapeHtml(sourceLabel)}</span></td><td class="px-4 py-3 text-slate-600">${escapeHtml(resolution)}</td><td class="px-4 py-3 text-slate-600">${escapeHtml(format.toUpperCase())}</td><td class="px-4 py-3 text-slate-600">${escapeHtml(formatBytes(item.fileSizeBytes))}</td><td class="px-4 py-3 text-slate-600">${escapeHtml(formatDate(item.updatedAt || item.createdAt))}</td><td class="px-4 py-3 text-right"><div class="inline-flex gap-2">${editButton}<button class="rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50" data-action="preview" data-url="${escapeHtml(item.fileUrl || "")}">Открыть</button>${deleteButton}</div></td></tr>`;
+        return `<tr class="hover:bg-slate-50"><td class="px-4 py-3"><img class="h-14 w-14 rounded-lg border border-slate-200 bg-slate-50 object-cover" src="${escapeHtml(item.thumbnailUrl || item.fileUrl || "")}" alt="${escapeHtml(item.title)}" /></td><td class="px-4 py-3"><div class="font-semibold text-slate-900">${escapeHtml(item.title)}</div></td><td class="px-4 py-3"><span class="inline-flex rounded-full border px-2 py-1 text-xs font-bold ${item.source === "preinstalled" ? "border-sky-200 bg-sky-50 text-sky-700" : "border-indigo-200 bg-indigo-50 text-indigo-700"}">${escapeHtml(sourceLabel)}</span></td><td class="px-4 py-3 text-slate-600">${escapeHtml(resolution)}</td><td class="px-4 py-3 text-slate-600">${escapeHtml(format.toUpperCase())}</td><td class="px-4 py-3 text-slate-600">${escapeHtml(formatBytes(item.fileSizeBytes))}</td><td class="px-4 py-3 text-slate-600">${escapeHtml(formatDate(item.updatedAt || item.createdAt))}</td><td class="px-4 py-3 text-right"><div class="inline-flex items-center gap-2">${editButton}<button class="asset-action-btn" data-action="preview" data-url="${escapeHtml(item.fileUrl || "")}" title="Открыть" aria-label="Открыть"><span class="material-symbols-outlined">open_in_new</span></button>${deleteButton}</div></td></tr>`;
       }).join("");
     }
 

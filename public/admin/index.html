@@ -76,10 +76,10 @@
             <span class="material-symbols-outlined">group</span>
             <span class="text-sm">Пользователи</span>
           </a>
-          <button disabled class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 text-left cursor-not-allowed">
+          <a class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-100 text-left" href="/admin/rate">
             <span class="material-symbols-outlined">receipt_long</span>
             <span class="text-sm">Тарифы</span>
-          </button>
+          </a>
           <button disabled class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 text-left cursor-not-allowed">
             <span class="material-symbols-outlined">analytics</span>
             <span class="text-sm">Аналитика</span>
@@ -215,11 +215,7 @@
       <form id="tariffForm" class="space-y-4">
         <div>
           <label for="tariffSelect" class="block text-sm font-semibold text-slate-700 mb-1.5">Тариф</label>
-          <select id="tariffSelect" class="w-full rounded-xl border-slate-200 bg-slate-50 p-3 text-sm focus:ring-2 focus:ring-primary/40 focus:border-primary">
-            <option value="free">Free</option>
-            <option value="pro">Pro</option>
-            <option value="enterprise">Enterprise</option>
-          </select>
+          <select id="tariffSelect" class="w-full rounded-xl border-slate-200 bg-slate-50 p-3 text-sm focus:ring-2 focus:ring-primary/40 focus:border-primary"></select>
         </div>
         <div id="tariffFormError" class="hidden text-sm text-red-600"></div>
         <div class="flex items-center justify-end gap-2">
@@ -246,6 +242,7 @@
       search: "",
       loading: false,
       actionUserId: "",
+      tariffs: [],
     };
 
     const els = {
@@ -402,6 +399,48 @@
       return state.users.find((user) => String(user.id || "") === normalizedId) || null;
     }
 
+    function getFallbackTariffs() {
+      return [
+        { key: "free", title: "Starter", isActive: true, sortOrder: 10 },
+        { key: "pro", title: "Pro Educator", isActive: true, sortOrder: 20 },
+        { key: "enterprise", title: "Institution", isActive: true, sortOrder: 30 },
+      ];
+    }
+
+    function getAvailableTariffs() {
+      return state.tariffs.length ? state.tariffs : getFallbackTariffs();
+    }
+
+    function findTariffByKey(key) {
+      const normalized = String(key || "").trim().toLowerCase();
+      if (!normalized) {
+        return null;
+      }
+      return getAvailableTariffs().find((item) => item.key === normalized) || null;
+    }
+
+    function renderTariffSelect(selectedKey = "") {
+      const normalizedSelectedKey = String(selectedKey || "").trim().toLowerCase();
+      const tariffs = getAvailableTariffs();
+      const options = tariffs
+        .map((item) => {
+          const activeBadge = item.isActive ? "" : " (неактивен)";
+          return `<option value="${item.key}">${String(item.title || item.key)}${activeBadge}</option>`;
+        })
+        .join("");
+
+      if (!options) {
+        els.tariffSelect.innerHTML = '<option value="">Нет доступных тарифов</option>';
+        els.tariffSelect.disabled = true;
+        return;
+      }
+
+      els.tariffSelect.innerHTML = options;
+      els.tariffSelect.disabled = false;
+      const hasSelected = tariffs.some((item) => item.key === normalizedSelectedKey);
+      els.tariffSelect.value = hasSelected ? normalizedSelectedKey : tariffs[0].key;
+    }
+
     function setInlineError(element, message) {
       if (!message) {
         element.textContent = "";
@@ -446,7 +485,7 @@
       state.actionUserId = String(user.id || "");
       els.tariffModalSubtitle.textContent = `${String(user.fullName || user.email || "").trim()} (${String(user.email || "").trim()})`;
       const plan = String(user.plan || "free").trim().toLowerCase();
-      els.tariffSelect.value = ["free", "pro", "enterprise"].includes(plan) ? plan : "free";
+      renderTariffSelect(plan);
       setInlineError(els.tariffFormError, "");
       els.tariffModal.hidden = false;
       window.setTimeout(() => {
@@ -508,7 +547,7 @@
         return;
       }
 
-      if (!["free", "pro", "enterprise"].includes(tariff)) {
+      if (!findTariffByKey(tariff)) {
         setInlineError(els.tariffFormError, "Выберите корректный тариф.");
         return;
       }
@@ -702,6 +741,39 @@
       }
     }
 
+    async function loadTariffs() {
+      try {
+        const payload = await apiRequest("/api/v1/admin/tariffs");
+        const rows = Array.isArray(payload?.items) ? payload.items : [];
+        state.tariffs = rows
+          .map((item) => {
+            const key = String(item?.key || "").trim().toLowerCase();
+            const title = String(item?.title || "").trim();
+            if (!key) {
+              return null;
+            }
+            const sortOrderRaw = Number(item?.sortOrder);
+            return {
+              key,
+              title: title || key,
+              isActive: item?.isActive !== false,
+              sortOrder: Number.isFinite(sortOrderRaw) ? sortOrderRaw : 0,
+            };
+          })
+          .filter(Boolean)
+          .sort((a, b) => {
+            if (a.sortOrder !== b.sortOrder) {
+              return a.sortOrder - b.sortOrder;
+            }
+            return a.key.localeCompare(b.key);
+          });
+      } catch (_error) {
+        state.tariffs = [];
+      } finally {
+        renderTariffSelect("free");
+      }
+    }
+
     function downloadCsv() {
       if (!state.users.length) {
         showNotice("Список пуст. Сначала загрузите пользователей.", "warn");
@@ -845,6 +917,7 @@
       }
 
       bindEvents();
+      await loadTariffs();
 
       try {
         await loadAdminProfile();

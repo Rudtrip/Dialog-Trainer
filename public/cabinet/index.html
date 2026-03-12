@@ -1,0 +1,595 @@
+﻿<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Личный кабинет — Dialog Trainer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+    <style>
+      :root { --bg:#f8f6f6; --panel:#fff; --line:#d8e1ec; --muted:#64748b; --text:#0f172a; --primary:#514df7; --primary-hover:#4338ca; }
+      * { box-sizing: border-box; }
+      body { margin:0; font-family:"Public Sans",sans-serif; background:var(--bg); color:var(--text); }
+      [hidden] { display:none !important; }
+      .material-symbols-outlined { font-variation-settings: "FILL" 0, "wght" 500, "GRAD" 0, "opsz" 24; }
+      .app-shell { min-height:100vh; display:grid; grid-template-columns:252px 1fr; }
+      .sidebar { background:#fff; border-right:1px solid var(--line); display:flex; flex-direction:column; position:sticky; top:0; height:100vh; }
+      .brand { display:flex; align-items:center; gap:12px; padding:24px 20px; border-bottom:1px solid var(--line); }
+      .brand-avatar-link { display:inline-flex; border-radius:999px; text-decoration:none; }
+      .brand-avatar-link:focus-visible { outline:2px solid #bfdbfe; outline-offset:2px; }
+      .brand-copy { min-width:0; flex:1; }
+      .brand-avatar { width:36px; height:36px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; color:var(--primary); background:#eae9ff; border:2px solid #dcdafe; }
+      .brand-title { margin:0; font-size:26px; line-height:1.1; font-weight:800; white-space:nowrap; overflow:hidden; }
+      .brand-subtitle { margin:2px 0 0; color:var(--muted); font-size:13px; }
+      .sidebar-nav { padding:20px 14px; display:grid; gap:8px; }
+      .nav-item { border:0; background:transparent; color:#4b5f79; cursor:pointer; width:100%; font:inherit; text-align:left; display:flex; align-items:center; gap:10px; padding:11px 12px; border-radius:10px; text-decoration:none; transition:background-color .14s ease,color .14s ease; }
+      .nav-item.active { background:#eae9ff; color:var(--primary); font-weight:700; }
+      .nav-item:hover:not(.active):not([disabled]) { background:#f1f5f9; color:#1e293b; }
+      .nav-item[disabled] { opacity:.5; cursor:not-allowed; }
+      .sidebar-footer { margin-top:auto; border-top:1px solid var(--line); padding:18px 14px 24px; display:grid; gap:8px; }
+      .main { padding:28px; }
+      .page { max-width:1080px; margin:0 auto; display:grid; gap:22px; }
+      .title { margin:0; font-size:38px; letter-spacing:-.03em; }
+      .subtitle { margin:6px 0 0; color:var(--muted); }
+      .panel { background:var(--panel); border:1px solid #e6ebf2; border-radius:16px; padding:22px; box-shadow:0 12px 24px rgba(15,23,42,.03); }
+      .panel h2 { margin:0 0 16px; font-size:22px; }
+      .profile-layout { display:grid; grid-template-columns:148px 1fr; gap:18px; }
+      .avatar-wrap { position:relative; width:132px; height:132px; }
+      .avatar { width:132px; height:132px; border-radius:999px; border:4px solid #eef2ff; background:linear-gradient(160deg,#514df7 0%,#818cf8 100%); color:#fff; display:flex; align-items:center; justify-content:center; font-size:40px; font-weight:900; box-shadow:0 14px 28px rgba(79,70,229,.22); }
+      .avatar-edit { position:absolute; right:4px; bottom:6px; width:36px; height:36px; border:0; border-radius:999px; background:var(--primary); color:#fff; display:flex; align-items:center; justify-content:center; opacity:.75; }
+      .grid2 { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+      .field { display:grid; gap:6px; }
+      .field label { font-size:13px; color:#334155; font-weight:700; }
+      .field input { height:44px; border:1px solid var(--line); border-radius:10px; padding:0 12px; font:inherit; }
+      .field input:focus { outline:2px solid rgba(81,77,247,.2); border-color:var(--primary); }
+      .field input[readonly] { background:#f8fafc; color:#64748b; }
+      .actions { margin-top:14px; display:flex; justify-content:flex-end; }
+      .btn { border:0; border-radius:10px; font:inherit; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:0 16px; height:40px; text-decoration:none; transition:background-color .12s ease, color .12s ease, border-color .12s ease; }
+      .btn-primary { background:var(--primary); color:#fff; }
+      .btn-primary:hover { background:var(--primary-hover); }
+      .btn-soft { background:#f1f5f9; color:#334155; border:1px solid #e2e8f0; }
+      .btn-soft:hover { background:#e8edf4; }
+      .stats { display:grid; grid-template-columns:minmax(0,2fr) minmax(0,1fr); gap:16px; }
+      .usage-top { display:flex; justify-content:space-between; align-items:baseline; }
+      .usage-value { font-size:40px; font-weight:900; letter-spacing:-.03em; }
+      .usage-muted { color:#94a3b8; font-size:24px; font-weight:700; }
+      .usage-track { margin-top:12px; width:100%; height:12px; border-radius:999px; background:#e2e8f0; overflow:hidden; }
+      .usage-fill { width:0; height:100%; border-radius:inherit; background:linear-gradient(90deg,#514df7 0%,#8b5cf6 100%); }
+      .usage-note { margin:10px 0 0; color:#64748b; font-size:13px; }
+      .usage-note a { color:var(--primary); text-decoration:none; }
+      .usage-note a:hover { text-decoration:underline; }
+      .plan-current { border:1px solid rgba(81,77,247,.3); background:linear-gradient(180deg,#514df7 0%,#4338ca 100%); color:#fff; }
+      .plan-current .cap { font-size:12px; opacity:.9; letter-spacing:.1em; text-transform:uppercase; }
+      .plan-current .name { margin-top:6px; font-size:28px; font-weight:800; }
+      .plans-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
+      .plans-head h2 { margin:0; font-size:28px; letter-spacing:-.02em; }
+      .billing { display:inline-flex; background:#e2e8f0; border-radius:10px; padding:3px; gap:3px; }
+      .billing button { border:0; border-radius:8px; background:transparent; color:#64748b; font:inherit; font-size:13px; font-weight:700; padding:7px 12px; cursor:pointer; }
+      .billing button.active { background:#fff; color:#0f172a; box-shadow:0 2px 8px rgba(15,23,42,.08); }
+      .plan-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+      .plan-card { background:#fff; border:1px solid #e6ebf2; border-radius:14px; padding:16px; display:grid; gap:10px; }
+      .plan-card.active { border:2px solid var(--primary); box-shadow:0 0 0 3px rgba(81,77,247,.1); }
+      .plan-card h3 { margin:0; font-size:18px; }
+      .price { margin:0; display:flex; align-items:flex-end; gap:4px; }
+      .price strong { font-size:32px; line-height:1; }
+      .price span { color:#64748b; font-size:13px; }
+      .features { list-style:none; margin:0; padding:0; display:grid; gap:7px; }
+      .features li { display:flex; gap:8px; align-items:center; color:#475569; font-size:13px; }
+      .features .material-symbols-outlined { font-size:18px; color:#16a34a; }
+      .danger { border-top:1px solid var(--line); padding-top:16px; }
+      .danger-card { border:1px solid #fecaca; background:#fef2f2; border-radius:14px; padding:16px; display:flex; justify-content:space-between; align-items:center; gap:12px; }
+      .danger-card h3 { margin:0; color:#b91c1c; }
+      .danger-card p { margin:4px 0 0; color:#b45309; font-size:13px; }
+      .btn-danger { border:1px solid #fca5a5; background:#fff; color:#b91c1c; }
+      .btn-danger:hover { background:#fee2e2; }
+      .toast-stack { position:fixed; right:16px; bottom:16px; display:grid; gap:8px; z-index:50; }
+      .toast { min-width:220px; max-width:360px; border:1px solid #dbeafe; background:#eff6ff; color:#1e3a8a; border-radius:10px; padding:10px 12px; box-shadow:0 8px 20px rgba(15,23,42,.12); font-size:13px; }
+      .toast.error { border-color:#fecaca; background:#fef2f2; color:#991b1b; }
+      @media (max-width:980px) { .app-shell { grid-template-columns:1fr; } .sidebar { position:static; height:auto; } .main { padding:16px; } .profile-layout,.grid2,.stats,.plan-grid { grid-template-columns:1fr; } .danger-card { flex-direction:column; align-items:flex-start; } }
+    </style>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <a class="brand-avatar-link" href="/cabinet" aria-label="Открыть кабинет">
+            <div class="brand-avatar" id="brandAvatarInitials" aria-hidden="true">--</div>
+          </a>
+          <div class="brand-copy">
+            <p class="brand-title" id="profileNameLabel">Имя</p>
+            <p class="brand-subtitle" id="workspaceLabel">Рабочее пространство</p>
+          </div>
+        </div>
+
+        <nav class="sidebar-nav" aria-label="Навигация">
+          <a class="nav-item" href="/builder"><span class="material-symbols-outlined">folder_open</span><span>Проекты</span></a>
+          <button class="nav-item" type="button" disabled><span class="material-symbols-outlined">grid_view</span><span>Шаблоны</span></button>
+          <a class="nav-item" href="/assets"><span class="material-symbols-outlined">image</span><span>Ассеты</span></a>
+        </nav>
+
+        <div class="sidebar-footer">
+          <button class="nav-item" type="button"><span class="material-symbols-outlined">help</span><span>Помощь и поддержка</span></button>
+          <button class="nav-item" id="signOutBtn" type="button"><span class="material-symbols-outlined">logout</span><span>Выйти</span></button>
+        </div>
+      </aside>
+
+      <main class="main">
+        <div class="page">
+          <header>
+            <h1 class="title">Кабинет аккаунта</h1>
+            <p class="subtitle">Управляйте профилем, статистикой платформы и тарифом.</p>
+          </header>
+
+          <section class="panel">
+            <h2>Информация профиля</h2>
+            <div class="profile-layout">
+              <div class="avatar-wrap">
+                <div class="avatar" id="profileAvatarInitials">--</div>
+                <button class="avatar-edit" type="button" disabled title="Скоро"><span class="material-symbols-outlined" style="font-size:18px">edit</span></button>
+              </div>
+
+              <form id="profileForm">
+                <div class="grid2">
+                  <div class="field">
+                    <label for="fullNameInput">Полное имя</label>
+                    <input id="fullNameInput" type="text" maxlength="120" placeholder="Введите имя" />
+                  </div>
+                  <div class="field">
+                    <label for="emailInput">Email</label>
+                    <input id="emailInput" type="email" readonly />
+                  </div>
+                </div>
+                <div class="actions">
+                  <button class="btn btn-primary" id="saveProfileBtn" type="submit"><span class="material-symbols-outlined" style="font-size:18px">save</span><span>Сохранить изменения</span></button>
+                </div>
+              </form>
+            </div>
+          </section>
+
+          <section class="stats">
+            <article class="panel">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+                <h2 style="margin:0">Использование симуляторов</h2>
+                <span style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;font-weight:800;color:var(--primary);background:rgba(81,77,247,.08);border:1px solid rgba(81,77,247,.2);border-radius:999px;padding:5px 8px">Статистика</span>
+              </div>
+              <div class="usage-top"><div class="usage-value" id="usageCounter">0 <span class="usage-muted">/ 0</span></div><div id="usageCapacity">0% лимита</div></div>
+              <div class="usage-track"><div class="usage-fill" id="usageFill"></div></div>
+              <p class="usage-note">Лимиты зависят от тарифа. Нужен больший объем? <a href="#" id="upgradeLink">Выберите тариф выше</a>.</p>
+            </article>
+
+            <article class="panel plan-current">
+              <p class="cap">Текущий тариф</p>
+              <p class="name" id="currentPlanName">Starter</p>
+              <p style="margin:12px 0 0;display:flex;align-items:center;gap:6px;font-size:14px"><span class="material-symbols-outlined" style="font-size:17px">verified</span><span id="currentPlanSupport">Базовая поддержка</span></p>
+              <button class="btn btn-soft" id="manageSubscriptionBtn" type="button" style="margin-top:14px">Управление тарифом</button>
+            </article>
+          </section>
+
+          <section class="panel">
+            <div class="plans-head">
+              <h2>Сравнение тарифов</h2>
+              <div class="billing" role="tablist" aria-label="Период оплаты">
+                <button class="active" id="billingMonthlyBtn" type="button">Месяц</button>
+                <button id="billingYearlyBtn" type="button">Год</button>
+              </div>
+            </div>
+
+            <div class="plan-grid">
+              <article class="plan-card" data-plan="free">
+                <h3 data-plan-title="free">Starter</h3>
+                <p class="price"><strong data-price="free">$0</strong><span>/мес</span></p>
+                <ul class="features" data-plan-features="free">
+                  <li><span class="material-symbols-outlined">check_circle</span>2 симулятора</li>
+                  <li><span class="material-symbols-outlined">check_circle</span>Ручная публикация</li>
+                </ul>
+                <button class="btn btn-soft" data-plan-action="free" type="button">Выбрать</button>
+              </article>
+
+              <article class="plan-card" data-plan="pro">
+                <h3 data-plan-title="pro">Pro Educator</h3>
+                <p class="price"><strong data-price="pro">$29</strong><span>/мес</span></p>
+                <ul class="features" data-plan-features="pro">
+                  <li><span class="material-symbols-outlined">check_circle</span>10 симуляторов</li>
+                  <li><span class="material-symbols-outlined">check_circle</span>Генерация диалогов через ИИ</li>
+                </ul>
+                <button class="btn btn-soft" data-plan-action="pro" type="button">Выбрать</button>
+              </article>
+
+              <article class="plan-card" data-plan="enterprise">
+                <h3 data-plan-title="enterprise">Institution</h3>
+                <p class="price"><strong data-price="enterprise">$99</strong><span>/мес</span></p>
+                <ul class="features" data-plan-features="enterprise">
+                  <li><span class="material-symbols-outlined">check_circle</span>Безлимитные симуляторы</li>
+                  <li><span class="material-symbols-outlined">check_circle</span>Персональный менеджер</li>
+                </ul>
+                <button class="btn btn-primary" data-plan-action="enterprise" type="button">Выбрать</button>
+              </article>
+            </div>
+          </section>
+
+          <section class="danger">
+            <div class="danger-card">
+              <div>
+                <h3>Удалить аккаунт</h3>
+                <p>Полное удаление профиля и данных пока доступно через поддержку.</p>
+              </div>
+              <button class="btn btn-danger" id="deleteAccountBtn" type="button">Удалить аккаунт</button>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <div class="toast-stack" id="toastStack"></div>
+
+    <script>
+      (function () {
+        const storageKeys = { session: "dialogTrainerSession", accessToken: "dialogTrainerAccessToken" };
+        const defaultPlanConfig = {
+          free: {
+            title: "Starter",
+            support: "Базовая поддержка",
+            limit: 2,
+            monthlyPrice: 0,
+            yearlyPrice: 0,
+            features: ["2 симулятора", "Ручная публикация"],
+            sortOrder: 10,
+          },
+          pro: {
+            title: "Pro Educator",
+            support: "Приоритетная поддержка",
+            limit: 10,
+            monthlyPrice: 29,
+            yearlyPrice: 24,
+            features: ["10 симуляторов", "Генерация диалогов через ИИ"],
+            sortOrder: 20,
+          },
+          enterprise: {
+            title: "Institution",
+            support: "Выделенный менеджер",
+            limit: null,
+            monthlyPrice: 99,
+            yearlyPrice: 79,
+            features: ["Безлимитные симуляторы", "Персональный менеджер"],
+            sortOrder: 30,
+          }
+        };
+        let planConfig = JSON.parse(JSON.stringify(defaultPlanConfig));
+        const state = { token: "", billingPeriod: "monthly", plan: "free", dialogsCount: 0 };
+        const els = {
+          profileNameLabel: document.getElementById("profileNameLabel"), workspaceLabel: document.getElementById("workspaceLabel"),
+          brandAvatarInitials: document.getElementById("brandAvatarInitials"), profileAvatarInitials: document.getElementById("profileAvatarInitials"),
+          fullNameInput: document.getElementById("fullNameInput"), emailInput: document.getElementById("emailInput"),
+          profileForm: document.getElementById("profileForm"), saveProfileBtn: document.getElementById("saveProfileBtn"),
+          signOutBtn: document.getElementById("signOutBtn"), usageCounter: document.getElementById("usageCounter"),
+          usageCapacity: document.getElementById("usageCapacity"), usageFill: document.getElementById("usageFill"),
+          currentPlanName: document.getElementById("currentPlanName"), currentPlanSupport: document.getElementById("currentPlanSupport"),
+          billingMonthlyBtn: document.getElementById("billingMonthlyBtn"), billingYearlyBtn: document.getElementById("billingYearlyBtn"),
+          planCards: Array.from(document.querySelectorAll("[data-plan]")), planActionButtons: Array.from(document.querySelectorAll("[data-plan-action]")),
+          priceLabels: { free: document.querySelector('[data-price="free"]'), pro: document.querySelector('[data-price="pro"]'), enterprise: document.querySelector('[data-price="enterprise"]') },
+          toastStack: document.getElementById("toastStack"), manageSubscriptionBtn: document.getElementById("manageSubscriptionBtn"),
+          deleteAccountBtn: document.getElementById("deleteAccountBtn"), upgradeLink: document.getElementById("upgradeLink")
+        };
+
+        function getInitialsFromName(fullName, email) {
+          const name = String(fullName || "").trim();
+          if (name) {
+            const parts = name.split(/\s+/).filter(Boolean).slice(0, 2);
+            const initials = parts.map((part) => part[0]).join("").toUpperCase();
+            if (initials) return initials;
+          }
+          const localPart = String(email || "").trim().split("@")[0] || "";
+          return localPart ? localPart.slice(0, 2).toUpperCase() : "--";
+        }
+
+        function fitProfileNameFont() {
+          const label = els.profileNameLabel;
+          if (!label) return;
+          let current = 26;
+          label.style.fontSize = `${current}px`;
+          while (label.scrollWidth > label.clientWidth && current > 8) {
+            current -= 0.5;
+            label.style.fontSize = `${current}px`;
+          }
+        }
+
+        function showToast(message, type) {
+          const node = document.createElement("div");
+          node.className = `toast${type === "error" ? " error" : ""}`;
+          node.textContent = message;
+          els.toastStack.appendChild(node);
+          setTimeout(() => node.remove(), 3200);
+        }
+
+        function getTokenFromStorage() {
+          const directToken = localStorage.getItem(storageKeys.accessToken);
+          if (directToken) return directToken;
+          const sessionRaw = localStorage.getItem(storageKeys.session);
+          if (!sessionRaw) return "";
+          try { return JSON.parse(sessionRaw)?.access_token || ""; } catch (_error) { return ""; }
+        }
+
+        function applyAuthSessionFromHash() {
+          const hash = String(window.location.hash || "");
+          if (!hash || !hash.startsWith("#")) return false;
+          const params = new URLSearchParams(hash.slice(1));
+          const accessToken = String(params.get("access_token") || "").trim();
+          if (!accessToken) return false;
+          const refreshToken = String(params.get("refresh_token") || "").trim();
+          const tokenType = String(params.get("token_type") || "bearer").trim().toLowerCase() || "bearer";
+          const expiresInRaw = Number(params.get("expires_in"));
+          const expiresIn = Number.isFinite(expiresInRaw) && expiresInRaw > 0 ? Math.trunc(expiresInRaw) : null;
+          const expiresAt = expiresIn ? Math.floor(Date.now() / 1000) + expiresIn : null;
+          localStorage.setItem(storageKeys.session, JSON.stringify({ access_token: accessToken, refresh_token: refreshToken || null, token_type: tokenType, expires_in: expiresIn, expires_at: expiresAt }));
+          localStorage.setItem(storageKeys.accessToken, accessToken);
+          if (window.history?.replaceState) window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
+          return true;
+        }
+
+        function signOut() {
+          localStorage.removeItem(storageKeys.accessToken);
+          localStorage.removeItem(storageKeys.session);
+          window.location.href = "/login";
+        }
+
+        function normalizePlan(value) {
+          const normalized = String(value || "").trim().toLowerCase();
+          if (normalized === "enterprise" || normalized === "institution") return "enterprise";
+          if (normalized === "pro" || normalized === "paid") return "pro";
+          return "free";
+        }
+
+        async function apiRequest(pathname, options) {
+          const response = await fetch(pathname, {
+            method: options?.method || "GET",
+            headers: { Authorization: `Bearer ${state.token}`, ...(options?.body ? { "Content-Type": "application/json" } : {}) },
+            body: options?.body ? JSON.stringify(options.body) : undefined,
+          });
+          const text = await response.text();
+          let data = {};
+          if (text) { try { data = JSON.parse(text); } catch (_error) { data = {}; } }
+          if (!response.ok) {
+            const error = new Error(data?.error || `Ошибка запроса, статус ${response.status}`);
+            error.status = response.status;
+            throw error;
+          }
+          return data;
+        }
+
+        function escapeHtml(value) {
+          return String(value || "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/\"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+        }
+
+        function parseNonNegativeNumber(value, fallback) {
+          const parsed = Number(value);
+          if (!Number.isFinite(parsed) || parsed < 0) {
+            return fallback;
+          }
+          return parsed;
+        }
+
+        function formatUsd(value) {
+          const number = parseNonNegativeNumber(value, 0);
+          if (Number.isInteger(number)) {
+            return `$${number}`;
+          }
+          return `$${number.toFixed(2).replace(/\.00$/, "")}`;
+        }
+
+        function normalizePlanConfigItem(planKey, rawItem) {
+          const fallback = defaultPlanConfig[planKey];
+          const title = String(rawItem?.title || "").trim() || fallback.title;
+          const support = String(rawItem?.supportLabel || rawItem?.support || "").trim() || fallback.support;
+          const monthlyPrice = parseNonNegativeNumber(rawItem?.monthlyPrice, fallback.monthlyPrice);
+          const yearlyPrice = parseNonNegativeNumber(rawItem?.yearlyPrice, fallback.yearlyPrice);
+          const simulatorLimitRaw = rawItem?.simulatorLimit ?? rawItem?.limit;
+          const simulatorLimit =
+            simulatorLimitRaw === null || simulatorLimitRaw === undefined || String(simulatorLimitRaw).trim() === ""
+              ? null
+              : Number.isInteger(Number(simulatorLimitRaw)) && Number(simulatorLimitRaw) > 0
+                ? Number(simulatorLimitRaw)
+                : fallback.limit;
+          const features = Array.isArray(rawItem?.features)
+            ? rawItem.features.map((feature) => String(feature || "").trim()).filter(Boolean).slice(0, 12)
+            : fallback.features.slice();
+
+          return {
+            ...fallback,
+            title,
+            support,
+            monthlyPrice,
+            yearlyPrice,
+            limit: simulatorLimit,
+            features: features.length > 0 ? features : fallback.features.slice(),
+            sortOrder: Number.isFinite(Number(rawItem?.sortOrder)) ? Number(rawItem.sortOrder) : fallback.sortOrder,
+          };
+        }
+
+        function applyTariffItems(items) {
+          planConfig = JSON.parse(JSON.stringify(defaultPlanConfig));
+
+          if (!Array.isArray(items)) {
+            return;
+          }
+
+          items.forEach((item) => {
+            const key = normalizePlan(item?.key || item?.plan_key);
+            if (!planConfig[key]) {
+              return;
+            }
+            planConfig[key] = normalizePlanConfigItem(key, item);
+          });
+        }
+
+        function renderPlanCardContent() {
+          Object.entries(planConfig).forEach(([key, planMeta]) => {
+            const titleNode = document.querySelector(`[data-plan-title="${key}"]`);
+            if (titleNode) {
+              titleNode.textContent = planMeta.title;
+            }
+
+            const featuresNode = document.querySelector(`[data-plan-features="${key}"]`);
+            if (featuresNode) {
+              featuresNode.innerHTML = planMeta.features
+                .map(
+                  (feature) =>
+                    `<li><span class="material-symbols-outlined">check_circle</span>${escapeHtml(feature)}</li>`
+                )
+                .join("");
+            }
+          });
+        }
+
+        function updatePlanUi() {
+          const planMeta = planConfig[state.plan] || planConfig.free;
+          els.currentPlanName.textContent = planMeta.title;
+          els.currentPlanSupport.textContent = planMeta.support;
+          els.planCards.forEach((card) => card.classList.toggle("active", card.dataset.plan === state.plan));
+          els.planActionButtons.forEach((button) => {
+            const isActive = button.dataset.planAction === state.plan;
+            button.disabled = isActive;
+            button.className = isActive ? "btn btn-soft" : (button.dataset.planAction === "enterprise" ? "btn btn-primary" : "btn btn-soft");
+            button.textContent = isActive ? "Активен" : (button.dataset.planAction === "free" ? "Перейти" : "Выбрать");
+          });
+        }
+
+        function updatePrices() {
+          const yearly = state.billingPeriod === "yearly";
+          const periodLabel = yearly ? "/год" : "/мес";
+          els.billingMonthlyBtn.classList.toggle("active", !yearly);
+          els.billingYearlyBtn.classList.toggle("active", yearly);
+          Object.entries(planConfig).forEach(([key, meta]) => {
+            const priceNode = els.priceLabels[key];
+            if (!priceNode) return;
+            priceNode.textContent = formatUsd(yearly ? meta.yearlyPrice : meta.monthlyPrice);
+            const suffix = priceNode.parentElement?.querySelector("span");
+            if (suffix) suffix.textContent = periodLabel;
+          });
+        }
+
+        function updateUsageUi() {
+          const planMeta = planConfig[state.plan] || planConfig.free;
+          const used = Math.max(0, Number(state.dialogsCount || 0));
+          if (planMeta.limit == null) {
+            els.usageCounter.innerHTML = `${used} <span class="usage-muted">/ ∞</span>`;
+            els.usageCapacity.textContent = "Без лимита";
+            els.usageFill.style.width = "100%";
+            return;
+          }
+          const limit = Math.max(1, Number(planMeta.limit || 1));
+          const percent = Math.min(100, Math.round((used / limit) * 100));
+          els.usageCounter.innerHTML = `${used} <span class="usage-muted">/ ${limit}</span>`;
+          els.usageCapacity.textContent = `${percent}% лимита`;
+          els.usageFill.style.width = `${percent}%`;
+        }
+
+        async function loadUser() {
+          const payload = await apiRequest("/api/v1/auth/me");
+          const user = payload?.user || {};
+          const email = String(user.email || "").trim();
+          const fullName = String(user?.user_metadata?.full_name || "").trim();
+          const displayName = fullName || (email ? email.split("@")[0] : "") || "Имя";
+          const initials = getInitialsFromName(displayName, email);
+          state.plan = normalizePlan(user?.user_metadata?.tariff || user?.user_metadata?.plan || user?.app_metadata?.tariff || user?.app_metadata?.plan);
+          els.profileNameLabel.textContent = displayName;
+          els.workspaceLabel.textContent = email || "Рабочее пространство";
+          els.brandAvatarInitials.textContent = initials;
+          els.profileAvatarInitials.textContent = initials;
+          els.fullNameInput.value = displayName;
+          els.emailInput.value = email;
+          requestAnimationFrame(fitProfileNameFont);
+        }
+
+        async function loadTariffs() {
+          const payload = await apiRequest("/api/v1/tariffs");
+          applyTariffItems(payload?.items);
+
+          const fromApiPlan = normalizePlan(payload?.currentPlan);
+          if (fromApiPlan) {
+            state.plan = fromApiPlan;
+          }
+
+          renderPlanCardContent();
+          updatePlanUi();
+          updatePrices();
+          updateUsageUi();
+        }
+
+        async function loadUsage() {
+          const payload = await apiRequest("/api/v1/builder/dialogs");
+          state.dialogsCount = Array.isArray(payload?.items) ? payload.items.length : 0;
+          updateUsageUi();
+        }
+
+        async function handleSaveProfile(event) {
+          event.preventDefault();
+          const fullName = String(els.fullNameInput.value || "").trim();
+          if (fullName.length < 2) {
+            showToast("Имя должно содержать минимум 2 символа.", "error");
+            return;
+          }
+          els.saveProfileBtn.disabled = true;
+          try {
+            const payload = await apiRequest("/api/v1/auth/me", { method: "PATCH", body: { fullName } });
+            const email = String(payload?.user?.email || els.emailInput.value || "").trim();
+            const displayName = String(payload?.user?.user_metadata?.full_name || fullName).trim() || fullName;
+            const initials = getInitialsFromName(displayName, email);
+            els.fullNameInput.value = displayName;
+            els.profileNameLabel.textContent = displayName;
+            els.brandAvatarInitials.textContent = initials;
+            els.profileAvatarInitials.textContent = initials;
+            requestAnimationFrame(fitProfileNameFont);
+            showToast("Профиль обновлен.");
+          } catch (error) {
+            if (error.status === 401) { signOut(); return; }
+            showToast(error.message || "Не удалось обновить профиль.", "error");
+          } finally {
+            els.saveProfileBtn.disabled = false;
+          }
+        }
+
+        function bindEvents() {
+          els.signOutBtn.addEventListener("click", signOut);
+          els.profileForm.addEventListener("submit", handleSaveProfile);
+          els.billingMonthlyBtn.addEventListener("click", () => { state.billingPeriod = "monthly"; updatePrices(); });
+          els.billingYearlyBtn.addEventListener("click", () => { state.billingPeriod = "yearly"; updatePrices(); });
+          els.planActionButtons.forEach((button) => button.addEventListener("click", () => {
+            if (!button.dataset.planAction || button.dataset.planAction === state.plan) return;
+            showToast("Смена тарифа будет доступна после подключения биллинга.");
+          }));
+          els.manageSubscriptionBtn.addEventListener("click", () => showToast("Управление подпиской будет доступно в следующем релизе."));
+          els.deleteAccountBtn.addEventListener("click", () => showToast("Для удаления аккаунта обратитесь в поддержку.", "error"));
+          els.upgradeLink.addEventListener("click", (event) => {
+            event.preventDefault();
+            document.querySelector(".plans-head")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          });
+        }
+
+        async function init() {
+          applyAuthSessionFromHash();
+          state.token = getTokenFromStorage();
+          if (!state.token) { window.location.href = "/login"; return; }
+          bindEvents();
+          try {
+            await loadUser();
+            await loadTariffs();
+            await loadUsage();
+            updateUsageUi();
+          } catch (error) {
+            if (error.status === 401) { signOut(); return; }
+            showToast(error.message || "Не удалось загрузить кабинет.", "error");
+          }
+        }
+
+        init();
+      })();
+    </script>
+  </body>
+</html>

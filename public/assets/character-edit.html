@@ -55,6 +55,17 @@
       border-bottom: 1px solid var(--line);
     }
 
+    .brand-avatar-link {
+      display: inline-flex;
+      border-radius: 999px;
+      text-decoration: none;
+    }
+
+    .brand-avatar-link:focus-visible {
+      outline: 2px solid #bfdbfe;
+      outline-offset: 2px;
+    }
+
     .brand-copy {
       min-width: 0;
       flex: 1;
@@ -102,6 +113,7 @@
       border: 0;
       background: transparent;
       color: #4b5f79;
+      cursor: pointer;
       width: 100%;
       font: inherit;
       text-align: left;
@@ -111,12 +123,18 @@
       padding: 11px 12px;
       border-radius: 10px;
       text-decoration: none;
+      transition: background-color 140ms ease, color 140ms ease;
     }
 
     .nav-item.active {
       background: #eaf3ff;
       color: var(--primary);
       font-weight: 700;
+    }
+
+    .nav-item:hover:not(.active):not([disabled]) {
+      background: #f1f5f9;
+      color: #1e293b;
     }
 
     .nav-item[disabled] {
@@ -148,7 +166,9 @@
   <div class="app-shell">
     <aside class="sidebar">
       <div class="brand">
-        <div class="brand-avatar" id="brandAvatarInitials" aria-hidden="true">--</div>
+        <a class="brand-avatar-link" href="/cabinet" aria-label="Открыть кабинет">
+          <div class="brand-avatar" id="brandAvatarInitials" aria-hidden="true">--</div>
+        </a>
         <div class="brand-copy">
           <p class="brand-title" id="profileNameLabel">Имя</p>
           <p class="brand-subtitle" id="workspaceLabel">Рабочее пространство</p>

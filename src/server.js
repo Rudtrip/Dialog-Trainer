@@ -58,6 +58,41 @@ const LOCAL_ASSET_PREFIX = String(process.env.LOCAL_ASSET_PREFIX || "uploads/lib
 const TEMP_PREVIEW_TTL_SEC = Number(process.env.TEMP_PREVIEW_TTL_SEC || 1800);
 const ADMIN_USERS_MAX_PAGE_SIZE = 100;
 const ADMIN_TARIFF_VALUES = new Set(["free", "pro", "enterprise"]);
+const DEFAULT_TARIFF_PLANS = [
+  {
+    key: "free",
+    title: "Starter",
+    monthlyPrice: 0,
+    yearlyPrice: 0,
+    simulatorLimit: 2,
+    supportLabel: "Базовая поддержка",
+    features: ["2 симулятора", "Ручная публикация"],
+    isActive: true,
+    sortOrder: 10,
+  },
+  {
+    key: "pro",
+    title: "Pro Educator",
+    monthlyPrice: 29,
+    yearlyPrice: 24,
+    simulatorLimit: 10,
+    supportLabel: "Приоритетная поддержка",
+    features: ["10 симуляторов", "Генерация диалогов через ИИ"],
+    isActive: true,
+    sortOrder: 20,
+  },
+  {
+    key: "enterprise",
+    title: "Institution",
+    monthlyPrice: 99,
+    yearlyPrice: 79,
+    simulatorLimit: null,
+    supportLabel: "Выделенный менеджер",
+    features: ["Безлимитные симуляторы", "Персональный менеджер"],
+    isActive: true,
+    sortOrder: 30,
+  },
+];
 const PREINSTALLED_MANAGER_EMAILS = new Set(
   String(process.env.PREINSTALLED_MANAGER_EMAILS || "salekh@reezonly.ru")
     .split(",")
@@ -576,6 +611,221 @@ function sanitizeAdminTariff(value) {
   return ADMIN_TARIFF_VALUES.has(normalized) ? normalized : null;
 }
 
+function cloneDefaultTariffPlans() {
+  return DEFAULT_TARIFF_PLANS.map((plan) => ({
+    ...plan,
+    features: Array.isArray(plan.features) ? plan.features.slice() : [],
+  }));
+}
+
+function getDefaultTariffPlanByKey(key) {
+  const normalized = sanitizeAdminTariff(key);
+  if (!normalized) {
+    return null;
+  }
+  return cloneDefaultTariffPlans().find((plan) => plan.key === normalized) || null;
+}
+
+function sanitizeTariffFeatureList(rawFeatures, fallbackFeatures) {
+  const list = Array.isArray(rawFeatures)
+    ? rawFeatures
+    : typeof rawFeatures === "string"
+      ? rawFeatures.split(/\r?\n/g)
+      : [];
+
+  const normalized = list
+    .map((value) => String(value || "").trim().slice(0, 160))
+    .filter(Boolean)
+    .slice(0, 12);
+
+  if (normalized.length > 0) {
+    return normalized;
+  }
+
+  const fallback = Array.isArray(fallbackFeatures)
+    ? fallbackFeatures.map((value) => String(value || "").trim()).filter(Boolean)
+    : [];
+  return fallback;
+}
+
+function mapTariffPlanRow(row, fallbackPlan) {
+  const fallback = fallbackPlan || getDefaultTariffPlanByKey(row?.plan_key) || {
+    key: "free",
+    title: "Starter",
+    monthlyPrice: 0,
+    yearlyPrice: 0,
+    simulatorLimit: 2,
+    supportLabel: "Базовая поддержка",
+    features: ["2 симулятора"],
+    isActive: true,
+    sortOrder: 0,
+  };
+
+  const key = sanitizeAdminTariff(row?.plan_key) || fallback.key;
+  const title = String(row?.title || "").trim().slice(0, 120) || fallback.title;
+
+  const monthlyRaw = Number(row?.monthly_price_usd);
+  const yearlyRaw = Number(row?.yearly_price_usd);
+  const monthlyPrice = Number.isFinite(monthlyRaw) && monthlyRaw >= 0 ? monthlyRaw : fallback.monthlyPrice;
+  const yearlyPrice = Number.isFinite(yearlyRaw) && yearlyRaw >= 0 ? yearlyRaw : fallback.yearlyPrice;
+
+  const limitRaw = row?.simulator_limit;
+  const simulatorLimit =
+    limitRaw === null || limitRaw === undefined || limitRaw === ""
+      ? null
+      : Number.isInteger(Number(limitRaw)) && Number(limitRaw) > 0
+        ? Number(limitRaw)
+        : fallback.simulatorLimit;
+
+  const supportLabel =
+    String(row?.support_label || "")
+      .trim()
+      .slice(0, 160) || fallback.supportLabel;
+  const features = sanitizeTariffFeatureList(row?.features_json, fallback.features);
+
+  const sortRaw = Number(row?.sort_order);
+  const sortOrder = Number.isFinite(sortRaw) ? Math.trunc(sortRaw) : fallback.sortOrder;
+  const isActive = typeof row?.is_active === "boolean" ? row.is_active : fallback.isActive;
+
+  return {
+    key,
+    title,
+    monthlyPrice,
+    yearlyPrice,
+    simulatorLimit,
+    supportLabel,
+    features,
+    isActive,
+    sortOrder,
+  };
+}
+
+function isTariffTableMissingError(error) {
+  const message = String(
+    error?.data?.message ||
+      error?.data?.error ||
+      error?.data?.details ||
+      error?.message ||
+      ""
+  ).toLowerCase();
+
+  return (
+    message.includes("tariff_plans") &&
+    (message.includes("does not exist") ||
+      message.includes("relation") ||
+      message.includes("not found"))
+  );
+}
+
+async function listTariffPlans(token) {
+  const defaults = cloneDefaultTariffPlans();
+  try {
+    const rows = await supabaseRest(
+      "/tariff_plans?select=plan_key,title,monthly_price_usd,yearly_price_usd,simulator_limit,support_label,features_json,is_active,sort_order&order=sort_order.asc&order=plan_key.asc",
+      { token }
+    );
+
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return defaults;
+    }
+
+    const byKey = new Map(defaults.map((plan) => [plan.key, plan]));
+    rows.forEach((row) => {
+      const key = sanitizeAdminTariff(row?.plan_key);
+      if (!key) {
+        return;
+      }
+      byKey.set(key, mapTariffPlanRow(row, byKey.get(key)));
+    });
+
+    return Array.from(byKey.values()).sort((a, b) => {
+      if (a.sortOrder !== b.sortOrder) {
+        return a.sortOrder - b.sortOrder;
+      }
+      return a.key.localeCompare(b.key);
+    });
+  } catch (error) {
+    if (isTariffTableMissingError(error)) {
+      return defaults;
+    }
+    throw error;
+  }
+}
+
+function sanitizeTariffPlanPayload(payload, planKey) {
+  if (!ensureJsonObject(payload)) {
+    return { error: "Request body must be a JSON object." };
+  }
+
+  const key = sanitizeAdminTariff(planKey);
+  if (!key) {
+    return { error: "Invalid tariff key." };
+  }
+
+  const fallback = getDefaultTariffPlanByKey(key);
+
+  const title = String(payload.title || "").trim().slice(0, 120);
+  if (!title) {
+    return { error: "Title is required." };
+  }
+
+  const monthlyPrice = Number(payload.monthlyPrice ?? payload.monthly_price_usd);
+  if (!Number.isFinite(monthlyPrice) || monthlyPrice < 0 || monthlyPrice > 100000) {
+    return { error: "Invalid monthly price." };
+  }
+
+  const yearlyPrice = Number(payload.yearlyPrice ?? payload.yearly_price_usd);
+  if (!Number.isFinite(yearlyPrice) || yearlyPrice < 0 || yearlyPrice > 100000) {
+    return { error: "Invalid yearly price." };
+  }
+
+  const simulatorLimitRaw = payload.simulatorLimit ?? payload.simulator_limit;
+  let simulatorLimit = null;
+  if (simulatorLimitRaw !== null && simulatorLimitRaw !== undefined && String(simulatorLimitRaw).trim() !== "") {
+    const parsed = Number(simulatorLimitRaw);
+    if (!Number.isInteger(parsed) || parsed <= 0 || parsed > 1000000) {
+      return { error: "Invalid simulator limit." };
+    }
+    simulatorLimit = parsed;
+  }
+
+  const supportLabel = String(payload.supportLabel ?? payload.support_label ?? "")
+    .trim()
+    .slice(0, 160);
+  if (!supportLabel) {
+    return { error: "Support label is required." };
+  }
+
+  const features = sanitizeTariffFeatureList(payload.features, fallback?.features || []);
+  if (features.length === 0) {
+    return { error: "At least one feature is required." };
+  }
+
+  const isActiveRaw =
+    payload.isActive !== undefined
+      ? payload.isActive
+      : payload.is_active !== undefined
+        ? payload.is_active
+        : true;
+  const isActive = Boolean(isActiveRaw);
+  const sortOrderRaw = payload.sortOrder ?? payload.sort_order ?? fallback?.sortOrder ?? 0;
+  const sortOrder = Number.isFinite(Number(sortOrderRaw)) ? Math.trunc(Number(sortOrderRaw)) : 0;
+
+  return {
+    value: {
+      plan_key: key,
+      title,
+      monthly_price_usd: monthlyPrice,
+      yearly_price_usd: yearlyPrice,
+      simulator_limit: simulatorLimit,
+      support_label: supportLabel,
+      features_json: features,
+      is_active: isActive,
+      sort_order: sortOrder,
+    },
+  };
+}
+
 function getGenerateLinkFromPayload(payload) {
   if (!ensurePlainObject(payload)) {
     return "";
@@ -746,6 +996,69 @@ async function ensureWorkspaceForUser(token, user) {
   });
 
   return workspaceId;
+}
+
+function normalizeTariffSimulatorLimit(value) {
+  if (value === null || value === undefined || String(value).trim() === "") {
+    return null;
+  }
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    return null;
+  }
+  return parsed;
+}
+
+function getEffectiveUserTariffKey(user) {
+  const normalized = sanitizeAdminTariff(normalizeAdminUserPlan(user));
+  return normalized || "free";
+}
+
+async function resolveUserTariffPlan(token, user) {
+  const tariffKey = getEffectiveUserTariffKey(user);
+  const plans = await listTariffPlans(token);
+  const matched = Array.isArray(plans) ? plans.find((item) => item.key === tariffKey) : null;
+  return matched || getDefaultTariffPlanByKey(tariffKey) || getDefaultTariffPlanByKey("free");
+}
+
+async function enforceUserSimulatorLimit(token, user) {
+  const plan = await resolveUserTariffPlan(token, user);
+  const simulatorLimit = normalizeTariffSimulatorLimit(plan?.simulatorLimit);
+  if (simulatorLimit === null) {
+    return {
+      plan,
+      simulatorLimit: null,
+      simulatorsUsed: null,
+    };
+  }
+
+  const rows = await supabaseRest(
+    `/simulators?select=id&created_by=eq.${encodeURIComponent(user.id)}&status=neq.archived&order=created_at.asc&limit=${simulatorLimit}`,
+    { token }
+  );
+
+  const simulatorsUsed = Array.isArray(rows) ? rows.length : 0;
+  if (simulatorsUsed >= simulatorLimit) {
+    const planTitle = String(plan?.title || "Free").trim();
+    const error = new Error(
+      `Ваш тариф «${planTitle}» позволяет создать не более ${simulatorLimit} тренажеров. Измените тариф или удалите существующий тренажер.`
+    );
+    error.status = 409;
+    error.data = {
+      code: "simulator_limit_reached",
+      tariff: plan?.key || "free",
+      tariffTitle: planTitle,
+      simulatorLimit,
+      simulatorsUsed,
+    };
+    throw error;
+  }
+
+  return {
+    plan,
+    simulatorLimit,
+    simulatorsUsed,
+  };
 }
 
 async function resolveWorkspaceForAssetRead(token, user, requestedWorkspaceId) {
@@ -1427,6 +1740,8 @@ app.post("/api/v1/auth/register", async (req, res) => {
         password,
         data: {
           full_name: fullName,
+          tariff: "free",
+          plan: "free",
         },
       }),
     });
@@ -1527,6 +1842,84 @@ app.get("/api/v1/auth/me", async (req, res) => {
   res.status(200).json({ user: context.user });
 });
 
+app.patch("/api/v1/auth/me", async (req, res) => {
+  const context = await requireUserContext(req, res);
+  if (!context) {
+    return;
+  }
+
+  if (!ensureJsonObject(req.body)) {
+    return res.status(400).json({
+      error: "Request body must be a JSON object.",
+    });
+  }
+
+  const fullNameRaw = Object.prototype.hasOwnProperty.call(req.body, "fullName")
+    ? req.body.fullName
+    : req.body.full_name;
+  const fullName = String(fullNameRaw || "").trim().slice(0, 120);
+
+  if (fullName.length < 2) {
+    return res.status(400).json({
+      error: "Full name must contain at least 2 characters.",
+    });
+  }
+
+  const currentMetadata = ensurePlainObject(context.user?.user_metadata)
+    ? { ...context.user.user_metadata }
+    : {};
+  currentMetadata.full_name = fullName;
+
+  try {
+    const response = await fetch(`${SUPABASE_URL.replace(/\/+$/, "")}/auth/v1/user`, {
+      method: "PUT",
+      headers: {
+        apikey: SUPABASE_PUBLISHABLE_KEY,
+        Authorization: `Bearer ${context.token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        data: currentMetadata,
+      }),
+    });
+
+    const data = await fetchJsonSafe(response);
+
+    if (!response.ok) {
+      const error = new Error(data?.error_description || data?.error || "Unable to update profile.");
+      error.status = response.status;
+      error.data = data;
+      throw error;
+    }
+
+    const user = ensurePlainObject(data?.user) ? data.user : data;
+    return res.status(200).json({ user });
+  } catch (error) {
+    const payload = formatErrorPayload(error, "Unable to update profile.");
+    return res.status(error.status || 500).json(payload);
+  }
+});
+
+app.get("/api/v1/tariffs", async (req, res) => {
+  const context = await requireUserContext(req, res);
+  if (!context) {
+    return;
+  }
+
+  try {
+    const items = await listTariffPlans(context.token);
+    const currentPlan = normalizeAdminUserPlan(context.user);
+
+    return res.status(200).json({
+      items,
+      currentPlan,
+    });
+  } catch (error) {
+    const payload = formatErrorPayload(error, "Unable to load tariff plans.");
+    return res.status(error.status || 500).json(payload);
+  }
+});
+
 app.get("/api/v1/admin/users", async (req, res) => {
   const context = await requireAdminContext(req, res);
   if (!context) {
@@ -1586,6 +1979,66 @@ app.get("/api/v1/admin/users", async (req, res) => {
     });
   } catch (error) {
     const payload = formatErrorPayload(error, "Unable to load admin users.");
+    return res.status(error.status || 500).json(payload);
+  }
+});
+
+app.get("/api/v1/admin/tariffs", async (req, res) => {
+  const context = await requireAdminContext(req, res);
+  if (!context) {
+    return;
+  }
+
+  try {
+    const items = await listTariffPlans(context.token);
+    return res.status(200).json({ items });
+  } catch (error) {
+    const payload = formatErrorPayload(error, "Unable to load tariff plans.");
+    return res.status(error.status || 500).json(payload);
+  }
+});
+
+app.put("/api/v1/admin/tariffs/:key", async (req, res) => {
+  const context = await requireAdminContext(req, res);
+  if (!context) {
+    return;
+  }
+
+  const planKey = sanitizeAdminTariff(req.params?.key);
+  if (!planKey) {
+    return res.status(400).json({
+      error: "Invalid tariff key. Allowed: free, pro, enterprise.",
+    });
+  }
+
+  const sanitized = sanitizeTariffPlanPayload(req.body, planKey);
+  if (!sanitized.value) {
+    return res.status(400).json({
+      error: sanitized.error || "Invalid tariff payload.",
+    });
+  }
+
+  try {
+    const rows = await supabasePublicRest("/tariff_plans?on_conflict=plan_key", {
+      method: "POST",
+      prefer: "resolution=merge-duplicates,return=representation",
+      body: sanitized.value,
+    });
+
+    const row = Array.isArray(rows) ? rows[0] : rows;
+    const item = mapTariffPlanRow(row, getDefaultTariffPlanByKey(planKey));
+
+    return res.status(200).json({
+      ok: true,
+      item,
+    });
+  } catch (error) {
+    if (isTariffTableMissingError(error)) {
+      return res.status(500).json({
+        error: "Tariff storage is not configured. Apply migration 007_create_tariff_plans.sql first.",
+      });
+    }
+    const payload = formatErrorPayload(error, "Unable to save tariff plan.");
     return res.status(error.status || 500).json(payload);
   }
 });
@@ -2339,6 +2792,8 @@ app.post("/api/v1/builder/dialogs", async (req, res) => {
       workspaceId = await ensureWorkspaceForUser(context.token, context.user);
     }
 
+    await enforceUserSimulatorLimit(context.token, context.user);
+
     const insertedSimulators = await supabaseRest("/simulators", {
       method: "POST",
       token: context.token,
@@ -2564,6 +3019,8 @@ app.post("/api/v1/builder/dialogs/:id/duplicate", async (req, res) => {
     if (!membership || (membership.role !== "owner" && membership.role !== "editor")) {
       return res.status(403).json({ error: "No permission to duplicate this dialog." });
     }
+
+    await enforceUserSimulatorLimit(context.token, context.user);
 
     const duplicateName = sanitizeDialogName(`${sourceSimulator.name} (copy)`);
 
@@ -3334,8 +3791,16 @@ app.get("/admin/users", (_req, res) => {
   res.sendFile(path.join(publicDir, "admin", "index.html"));
 });
 
+app.get("/admin/rate", (_req, res) => {
+  res.sendFile(path.join(publicDir, "admin", "rate.html"));
+});
+
 app.get("/assets", (_req, res) => {
   res.sendFile(path.join(publicDir, "assets", "index.html"));
+});
+
+app.get("/cabinet", (_req, res) => {
+  res.sendFile(path.join(publicDir, "cabinet", "index.html"));
 });
 
 const sendCharacterEditPage = (_req, res) => {

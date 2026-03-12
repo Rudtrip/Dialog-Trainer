@@ -511,6 +511,73 @@
           <span class="material-symbols-outlined text-sm">close</span>
         </button>
       </aside>
+
+      <aside
+        id="aiAssistantPanel"
+        class="w-[360px] bg-surface-light border-l border-border-light flex-col z-20 shadow-[-4px_0_24px_rgba(0,0,0,0.02)] h-full hidden"
+      >
+        <div class="flex flex-col h-full">
+          <div class="p-6 border-b border-border-light flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <div class="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                <span class="material-symbols-outlined text-xl">auto_awesome</span>
+              </div>
+              <h3 class="font-bold text-text-primary">AI Scenario Assistant</h3>
+            </div>
+            <button id="aiAssistantCloseBtn" class="text-text-secondary hover:text-text-primary">
+              <span class="material-symbols-outlined">close</span>
+            </button>
+          </div>
+          <div class="flex-1 overflow-y-auto p-6 space-y-6 text-left">
+            <div>
+              <label class="block text-xs font-bold uppercase text-text-secondary tracking-wider mb-3">
+                Опишите сценарий
+              </label>
+              <textarea
+                id="aiScenarioPromptInput"
+                class="w-full h-40 rounded-xl border-gray-200 text-sm focus:border-primary focus:ring-primary bg-gray-50/50 p-4 transition-all"
+                placeholder="Например: Сгенерируй сценарий общения с недовольным клиентом в банке. Нужны конструктивные и конфликтные варианты ответов."
+              ></textarea>
+            </div>
+            <div>
+              <p class="text-[11px] font-bold uppercase text-text-secondary tracking-wider mb-3">Быстрые пресеты</p>
+              <div class="flex flex-wrap gap-2">
+                <button type="button" data-ai-preset="Поддержка клиентов в банке" class="px-3 py-1.5 rounded-full border border-gray-200 text-xs font-medium text-text-secondary hover:border-primary hover:text-primary transition-colors bg-white">
+                  Customer Support
+                </button>
+                <button type="button" data-ai-preset="Продажа и работа с возражениями" class="px-3 py-1.5 rounded-full border border-gray-200 text-xs font-medium text-text-secondary hover:border-primary hover:text-primary transition-colors bg-white">
+                  Sales Negotiation
+                </button>
+                <button type="button" data-ai-preset="Техническая поддержка и диагностика" class="px-3 py-1.5 rounded-full border border-gray-200 text-xs font-medium text-text-secondary hover:border-primary hover:text-primary transition-colors bg-white">
+                  Technical Troubleshooting
+                </button>
+                <button type="button" data-ai-preset="Развитие soft skills и эмпатии" class="px-3 py-1.5 rounded-full border border-gray-200 text-xs font-medium text-text-secondary hover:border-primary hover:text-primary transition-colors bg-white">
+                  Soft Skills
+                </button>
+              </div>
+            </div>
+            <div class="p-4 bg-blue-50 rounded-xl">
+              <div class="flex gap-3">
+                <span class="material-symbols-outlined text-blue-500 text-sm">info</span>
+                <p class="text-[12px] text-blue-700 leading-relaxed">
+                  AI автоматически соберет ветку с репликами персонажа, ответами ученика и финалами.
+                </p>
+              </div>
+            </div>
+            <div id="aiAssistantPlanNote" class="hidden p-3 rounded-lg border text-xs"></div>
+          </div>
+          <div class="p-6 border-t border-border-light bg-gray-50/30">
+            <button
+              id="aiGenerateScenarioBtn"
+              class="w-full bg-primary text-white py-3 rounded-xl font-bold text-sm shadow-md shadow-indigo-100 hover:bg-primary-hover transition-colors flex items-center justify-center gap-2"
+            >
+              <span class="material-symbols-outlined text-lg">bolt</span>
+              <span id="aiGenerateScenarioBtnLabel">Сгенерировать сценарий</span>
+            </button>
+            <p class="text-[10px] text-center text-text-secondary mt-3">AI-контент желательно проверить и доработать вручную.</p>
+          </div>
+        </div>
+      </aside>
     </div>
 
     <div
@@ -718,6 +785,13 @@
           scriptCode: "",
           htmlUrl: "",
         },
+        aiAssistant: {
+          open: false,
+          available: false,
+          planKey: "free",
+          planTitle: "",
+          loading: false,
+        },
       };
 
       const els = {
@@ -788,6 +862,12 @@
         publishHtmlUrlInput: document.getElementById("publishHtmlUrlInput"),
         publishCopyHtmlBtn: document.getElementById("publishCopyHtmlBtn"),
         publishOpenHtmlBtn: document.getElementById("publishOpenHtmlBtn"),
+        aiAssistantPanel: document.getElementById("aiAssistantPanel"),
+        aiAssistantCloseBtn: document.getElementById("aiAssistantCloseBtn"),
+        aiScenarioPromptInput: document.getElementById("aiScenarioPromptInput"),
+        aiGenerateScenarioBtn: document.getElementById("aiGenerateScenarioBtn"),
+        aiGenerateScenarioBtnLabel: document.getElementById("aiGenerateScenarioBtnLabel"),
+        aiAssistantPlanNote: document.getElementById("aiAssistantPlanNote"),
         toastContainer: document.getElementById("toastContainer"),
       };
 
@@ -955,6 +1035,94 @@
 
       function isDialogScene() {
         return normalizeSceneType(app.sceneType) === "dialog";
+      }
+
+      function isAiPlanAllowed(planKey) {
+        const normalized = String(planKey || "").trim().toLowerCase();
+        return (
+          normalized === "pro" ||
+          normalized === "enterprise" ||
+          normalized === "proeducator52" ||
+          normalized === "pro_educator52" ||
+          normalized === "pro-educator52"
+        );
+      }
+
+      async function loadAiAssistantAccess() {
+        try {
+          const payload = await apiRequest("/api/v1/tariffs");
+          const currentPlan = String(payload?.currentPlan || "free").trim().toLowerCase() || "free";
+          const items = Array.isArray(payload?.items) ? payload.items : [];
+          const currentPlanMeta =
+            items.find((item) => String(item?.key || "").trim().toLowerCase() === currentPlan) || null;
+
+          app.aiAssistant.planKey = currentPlan;
+          app.aiAssistant.planTitle = String(currentPlanMeta?.title || currentPlan || "").trim();
+          app.aiAssistant.available = isAiPlanAllowed(currentPlan);
+        } catch (_error) {
+          app.aiAssistant.planKey = "free";
+          app.aiAssistant.planTitle = "";
+          app.aiAssistant.available = false;
+        }
+
+        if (!app.aiAssistant.available) {
+          app.aiAssistant.open = false;
+        }
+      }
+
+      function setAiAssistantOpen(nextOpen) {
+        if (!app.aiAssistant.available) {
+          app.aiAssistant.open = false;
+          return;
+        }
+        app.aiAssistant.open = Boolean(nextOpen);
+      }
+
+      function toggleAiAssistant() {
+        if (!app.aiAssistant.available) {
+          toast("AI-генерация доступна только на тарифах Pro Educator52 и Institution.", "warn");
+          return;
+        }
+        setAiAssistantOpen(!app.aiAssistant.open);
+        renderAll();
+      }
+
+      function renderAiAssistantPanel() {
+        if (!els.aiAssistantPanel) {
+          return;
+        }
+
+        const shouldShow = app.aiAssistant.available && app.aiAssistant.open;
+        els.aiAssistantPanel.classList.toggle("hidden", !shouldShow);
+        els.aiAssistantPanel.classList.toggle("flex", shouldShow);
+
+        if (els.aiAssistantPlanNote) {
+          if (app.aiAssistant.available) {
+            els.aiAssistantPlanNote.classList.remove("hidden");
+            els.aiAssistantPlanNote.className =
+              "p-3 rounded-lg border text-xs border-emerald-200 bg-emerald-50 text-emerald-700";
+            const planLabel = app.aiAssistant.planTitle || app.aiAssistant.planKey || "Pro";
+            els.aiAssistantPlanNote.textContent = `AI-генерация активна на тарифе: ${planLabel}.`;
+          } else {
+            els.aiAssistantPlanNote.classList.remove("hidden");
+            els.aiAssistantPlanNote.className =
+              "p-3 rounded-lg border text-xs border-amber-200 bg-amber-50 text-amber-700";
+            els.aiAssistantPlanNote.textContent =
+              "Функция доступна на тарифах Pro Educator52 и Institution.";
+          }
+        }
+
+        if (els.aiGenerateScenarioBtn) {
+          const disabled = !app.aiAssistant.available || app.aiAssistant.loading;
+          els.aiGenerateScenarioBtn.disabled = disabled;
+          els.aiGenerateScenarioBtn.classList.toggle("opacity-60", disabled);
+          els.aiGenerateScenarioBtn.classList.toggle("cursor-not-allowed", disabled);
+        }
+        if (els.aiGenerateScenarioBtnLabel) {
+          els.aiGenerateScenarioBtnLabel.textContent = app.aiAssistant.loading
+            ? "Генерация..."
+            : "Сгенерировать сценарий";
+        }
       }
 
       function updatePhonePreviewToolVisibility() {
@@ -2002,6 +2170,7 @@
       function renderPreviewPanels() {
         renderPhonePreview();
         renderDialogPreview();
+        renderAiAssistantPanel();
       }
 
       function getToken() {
@@ -2451,6 +2620,18 @@
               </div>
             `;
             nodeEl.appendChild(responseAddWrap);
+          }
+
+          if (node.type === "start" && app.aiAssistant.available) {
+            const aiStartBtn = document.createElement("button");
+            aiStartBtn.type = "button";
+            aiStartBtn.dataset.aiStartBtn = node.id;
+            aiStartBtn.className =
+              "absolute -right-10 top-4 size-8 flex items-center justify-center rounded-lg bg-white border border-border-light text-primary hover:bg-primary/5 hover:border-primary/30 transition-all shadow-sm z-20";
+            aiStartBtn.title = "AI Suggestions";
+            aiStartBtn.innerHTML =
+              '<span class="material-symbols-outlined text-[18px]">auto_awesome</span>';
+            nodeEl.appendChild(aiStartBtn);
           }
 
           els.nodesLayer.appendChild(nodeEl);
@@ -3274,6 +3455,9 @@
 
       function onNodePointerDown(event) {
         if (app.tool !== "select") return;
+        if (event.target.closest("[data-ai-start-btn]")) {
+          return;
+        }
         if (event.target.closest("[data-response-add-btn], [data-response-add-menu], [data-response-add-type]")) {
           return;
         }
@@ -3337,6 +3521,13 @@
       }
 
       function onNodeClick(event) {
+        const aiStartBtn = event.target.closest("[data-ai-start-btn]");
+        if (aiStartBtn) {
+          event.stopPropagation();
+          toggleAiAssistant();
+          return;
+        }
+
         const responseAddBtn = event.target.closest("[data-response-add-btn]");
         if (responseAddBtn) {
           const responseNodeId = responseAddBtn.dataset.responseAddBtn;
@@ -3562,6 +3753,71 @@
           toast(error.message || "Не удалось открыть предпросмотр.", "error");
         }
       }
+
+      function applyAiPreset(presetText) {
+        if (!els.aiScenarioPromptInput) {
+          return;
+        }
+        const text = String(presetText || "").trim();
+        if (!text) {
+          return;
+        }
+        if (els.aiScenarioPromptInput.value.trim()) {
+          els.aiScenarioPromptInput.value = `${els.aiScenarioPromptInput.value.trim()}\n${text}`;
+        } else {
+          els.aiScenarioPromptInput.value = text;
+        }
+        els.aiScenarioPromptInput.focus();
+      }
+
+      async function generateScenarioWithAi() {
+        if (!app.aiAssistant.available) {
+          toast("AI-генерация доступна только на тарифах Pro Educator52 и Institution.", "warn");
+          return;
+        }
+        if (app.aiAssistant.loading) {
+          return;
+        }
+
+        const description = String(els.aiScenarioPromptInput?.value || "").trim();
+        if (description.length < 12) {
+          toast("Опишите сценарий минимум в 12 символах.", "warn");
+          return;
+        }
+
+        app.aiAssistant.loading = true;
+        renderAiAssistantPanel();
+
+        try {
+          const payload = await apiRequest(
+            `/api/v1/builder/dialogs/${encodeURIComponent(app.dialogId)}/ai/generate`,
+            {
+              method: "POST",
+              body: {
+                description,
+                sceneType: app.sceneType,
+              },
+            }
+          );
+
+          app.revision = payload?.revision || app.revision;
+          app.scenarioVersionId = payload?.scenarioVersionId || app.scenarioVersionId;
+          app.graph = ensureGraph(payload?.graph);
+          normalizeMessageNodeDataForEditor();
+          app.selectedNodeId = app.graph.nodes.find((node) => node.type === "start")?.id || null;
+          app.quickAddMenuOpen = false;
+          app.responseAddMenuForId = null;
+          setDirty(false);
+          renderAll();
+          toast("Сценарий сгенерирован.");
+        } catch (error) {
+          toast(error?.message || "Не удалось сгенерировать сценарий.", "error");
+        } finally {
+          app.aiAssistant.loading = false;
+          renderAiAssistantPanel();
+        }
+      }
+
       function registerEvents() {
         els.backToBuilderBtn.addEventListener("click", () => {
           if (app.dirty && !window.confirm("Есть несохраненные изменения. Вернуться в список?")) {
@@ -3632,6 +3888,22 @@
         if (els.publishOpenHtmlBtn) {
           els.publishOpenHtmlBtn.addEventListener("click", openExportHtmlFromModal);
         }
+        if (els.aiAssistantCloseBtn) {
+          els.aiAssistantCloseBtn.addEventListener("click", () => {
+            setAiAssistantOpen(false);
+            renderAll();
+          });
+        }
+        if (els.aiGenerateScenarioBtn) {
+          els.aiGenerateScenarioBtn.addEventListener("click", () => {
+            generateScenarioWithAi();
+          });
+        }
+        document.querySelectorAll("[data-ai-preset]").forEach((presetBtn) => {
+          presetBtn.addEventListener("click", () => {
+            applyAiPreset(presetBtn.getAttribute("data-ai-preset") || "");
+          });
+        });
 
         els.nodesLayer.addEventListener("pointerdown", onNodePointerDown);
         document.addEventListener("pointermove", onNodePointerMove);
@@ -3788,7 +4060,7 @@
         updateToolButtons();
 
         try {
-          await loadAssetCatalog();
+          await Promise.all([loadAssetCatalog(), loadAiAssistantAccess()]);
           await loadEditor();
         } catch (error) {
           toast(error.message || "Не удалось загрузить редактор.", "error");

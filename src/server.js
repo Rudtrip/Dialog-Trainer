@@ -56,6 +56,8 @@ const LOCAL_ASSET_PREFIX = String(process.env.LOCAL_ASSET_PREFIX || "uploads/lib
   .replace(/\\/g, "/")
   .replace(/^\/+|\/+$/g, "") || "uploads/library-assets";
 const TEMP_PREVIEW_TTL_SEC = Number(process.env.TEMP_PREVIEW_TTL_SEC || 1800);
+const OPENAI_API_KEY = readOptionalEnv("OPENAI_API_KEY");
+const OPENAI_MODEL = String(process.env.OPENAI_MODEL || "gpt-4o-mini").trim() || "gpt-4o-mini";
 const ADMIN_USERS_MAX_PAGE_SIZE = 100;
 const ADMIN_TARIFF_VALUES = new Set(["free", "pro", "enterprise"]);
 const DEFAULT_TARIFF_PLANS = [
@@ -1059,6 +1061,759 @@ async function enforceUserSimulatorLimit(token, user) {
     simulatorLimit,
     simulatorsUsed,
   };
+}
+
+function hasAiGenerationAccess(plan) {
+  const key = String(plan?.key || "")
+    .trim()
+    .toLowerCase();
+
+  if (
+    key === "pro" ||
+    key === "enterprise" ||
+    key === "proeducator52" ||
+    key === "pro_educator52" ||
+    key === "pro-educator52"
+  ) {
+    return true;
+  }
+
+  const title = String(plan?.title || "")
+    .trim()
+    .toLowerCase();
+  if (!title) {
+    return false;
+  }
+
+  return title.includes("pro educator52") || title.includes("institution");
+}
+
+function clampInteger(value, min, max, fallback) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+  const normalized = Math.trunc(parsed);
+  return Math.max(min, Math.min(max, normalized));
+}
+
+function sanitizeAiScenarioDescription(value) {
+  const normalized = String(value || "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .slice(0, 3000);
+  return normalized || null;
+}
+
+function parseJsonObjectFromText(rawText) {
+  const text = String(rawText || "").trim();
+  if (!text) {
+    return null;
+  }
+
+  try {
+    const parsedDirect = JSON.parse(text);
+    return ensureJsonObject(parsedDirect) ? parsedDirect : null;
+  } catch (_error) {
+    // fallback below
+  }
+
+  const firstBrace = text.indexOf("{");
+  const lastBrace = text.lastIndexOf("}");
+  if (firstBrace < 0 || lastBrace <= firstBrace) {
+    return null;
+  }
+
+  const candidate = text.slice(firstBrace, lastBrace + 1);
+  try {
+    const parsedCandidate = JSON.parse(candidate);
+    return ensureJsonObject(parsedCandidate) ? parsedCandidate : null;
+  } catch (_error) {
+    return null;
+  }
+}
+
+function normalizeAiEmotion(value) {
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase();
+  if (normalized === "happy") return "happy";
+  if (normalized === "concerned") return "concerned";
+  if (normalized === "angry") return "angry";
+  return "neutral";
+}
+
+function normalizeAiResponseFeedback(scoreDelta) {
+  if (scoreDelta > 0) {
+    return "positive";
+  }
+  if (scoreDelta < 0) {
+    return "negative";
+  }
+  return "neutral";
+}
+
+function normalizeAiEndingTypeByScore(scoreDelta) {
+  if (scoreDelta > 0) {
+    return "success";
+  }
+  if (scoreDelta < 0) {
+    return "fail";
+  }
+  return "neutral";
+}
+
+function normalizeAiRouteKey(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 40);
+}
+
+function normalizeAiScenarioBlueprint(rawBlueprint) {
+  const blueprint = ensureJsonObject(rawBlueprint) ? rawBlueprint : {};
+  const speakerName = String(blueprint.speakerName || "Персонаж")
+    .trim()
+    .slice(0, 80) || "Персонаж";
+
+  const inputMessages = Array.isArray(blueprint.messages) ? blueprint.messages.slice(0, 8) : [];
+  const usedMessageIds = new Set();
+  const resolveMessageId = (rawId, fallbackIndex) => {
+    const fallback = `message_${fallbackIndex}`;
+    const base = normalizeAiRouteKey(rawId) || fallback;
+    let candidate = base;
+    let suffix = 2;
+    while (usedMessageIds.has(candidate)) {
+      const nextCandidate = `${base}_${suffix++}`;
+      candidate = normalizeAiRouteKey(nextCandidate).slice(0, 40) || fallback;
+    }
+    usedMessageIds.add(candidate);
+    return candidate;
+  };
+
+  const messageDrafts = inputMessages
+    .map((message, messageIndex) => {
+      if (!ensureJsonObject(message)) {
+        return null;
+      }
+
+      const text = String(message.text || "")
+        .trim()
+        .slice(0, 4000);
+      if (!text) {
+        return null;
+      }
+
+      return {
+        id: resolveMessageId(message.id, messageIndex + 1),
+        text,
+        emotionState: normalizeAiEmotion(message.emotionState),
+        inputResponses: Array.isArray(message.responses) ? message.responses.slice(0, 3) : [],
+      };
+    })
+    .filter(Boolean);
+
+  const messages = [];
+  if (messageDrafts.length === 0) {
+    messageDrafts.push({
+      id: "message_1",
+      text: "Добрый день. Опишите, пожалуйста, вашу ситуацию.",
+      emotionState: "neutral",
+      inputResponses: [
+        {
+          text: "Спокойно объяснить детали проблемы.",
+          scoreDelta: 5,
+          nextType: "ending",
+          nextRef: "success",
+        },
+        {
+          text: "Проигнорировать вопрос и сменить тему.",
+          scoreDelta: -3,
+          nextType: "ending",
+          nextRef: "fail",
+        },
+      ],
+    });
+    usedMessageIds.add("message_1");
+  }
+
+  const messageIdSet = new Set(messageDrafts.map((item) => item.id));
+  const endingTypes = new Set(["success", "neutral", "fail"]);
+
+  messageDrafts.forEach((message, messageIndex) => {
+    const inputResponses = Array.isArray(message.inputResponses)
+      ? message.inputResponses.slice(0, 3)
+      : [];
+
+    const responses = inputResponses
+      .map((response, responseIndex) => {
+        if (!ensureJsonObject(response)) {
+          return null;
+        }
+        const responseText = String(response.text || "")
+          .trim()
+          .slice(0, 4000);
+        if (!responseText) {
+          return null;
+        }
+        const scoreDelta = clampInteger(response.scoreDelta, -1000, 1000, 0);
+        const nextType = String(response.nextType || "")
+          .trim()
+          .toLowerCase();
+        const nextRef = String(
+          response.nextRef ?? response.nextMessageId ?? response.nextMessage ?? response.endingType ?? ""
+        )
+          .trim()
+          .toLowerCase();
+
+        let nextMessageId = null;
+        let endingType = null;
+        if (nextType === "message") {
+          const normalizedRef = normalizeAiRouteKey(nextRef);
+          if (normalizedRef && normalizedRef !== message.id && messageIdSet.has(normalizedRef)) {
+            nextMessageId = normalizedRef;
+          }
+        } else if (nextType === "ending") {
+          if (endingTypes.has(nextRef)) {
+            endingType = nextRef;
+          }
+        } else {
+          // Backward compatibility for older prompt outputs.
+          const normalizedRef = normalizeAiRouteKey(nextRef);
+          if (endingTypes.has(nextRef)) {
+            endingType = nextRef;
+          } else if (normalizedRef && normalizedRef !== message.id && messageIdSet.has(normalizedRef)) {
+            nextMessageId = normalizedRef;
+          }
+        }
+
+        return {
+          id: `response_${messageIndex + 1}_${responseIndex + 1}`,
+          text: responseText,
+          scoreDelta,
+          feedbackType: normalizeAiResponseFeedback(scoreDelta),
+          nextMessageId,
+          endingType,
+        };
+      })
+      .filter(Boolean);
+
+    if (responses.length < 2) {
+      responses.push(
+        {
+          id: `response_${messageIndex + 1}_fallback_1`,
+          text: "Продолжить диалог в конструктивном тоне.",
+          scoreDelta: 5,
+          feedbackType: "positive",
+          nextMessageId: null,
+          endingType: null,
+        },
+        {
+          id: `response_${messageIndex + 1}_fallback_2`,
+          text: "Ответить резко и оборвать диалог.",
+          scoreDelta: -5,
+          feedbackType: "negative",
+          nextMessageId: null,
+          endingType: null,
+        }
+      );
+    }
+
+    const sequentialFallbackId = messageDrafts[messageIndex + 1]?.id || null;
+    responses.slice(0, 3).forEach((response) => {
+      if (!response.nextMessageId && !response.endingType) {
+        if (sequentialFallbackId) {
+          response.nextMessageId = sequentialFallbackId;
+        } else {
+          response.endingType = normalizeAiEndingTypeByScore(response.scoreDelta);
+        }
+      }
+    });
+
+    messages.push({
+      id: message.id,
+      text: message.text,
+      emotionState: message.emotionState,
+      responses: responses.slice(0, 3),
+    });
+  });
+
+  // Enforce visible branching on the first NPC step if model merged all options into one path.
+  if (messages.length > 2 && Array.isArray(messages[0]?.responses) && messages[0].responses.length > 1) {
+    const firstResponses = messages[0].responses;
+    const currentTargets = new Set(firstResponses.map((item) => item.nextMessageId).filter(Boolean));
+    if (currentTargets.size <= 1) {
+      const availableTargets = messages.slice(1).map((item) => item.id);
+      firstResponses.forEach((response, index) => {
+        const branchTarget = availableTargets[index] || availableTargets[availableTargets.length - 1] || null;
+        if (branchTarget && branchTarget !== messages[0].id) {
+          response.nextMessageId = branchTarget;
+          response.endingType = null;
+        }
+      });
+    }
+  }
+
+  const endingsRaw = ensureJsonObject(blueprint.endings) ? blueprint.endings : {};
+  const normalizeEnding = (value, fallbackTitle, fallbackDescription) => {
+    const item = ensureJsonObject(value) ? value : {};
+    return {
+      title:
+        String(item.title || "")
+          .trim()
+          .slice(0, 120) || fallbackTitle,
+      description:
+        String(item.description || "")
+          .trim()
+          .slice(0, 1200) || fallbackDescription,
+    };
+  };
+
+  const endings = {
+    success: normalizeEnding(
+      endingsRaw.success,
+      "Успешное завершение",
+      "Пользователь выбрал конструктивные ответы и успешно завершил сценарий."
+    ),
+    neutral: normalizeEnding(
+      endingsRaw.neutral,
+      "Нейтральное завершение",
+      "Сценарий завершён без выраженного успеха или провала."
+    ),
+    fail: normalizeEnding(
+      endingsRaw.fail,
+      "Провал",
+      "Сценарий завершён с ошибками в коммуникации."
+    ),
+  };
+
+  return {
+    speakerName,
+    messages,
+    endings,
+  };
+}
+
+function buildEditorGraphFromAiBlueprint(blueprint) {
+  const normalized = normalizeAiScenarioBlueprint(blueprint);
+  const startNode = {
+    id: "node_start",
+    type: "start",
+    position: { x: 620, y: 80 },
+    data: {
+      title: "Инициализация сценария",
+      passScore: null,
+      maxAttempts: null,
+    },
+  };
+
+  const nodes = [startNode];
+  const edges = [];
+  const messageNodeIdByKey = new Map();
+
+  const messageX = 640;
+  const firstMessageY = 240;
+  const messageGapY = 360;
+  const responseYShift = 170;
+  const responseGapX = 290;
+  const messagePositions = new Map();
+
+  const depthByMessage = new Map();
+  const firstMessageKey = normalized.messages[0]?.id || null;
+  if (firstMessageKey) {
+    depthByMessage.set(firstMessageKey, 0);
+    const queue = [firstMessageKey];
+    let guard = 0;
+    while (queue.length > 0 && guard < 500) {
+      guard += 1;
+      const currentKey = queue.shift();
+      const currentDepth = Number(depthByMessage.get(currentKey));
+      const currentMessage = normalized.messages.find((item) => item.id === currentKey);
+      if (!currentMessage) {
+        continue;
+      }
+      const responses = Array.isArray(currentMessage.responses) ? currentMessage.responses : [];
+      responses.forEach((response) => {
+        const nextKey = String(response?.nextMessageId || "").trim();
+        if (!nextKey) {
+          return;
+        }
+        const knownDepth = depthByMessage.get(nextKey);
+        const candidateDepth = currentDepth + 1;
+        if (!Number.isFinite(Number(knownDepth)) || candidateDepth < Number(knownDepth)) {
+          depthByMessage.set(nextKey, candidateDepth);
+          queue.push(nextKey);
+        }
+      });
+    }
+  }
+
+  const groupsByDepth = new Map();
+  normalized.messages.forEach((message, messageIndex) => {
+    const fallbackDepth = messageIndex;
+    const depth = Number.isFinite(Number(depthByMessage.get(message.id)))
+      ? Number(depthByMessage.get(message.id))
+      : fallbackDepth;
+    const list = groupsByDepth.get(depth) || [];
+    list.push(message.id);
+    groupsByDepth.set(depth, list);
+  });
+
+  Array.from(groupsByDepth.entries())
+    .sort((a, b) => a[0] - b[0])
+    .forEach(([depth, messageKeys]) => {
+      const startX = messageX - ((messageKeys.length - 1) * responseGapX) / 2;
+      messageKeys.forEach((messageKey, index) => {
+        messagePositions.set(messageKey, {
+          x: Math.round(startX + index * responseGapX),
+          y: firstMessageY + depth * messageGapY,
+        });
+      });
+    });
+
+  normalized.messages.forEach((message, messageIndex) => {
+    const messageId = `node_message_ai_${normalizeAiRouteKey(message.id || messageIndex + 1) || messageIndex + 1}`;
+    messageNodeIdByKey.set(message.id, messageId);
+    const position = messagePositions.get(message.id) || {
+      x: messageX,
+      y: firstMessageY + messageIndex * messageGapY,
+    };
+    nodes.push({
+      id: messageId,
+      type: "message",
+      position,
+      data: {
+        speakerType: "npc",
+        speakerName: normalized.speakerName,
+        text: message.text,
+        characterAssetId: null,
+        backgroundAssetId: null,
+        emotionState: normalizeAiEmotion(message.emotionState),
+        mediaRef: null,
+      },
+    });
+  });
+
+  if (firstMessageKey && messageNodeIdByKey.has(firstMessageKey)) {
+    edges.push({
+      id: "edge_start_to_first_message",
+      source: startNode.id,
+      target: messageNodeIdByKey.get(firstMessageKey),
+    });
+  }
+
+  const messageMaxY = Array.from(messagePositions.values()).reduce(
+    (maxValue, position) => Math.max(maxValue, Number(position?.y) || 0),
+    firstMessageY
+  );
+  const endingY = messageMaxY + 360;
+  const endingNodes = {
+    success: {
+      id: "node_end_success_ai",
+      type: "end",
+      position: { x: messageX - 340, y: endingY },
+      data: {
+        endingType: "success",
+        title: normalized.endings.success.title,
+        description: normalized.endings.success.description,
+      },
+    },
+    neutral: {
+      id: "node_end_neutral_ai",
+      type: "end",
+      position: { x: messageX, y: endingY + 20 },
+      data: {
+        endingType: "neutral",
+        title: normalized.endings.neutral.title,
+        description: normalized.endings.neutral.description,
+      },
+    },
+    fail: {
+      id: "node_end_fail_ai",
+      type: "end",
+      position: { x: messageX + 340, y: endingY },
+      data: {
+        endingType: "fail",
+        title: normalized.endings.fail.title,
+        description: normalized.endings.fail.description,
+      },
+    },
+  };
+  nodes.push(endingNodes.success, endingNodes.neutral, endingNodes.fail);
+
+  normalized.messages.forEach((message, messageIndex) => {
+    const sourceMessageId = messageNodeIdByKey.get(message.id);
+    if (!sourceMessageId) {
+      return;
+    }
+    const sourcePosition = messagePositions.get(message.id) || {
+      x: messageX,
+      y: firstMessageY + messageIndex * messageGapY,
+    };
+    const responses = Array.isArray(message.responses) ? message.responses : [];
+    const responseStartX = sourcePosition.x - ((responses.length - 1) * responseGapX) / 2;
+
+    responses.forEach((response, responseIndex) => {
+      const responseId = `node_response_ai_${messageIndex + 1}_${responseIndex + 1}`;
+      const scoreDelta = clampInteger(response.scoreDelta, -1000, 1000, 0);
+      nodes.push({
+        id: responseId,
+        type: "response",
+        position: {
+          x: Math.round(responseStartX + responseIndex * responseGapX),
+          y: sourcePosition.y + responseYShift,
+        },
+        data: {
+          responseText: String(response.text || "").slice(0, 4000),
+          scoreDelta,
+          feedbackType: normalizeAiResponseFeedback(scoreDelta),
+          hintEnabled: false,
+          hintText: "",
+          nextStepRef: null,
+        },
+      });
+
+      edges.push({
+        id: `edge_message_${messageIndex + 1}_response_${responseIndex + 1}`,
+        source: sourceMessageId,
+        target: responseId,
+      });
+
+      const routeNextMessageKey = String(response.nextMessageId || "").trim();
+      const routeEndingType = String(response.endingType || "")
+        .trim()
+        .toLowerCase();
+      const routedMessageNodeId = routeNextMessageKey
+        ? messageNodeIdByKey.get(routeNextMessageKey) || null
+        : null;
+
+      if (routedMessageNodeId && routedMessageNodeId !== sourceMessageId) {
+        edges.push({
+          id: `edge_response_${messageIndex + 1}_${responseIndex + 1}_to_message_${normalizeAiRouteKey(routeNextMessageKey) || (messageIndex + 2)}`,
+          source: responseId,
+          target: routedMessageNodeId,
+        });
+      } else {
+        const endingType =
+          routeEndingType === "success" || routeEndingType === "neutral" || routeEndingType === "fail"
+            ? routeEndingType
+            : normalizeAiEndingTypeByScore(scoreDelta);
+        const endingNode = endingNodes[endingType] || endingNodes.neutral;
+        edges.push({
+          id: `edge_response_${messageIndex + 1}_${responseIndex + 1}_to_end_${endingType}`,
+          source: responseId,
+          target: endingNode.id,
+        });
+      }
+    });
+  });
+
+  return sanitizeEditorGraph({
+    version: 1,
+    viewport: { zoom: 100, x: 0, y: 0 },
+    nodes,
+    edges,
+  });
+}
+
+async function requestAiScenarioBlueprint({ description, dialogName, sceneType }) {
+  if (!OPENAI_API_KEY) {
+    const error = new Error("AI generation is not configured. Missing OPENAI_API_KEY.");
+    error.status = 500;
+    throw error;
+  }
+
+  const systemPrompt = [
+    "You are an expert instructional dialogue designer for a branching simulator builder.",
+    "Create a practical training scenario with NPC messages and learner responses.",
+    "Output MUST be valid JSON according to the provided schema.",
+    "Write all text in Russian.",
+    "Keep tone professional and safe for workplace training.",
+    "Create true branching: each learner response must explicitly define routing via nextType and nextRef.",
+    "Use nextType='message' with nextRef=<message.id> for branch continuation, or nextType='ending' with nextRef in [success, neutral, fail].",
+    "The first NPC message must have 2-3 responses that lead to different next messages (no single shared follow-up for all options).",
+    "Each message should include 2-3 response options with scoreDelta from -20 to 20.",
+    "Do not include markdown or extra commentary.",
+  ].join(" ");
+
+  const userPrompt = [
+    `Название тренажера: ${String(dialogName || "Сценарий").trim() || "Сценарий"}.`,
+    `Тип сцены: ${String(sceneType || "messenger").trim().toLowerCase() === "dialog" ? "dialog" : "messenger"}.`,
+    `Описание сценария: ${description}.`,
+  ].join("\n");
+
+  const schema = {
+    type: "object",
+    additionalProperties: false,
+    required: ["speakerName", "messages", "endings"],
+    properties: {
+      speakerName: {
+        type: "string",
+        minLength: 2,
+        maxLength: 80,
+      },
+      messages: {
+        type: "array",
+        minItems: 3,
+        maxItems: 8,
+        items: {
+          type: "object",
+          additionalProperties: false,
+          required: ["id", "text", "emotionState", "responses"],
+          properties: {
+            id: {
+              type: "string",
+              pattern: "^[a-z0-9_-]{2,40}$",
+            },
+            text: {
+              type: "string",
+              minLength: 12,
+              maxLength: 700,
+            },
+            emotionState: {
+              type: "string",
+              enum: ["neutral", "happy", "concerned", "angry"],
+            },
+            responses: {
+              type: "array",
+              minItems: 2,
+              maxItems: 3,
+              items: {
+                type: "object",
+                additionalProperties: false,
+                required: ["text", "scoreDelta", "nextType", "nextRef"],
+                properties: {
+                  text: {
+                    type: "string",
+                    minLength: 6,
+                    maxLength: 280,
+                  },
+                  scoreDelta: {
+                    type: "integer",
+                    minimum: -20,
+                    maximum: 20,
+                  },
+                  nextType: {
+                    type: "string",
+                    enum: ["message", "ending"],
+                  },
+                  nextRef: {
+                    type: "string",
+                    minLength: 2,
+                    maxLength: 40,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      endings: {
+        type: "object",
+        additionalProperties: false,
+        required: ["success", "neutral", "fail"],
+        properties: {
+          success: {
+            type: "object",
+            additionalProperties: false,
+            required: ["title", "description"],
+            properties: {
+              title: { type: "string", minLength: 2, maxLength: 120 },
+              description: { type: "string", minLength: 8, maxLength: 500 },
+            },
+          },
+          neutral: {
+            type: "object",
+            additionalProperties: false,
+            required: ["title", "description"],
+            properties: {
+              title: { type: "string", minLength: 2, maxLength: 120 },
+              description: { type: "string", minLength: 8, maxLength: 500 },
+            },
+          },
+          fail: {
+            type: "object",
+            additionalProperties: false,
+            required: ["title", "description"],
+            properties: {
+              title: { type: "string", minLength: 2, maxLength: 120 },
+              description: { type: "string", minLength: 8, maxLength: 500 },
+            },
+          },
+        },
+      },
+    },
+  };
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 90000);
+
+  try {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: OPENAI_MODEL,
+        messages: [
+          {
+            role: "system",
+            content: systemPrompt,
+          },
+          {
+            role: "user",
+            content: userPrompt,
+          },
+        ],
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: "dialog_trainer_scenario_blueprint",
+            schema,
+            strict: true,
+          },
+        },
+      }),
+      signal: controller.signal,
+    });
+
+    const payload = await fetchJsonSafe(response);
+    if (!response.ok) {
+      const error = new Error(
+        payload?.error?.message ||
+          payload?.error?.code ||
+          payload?.message ||
+          "OpenAI request failed."
+      );
+      error.status = response.status;
+      error.data = payload;
+      throw error;
+    }
+
+    const content = String(payload?.choices?.[0]?.message?.content || "").trim();
+    const parsed = parseJsonObjectFromText(content);
+    if (!parsed) {
+      const error = new Error("OpenAI returned invalid scenario JSON.");
+      error.status = 502;
+      error.data = payload;
+      throw error;
+    }
+
+    return normalizeAiScenarioBlueprint(parsed);
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      const timeoutError = new Error("AI generation timed out. Please try again.");
+      timeoutError.status = 504;
+      throw timeoutError;
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function resolveWorkspaceForAssetRead(token, user, requestedWorkspaceId) {
@@ -2992,6 +3747,111 @@ app.put("/api/v1/builder/dialogs/:id/editor", async (req, res) => {
     });
   } catch (error) {
     const payload = formatErrorPayload(error, "Unable to save editor graph.");
+    return res.status(error.status || 500).json(payload);
+  }
+});
+
+app.post("/api/v1/builder/dialogs/:id/ai/generate", async (req, res) => {
+  const context = await requireUserContext(req, res);
+  if (!context) {
+    return;
+  }
+
+  if (!ensureJsonObject(req.body)) {
+    return res.status(400).json({ error: "Request body must be a JSON object." });
+  }
+
+  const simulatorId = String(req.params.id || "").trim();
+  const description = sanitizeAiScenarioDescription(req.body?.description);
+  if (!description || description.length < 12) {
+    return res.status(400).json({
+      error: "Опишите сценарий минимум в 12 символах.",
+    });
+  }
+
+  try {
+    const simulator = await getSimulatorById(context.token, simulatorId);
+    if (!simulator) {
+      return res.status(404).json({ error: "Dialog not found." });
+    }
+
+    const membership = await getMembershipForWorkspace(
+      context.token,
+      context.user.id,
+      simulator.workspace_id
+    );
+
+    if (!membership || (membership.role !== "owner" && membership.role !== "editor")) {
+      return res.status(403).json({ error: "No permission to edit this dialog." });
+    }
+
+    const plan = await resolveUserTariffPlan(context.token, context.user);
+    if (!hasAiGenerationAccess(plan)) {
+      return res.status(403).json({
+        error: "ИИ-генерация доступна только на тарифах Pro Educator52 и Institution.",
+        code: "ai_tariff_required",
+        tariff: plan?.key || "free",
+      });
+    }
+
+    let scenarioVersion = await getLatestScenarioVersion(context.token, simulator.id);
+    if (!scenarioVersion) {
+      scenarioVersion = await createInitialScenarioVersion(context.token, simulator, context.user.id);
+    }
+
+    const currentSceneType = sanitizeSceneType(
+      req.body?.sceneType ??
+        scenarioVersion?.metadata_json?.scene_type ??
+        "messenger"
+    );
+
+    const blueprint = await requestAiScenarioBlueprint({
+      description,
+      dialogName: simulator.name,
+      sceneType: currentSceneType,
+    });
+    const graph = buildEditorGraphFromAiBlueprint(blueprint);
+
+    const metadata = ensureJsonObject(scenarioVersion.metadata_json)
+      ? { ...scenarioVersion.metadata_json }
+      : {};
+    metadata.editor_graph = graph;
+    metadata.scene_type = currentSceneType;
+    metadata.ai_generation = {
+      generated_at: new Date().toISOString(),
+      source: "openai",
+      model: OPENAI_MODEL,
+      prompt: description,
+    };
+
+    const updatedRows = await supabaseRest(
+      `/scenario_versions?id=eq.${encodeURIComponent(scenarioVersion.id)}`,
+      {
+        method: "PATCH",
+        token: context.token,
+        prefer: "return=representation",
+        body: {
+          metadata_json: metadata,
+          start_step_key: "node_start",
+        },
+      }
+    );
+
+    const updated = updatedRows[0] || scenarioVersion;
+
+    return res.status(200).json({
+      ok: true,
+      dialogId: simulator.id,
+      scenarioVersionId: updated.id,
+      revision: updated.updated_at || null,
+      graph,
+      tariff: {
+        key: plan?.key || null,
+        title: plan?.title || null,
+      },
+    });
+  } catch (error) {
+    const payload = formatErrorPayload(error, "Unable to generate scenario with AI.");
     return res.status(error.status || 500).json(payload);
   }
 });

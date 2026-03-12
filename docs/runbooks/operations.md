@@ -1,64 +1,91 @@
-# Runbook: Эксплуатация и поддержка
+# Runbook: Operations
 
 ## 1. Ежедневный чек-лист
-- Проверить доступность `GET /healthz`
-- Проверить ошибки в `pm2 logs dialog-trainer`
-- Проверить `nginx error.log`
-- Проверить свободное место на диске
-- Проверить, что `preview` и `assets` открываются
+
+- `GET /healthz` возвращает `200`.
+- `pm2 status` -> `dialog-trainer` в `online`.
+- нет аномалий в `pm2 logs dialog-trainer`.
+- нет 5xx-всплесков в `nginx access/error logs`.
+- достаточно диска и RAM.
+- открываются ключевые страницы:
+  - `/login`
+  - `/builder`
+  - `/assets`
+  - `/admin/users` (для админов)
+  - `/cabinet`
 
 ## 2. Еженедельный чек-лист
-- Обновить ОС-патчи (с окном работ)
-- Проверить срок действия SSL
-- Проверить, что автозапуск PM2 не сломан после reboot
-- Выгрузить список открытых инцидентов и закрыть с RCA
 
-## 3. Что мониторить обязательно
-- Uptime `/healthz`
-- 5xx на Nginx
-- CPU/RAM/Disk
-- всплески ошибок авторизации (Supabase)
-- ошибки загрузки ассетов (S3/local)
+- обновить системные security-патчи;
+- проверить срок SSL сертификата;
+- проверить автозапуск PM2 после reboot;
+- проверить, что backup/PITR Supabase активны;
+- проверить доступность AI-генерации (только Pro/Institution).
 
-## 4. Бэкапы
-- Supabase: убедиться, что backup/PITR активны
-- Конфиги сервера: бэкап `/var/www/dialog-trainer/shared/.env.local` в защищенное хранилище
-- Если используется local asset storage:
-  - бэкап директории `public/uploads/library-assets`
+## 3. Мониторинг
 
-## 5. Быстрые команды диагностики
+Минимум:
+
+- uptime `/healthz`;
+- HTTP 5xx;
+- CPU/RAM/disk;
+- ошибки Auth/Supabase;
+- ошибки загрузки ассетов;
+- ошибки OpenAI (`insufficient_quota`, `model_not_found`).
+
+## 4. Диагностика
+
 ```bash
 pm2 status
 pm2 logs dialog-trainer --lines 200
-curl -i http://127.0.0.1:3000/healthz
+curl -i http://127.0.0.1:3010/healthz
+curl -i https://www.rudtrip.ru/healthz
+sudo systemctl status nginx
+sudo tail -n 200 /var/log/nginx/error.log
+sudo tail -n 200 /var/log/nginx/access.log
 df -h
 free -m
-sudo systemctl status nginx
 ```
 
-## 6. Типовые инциденты
+## 5. Частые инциденты
 
-### 6.1 `Supabase login failed`
+### 5.1 Ошибки авторизации пользователей
+
 Проверить:
-- `SUPABASE_URL`
-- `SUPABASE_PUBLISHABLE_KEY`
-- сетевой доступ сервера к `<project>.supabase.co`
 
-### 6.2 `S3 is not configured. Missing bucket or credentials`
-Это ожидаемый fallback-сценарий. Система сохраняет файлы в локальный storage.
+- `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`;
+- redirect URLs в Supabase Auth;
+- доступность `https://<project-ref>.supabase.co`.
+
+### 5.2 Админ-функции не работают
+
+Ошибка вида: `Missing SUPABASE_SERVICE_ROLE_KEY`.
+
 Проверить:
-- доступность записи в `public/uploads/library-assets`
-- свободное место на диске
 
-### 6.3 preview link не работает
-Причина: token истек (`TEMP_PREVIEW_TTL_SEC`) или сервер перезапускался.
-Решение: сгенерировать новую preview-ссылку из builder.
+- переменную `SUPABASE_SERVICE_ROLE_KEY` в production env;
+- что PM2 процесс перезапущен после изменения env.
 
-## 7. Коммуникация по инциденту
-Минимум в отчете:
-- что случилось
-- когда началось/закончилось
-- impact на пользователей
-- root cause
-- какие меры приняты
-- какие prevention-задачи заведены
+### 5.3 AI не генерирует сценарий
+
+Проверить:
+
+- `OPENAI_API_KEY` задан;
+- `OPENAI_MODEL` доступна аккаунту;
+- в логах нет `insufficient_quota`.
+
+### 5.4 Ошибки по ассетам
+
+Если S3 не настроен, используется локальный fallback (`public/uploads/library-assets`).
+Проверить права на директорию и свободное место.
+
+## 6. Релиз и коммуникация
+
+Минимум для отчета по инциденту:
+
+- время начала и окончания;
+- impact;
+- корневая причина;
+- что исправлено;
+- какие prevention-задачи заведены.
+

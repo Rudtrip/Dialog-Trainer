@@ -1,83 +1,36 @@
-﻿# Runbook: Deploy на VPS (Ubuntu + Nginx + PM2)
+# Runbook: Production Deploy on VPS (Ubuntu + Nginx + PM2)
 
-Документ описывает production-выкладку `Dialog-Trainer` на домен (`rudtrip.ru`) и типовой процесс обновлений.
+## 1. Контур
 
-## 1. Цель и контур
-
-- Приложение: `Dialog-Trainer`
 - Репозиторий: `git@github.com:Rudtrip/Dialog-Trainer.git`
-- Домены:
-  - `rudtrip.ru`
-  - `www.rudtrip.ru`
+- Домен: `rudtrip.ru`, `www.rudtrip.ru`
 - Reverse proxy: `Nginx`
-- Process manager: `PM2`
-- Backend порт: `3010` (локально на сервере)
+- Процесс приложения: `PM2` (`dialog-trainer`)
+- Backend порт: `3010`
+- Рабочая папка: `/var/www/dialog-trainer/current`
+- Общие секреты: `/var/www/dialog-trainer/shared/.env.local`
 
-## 2. Требования
+## 2. One-time setup
 
-- Ubuntu 22.04+
-- Root или sudo-доступ
-- Открытые порты `80/tcp` и `443/tcp`
-- Домен уже направлен на IP сервера
-- Установлен SSH-доступ к GitHub (deploy key или личный ключ)
-
-## 3. DNS перед деплоем
-
-Проверьте, что обе записи указывают на один и тот же IP сервера:
-- `A @ -> <SERVER_IPV4>`
-- `A www -> <SERVER_IPV4>`
-
-Проверка:
-
-```bash
-nslookup rudtrip.ru 1.1.1.1
-nslookup www.rudtrip.ru 1.1.1.1
-```
-
-Важно: если DNS показывает старый IP, выпуск SSL может падать до полной пропагации.
-
-## 4. Установка пакетов
+### 2.1 Пакеты
 
 ```bash
 sudo apt update
 sudo apt install -y git curl nginx certbot python3-certbot-nginx
-
-# Node.js 18+ (через NodeSource)
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt install -y nodejs
-
-# PM2
 sudo npm i -g pm2
 ```
 
-Проверка:
-
-```bash
-node -v
-npm -v
-nginx -v
-pm2 -v
-```
-
-## 5. Структура директорий
-
-```text
-/var/www/dialog-trainer/
-  current/           # рабочая версия приложения
-  shared/
-    .env.local       # production env
-    logs/
-```
-
-Создание:
+### 2.2 Директории
 
 ```bash
 sudo mkdir -p /var/www/dialog-trainer/current
-sudo mkdir -p /var/www/dialog-trainer/shared/logs
+sudo mkdir -p /var/www/dialog-trainer/shared
 sudo chown -R $USER:$USER /var/www/dialog-trainer
 ```
 
-## 6. Клонирование и установка приложения
+### 2.3 Клонирование
 
 ```bash
 cd /var/www/dialog-trainer
@@ -86,37 +39,25 @@ cd current
 npm ci
 ```
 
-## 7. Настройка `.env.local`
-
-Вариант 1 (создать на сервере):
+### 2.4 Production env
 
 ```bash
 cp .env.example /var/www/dialog-trainer/shared/.env.local
 nano /var/www/dialog-trainer/shared/.env.local
-```
-
-Вариант 2 (скопировать с локальной машины):
-
-```powershell
-scp "C:\github\Dialog-Trainer\.env.local" root@<SERVER_IP>:/var/www/dialog-trainer/shared/.env.local
-```
-
-Минимум для production:
-
-```env
-PORT=3010
-SUPABASE_URL=https://<project-ref>.supabase.co
-SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
-PLAYER_BASE_URL=https://www.rudtrip.ru
-```
-
-Связать env с текущей версией:
-
-```bash
 ln -sfn /var/www/dialog-trainer/shared/.env.local /var/www/dialog-trainer/current/.env.local
 ```
 
-## 8. Запуск через PM2
+Минимум:
+
+```env
+PORT=3010
+SUPABASE_URL=...
+SUPABASE_PUBLISHABLE_KEY=...
+SUPABASE_SERVICE_ROLE_KEY=...
+PLAYER_BASE_URL=https://www.rudtrip.ru
+```
+
+### 2.5 PM2
 
 ```bash
 cd /var/www/dialog-trainer/current
@@ -128,13 +69,13 @@ pm2 startup
 Проверка:
 
 ```bash
-pm2 status
 curl -i http://127.0.0.1:3010/healthz
+pm2 status
 ```
 
-## 9. Nginx-конфиг
+### 2.6 Nginx
 
-Создайте `/etc/nginx/sites-available/dialog-trainer`:
+`/etc/nginx/sites-available/dialog-trainer`:
 
 ```nginx
 server {
@@ -164,7 +105,7 @@ server {
 }
 ```
 
-Активируйте сайт:
+Активация:
 
 ```bash
 sudo ln -sfn /etc/nginx/sites-available/dialog-trainer /etc/nginx/sites-enabled/dialog-trainer
@@ -173,27 +114,18 @@ sudo nginx -t
 sudo systemctl restart nginx
 ```
 
-## 10. SSL (Let's Encrypt)
+### 2.7 SSL
 
 ```bash
 sudo certbot --nginx -d rudtrip.ru -d www.rudtrip.ru --redirect -m <YOUR_EMAIL> --agree-tos --no-eff-email
 ```
 
-Проверка:
-
-```bash
-curl -I https://rudtrip.ru/healthz
-curl -I https://www.rudtrip.ru/healthz
-```
-
-## 11. Релиз (обновление прода)
+## 3. Стандартный релиз (prod update)
 
 ```bash
 cd /var/www/dialog-trainer/current
-git fetch origin
-git checkout main
 git pull --ff-only origin main
-npm ci
+npm ci --silent
 ln -sfn /var/www/dialog-trainer/shared/.env.local .env.local
 pm2 restart dialog-trainer
 pm2 save
@@ -204,59 +136,49 @@ Smoke-check:
 ```bash
 curl -f http://127.0.0.1:3010/healthz
 curl -f https://www.rudtrip.ru/healthz
+pm2 status
 ```
 
-## 12. Откат
+## 4. Откат
 
 ```bash
 cd /var/www/dialog-trainer/current
 git log --oneline -n 20
 git checkout <PREVIOUS_SHA>
-npm ci
+npm ci --silent
 pm2 restart dialog-trainer
 ```
 
-Если проблема в БД, используйте recovery в Supabase (PITR/snapshot) до перезапуска сервиса.
+После отката обязательно проверить `/healthz`, login и загрузку `/builder`.
 
-## 13. Частые проблемы
+## 5. Частые проблемы
 
-### 13.1 Порт 443 занят (`bind() to 0.0.0.0:443 failed`)
-Проверка:
+### 5.1 `bind() to 0.0.0.0:443 failed`
+
+Порт 443 занят другим сервисом:
 
 ```bash
 ss -ltnp | grep ':443'
 lsof -i :443
 ```
 
-Если порт занят Docker proxy — остановите/перенастройте контейнер, который слушает `443`.
+### 5.2 Nginx: `unknown directive "ln"`
 
-### 13.2 Nginx не стартует с `unknown directive "ln"`
-В конфиг случайно попал текст команды.
-Исправьте файл `/etc/nginx/sites-available/dialog-trainer`, затем:
+В конфиг случайно попала shell-команда. Исправьте файл и перезапустите Nginx.
 
-```bash
-sudo nginx -t
-sudo systemctl restart nginx
-```
+### 5.3 `Admin API is not configured. Missing SUPABASE_SERVICE_ROLE_KEY`
 
-### 13.3 `tlsv1 unrecognized name`
-Обычно это следствие некорректного vhost/certificate mapping.
-Проверьте `server_name`, сертификаты и `nginx -t`.
+- проверьте значение в `/var/www/dialog-trainer/shared/.env.local`;
+- выполните `pm2 restart dialog-trainer`.
 
-### 13.4 Сертификат не выпускается (Certbot unauthorized)
-Проверьте DNS:
+### 5.4 AI generation errors (`insufficient_quota`, `model_not_found`)
+
+- проверьте `OPENAI_API_KEY` и биллинг;
+- проверьте `OPENAI_MODEL` и доступность модели в аккаунте.
+
+## 6. Полезные команды
 
 ```bash
-nslookup rudtrip.ru ns1.reg.ru
-nslookup www.rudtrip.ru ns1.reg.ru
-```
-
-Домены должны указывать на текущий IP сервера.
-
-## 14. Полезные команды эксплуатации
-
-```bash
-pm2 status
 pm2 logs dialog-trainer --lines 200
 sudo systemctl status nginx
 sudo tail -n 200 /var/log/nginx/error.log
@@ -265,10 +187,3 @@ df -h
 free -m
 ```
 
-## 15. Безопасность и эксплуатационные практики
-
-- Не храните `.env.local` в git.
-- Ограничьте вход по SSH (желательно ключи + fail2ban).
-- Регулярно обновляйте ОС и пакеты.
-- Включите мониторинг `/healthz` и алерты по 5xx.
-- Делайте бэкап критичных конфигов и используйте backup/PITR в Supabase.

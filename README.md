@@ -1,108 +1,85 @@
 # Dialog Trainer
 
-Dialog Trainer - это платформа для создания интерактивных диалоговых тренажеров без программирования.  
-Проект объединяет визуальный конструктор сценариев, библиотеку ассетов, предпросмотр в runtime-режиме, публикацию и встраивание в LMS/сайты.
+Платформа для создания, публикации и встраивания интерактивных диалоговых тренажеров без программирования.
 
-## Почему этот проект был реализован
+## Зачем нужен проект
 
-Большинство команд обучения и L&D сталкиваются с одной и той же проблемой:
+Dialog Trainer закрывает типовые проблемы L&D и методических команд:
 
-- сценарии коммуникации сложно быстро прототипировать и согласовывать;
-- ветвления диалогов живут в таблицах и теряют наглядность;
-- публикация в LMS и встраивание в корпоративные порталы требуют ручной технической работы;
-- обратная связь по качеству ответов и итоговому баллу часто не стандартизирована.
+- долгое согласование сценариев в таблицах и документах;
+- слабая визуализация ветвлений и логики ответов;
+- сложный технический путь от идеи до LMS/портала;
+- отсутствие единых правил оценки (PTS, проходной балл, попытки).
 
-Dialog Trainer закрывает эти пробелы: помогает запускать диалоговые симуляции быстрее, управляемее и с прозрачной логикой оценивания.
+Итог: сценарии запускаются быстрее, их проще редактировать и поддерживать, а результаты обучения становятся измеримыми.
 
-## Кому может помочь
+## Кому подходит
 
-- L&D-командам и корпоративным университетам
-- Методистам и instructional designers
-- HR/академиям продаж и клиентского сервиса
-- Командам, создающим soft skills и role-play обучение
-- Владельцам LMS и внутренним платформам обучения
-
-## Что дает бизнесу и команде обучения
-
-- Сокращает время сборки учебного сценария от идеи до публикации
-- Делает логику ветвлений прозрачной для экспертов и согласующих
-- Стандартизирует оценивание через PTS, проходной балл и лимит попыток
-- Упрощает дистрибуцию: публикация, iframe/script-встраивание, runtime по ссылке
-- Снижает зависимость от разработчиков на этапе создания контента
+- корпоративным университетам и L&D-командам;
+- методистам, instructional designers, HR-академиям;
+- командам обучения продажам, сервису, soft skills;
+- владельцам LMS и внутренних обучающих порталов.
 
 ## Ключевые возможности
 
-### 1) Визуальный конструктор сценариев
+### 1) Конструктор сценариев (`/builder`)
 
-- Узлы: `Start`, `Message`, `Response`, `End`
-- Редактирование через canvas и правую панель настроек
-- Валидации графа (в т.ч. только один первый `Message` из `Start`)
-- Подсчет и отображение PTS по ответам
+- граф из нод: `Start`, `Message`, `Response`, `End`;
+- настройка нод в правой панели;
+- валидации структуры графа перед публикацией;
+- preview и publish прямо из редактора;
+- режимы сцены: `messenger` и `dialog`.
 
-### 2) Библиотека ассетов
+### 2) AI-генерация сценариев
 
-- Типы: `character`, `background`
-- Редактор персонажа с эмоциями: `neutral`, `happy`, `concerned`, `angry`
-- Preinstalled + пользовательские ассеты
-- Локальное хранилище по умолчанию, S3 при наличии конфигурации
+- доступна на тарифах `Pro Educator52` и `Institution`;
+- запуск из редактора (кнопка рядом со `Start` + боковая AI-панель);
+- генерация русского контента;
+- поддержка настоящего ветвления: ответы ведут в разные ветки, а не в одно общее сообщение.
 
-### 3) Runtime preview
+### 3) Библиотека ассетов (`/assets`)
 
-- Режим `messenger` (телефонный формат)
-- Режим `dialog` (сценический формат с фоном и персонажем)
-- Временные preview-ссылки `/preview/:token`
-- Учет PTS, проходного балла и количества попыток
+- типы ассетов: `character`, `background`;
+- эмоции персонажа: `neutral`, `happy`, `concerned`, `angry`;
+- preinstalled и пользовательские ассеты;
+- хранение в S3 (если настроено) или локальный fallback.
 
-### 4) Публикация и распространение
+### 4) Runtime и публикация
 
-- Публикация/депубликация сценария
-- Публичный runtime `/p/:publicationKey`
-- Артефакты встраивания:
-  - iframe-код
-  - script-код (`/embed.js`)
-  - html export URL (`/export/:publicationKey.html`)
+- предпросмотр по временной ссылке: `/preview/:token`;
+- публичный рантайм: `/p/:publicationKey`;
+- артефакты встройки:
+  - iframe;
+  - script (`/embed.js`);
+  - HTML export (`/export/:publicationKey.html`).
 
-### 5) Админ-панель
+### 5) Админка и тарифы
 
-- Страница: `/admin/users`
-- Список пользователей платформы
-- Действия:
-  - смена пароля пользователя
-  - смена тарифа
-  - вход под пользователем (impersonate)
+- пользователи: `/admin/users`;
+- тарифы: `/admin/rate`;
+- действия администратора:
+  - смена пароля;
+  - смена тарифа;
+  - вход под пользователем (impersonation).
 
-## Как выглядит рабочий цикл
+### 6) Кабинет пользователя (`/cabinet`)
 
-1. Создать проект и выбрать тип сцены
-2. Собрать логику диалога в визуальном редакторе
-3. Подобрать персонажей/фоны и эмоции
-4. Настроить PTS, проходной балл и попытки
-5. Проверить сценарий через preview
-6. Опубликовать и встроить в LMS/портал
+- профиль;
+- текущий тариф и лимиты;
+- сравнение планов и выбор тарифа.
 
-## Технологический стек
+## Стек
 
-- Backend: `Node.js 18+`, `Express 5`
-- DB/Auth: `Supabase (Postgres + Auth + RLS)`
-- Frontend: статические страницы (`public/*`, Vanilla JS + Tailwind CDN)
-- Медиа:
-  - `S3` (если настроен)
-  - локальный fallback `public/uploads/library-assets`
+- Backend: `Node.js 18+`, `Express 5`;
+- Frontend: статические страницы (`public/*`, vanilla JS + Tailwind CDN);
+- DB/Auth: `Supabase (Postgres, Auth, RLS)`;
+- Media: `S3` или локальное хранилище.
 
 ## Структура проекта
 
 ```text
 Dialog-Trainer/
   public/
-    register/
-    login/
-    builder/
-      editor/
-    assets/
-    preview/
-    admin/
-    preinstalled/
-    uploads/
   src/
     server.js
   supabase/
@@ -114,13 +91,13 @@ Dialog-Trainer/
   README.md
 ```
 
-## Быстрый старт
+## Быстрый старт (локально)
 
 ### Требования
 
-- Node.js `18+`
-- npm `9+`
-- Supabase проект
+- `Node.js 18+`
+- `npm 9+`
+- проект в Supabase
 
 ### Установка
 
@@ -130,7 +107,7 @@ npm install
 Copy-Item .env.example .env.local
 ```
 
-### Минимальная конфигурация `.env.local`
+### Минимальный `.env.local`
 
 ```env
 PORT=3000
@@ -140,213 +117,109 @@ SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 
 ### Запуск
 
-Режим разработки:
-
 ```powershell
 npm run dev
-```
-
-Production-режим локально:
-
-```powershell
-npm start
 ```
 
 Проверка:
 
 - `http://localhost:3000/healthz`
 - `http://localhost:3000/register`
-- `http://localhost:3000/login`
 - `http://localhost:3000/builder`
 - `http://localhost:3000/assets`
 
 ## Переменные окружения
 
-| Переменная | Обязательная | Default | Назначение |
-|---|---|---|---|
-| `PORT` | нет | `3000` | Порт backend |
-| `SUPABASE_URL` | да | - | URL Supabase проекта |
-| `SUPABASE_PUBLISHABLE_KEY` | да | - | Publishable key для REST/Auth |
-| `SUPABASE_SERVICE_ROLE_KEY` | нет* | - | Нужен для admin API и server-side операций bypass RLS |
-| `SUPABASE_ACCESS_TOKEN` | нет | - | Для Supabase CLI (`link`, `db push`) |
-| `ADMIN_EMAILS` | нет | `admin@example.com` | Список админов через запятую |
-| `PREINSTALLED_MANAGER_EMAILS` | нет | `salekh@reezonly.ru` | Кто может создавать/удалять preinstalled ассеты |
-| `PLAYER_BASE_URL` | нет | `https://player.dialog-trainer.local` | Базовый URL export-артефактов |
-| `AWS_REGION` | нет | `us-east-1` | Регион S3 |
-| `S3_BUCKET` | нет | - | Бакет S3 |
-| `AWS_ACCESS_KEY_ID` | нет | - | AWS access key |
-| `AWS_SECRET_ACCESS_KEY` | нет | - | AWS secret key |
-| `ASSET_CHARACTER_MAX_BYTES` | нет | `2097152` | Лимит размера файла character |
-| `ASSET_BACKGROUND_MAX_BYTES` | нет | `1048576` | Лимит размера файла background |
-| `ASSET_SIGNED_URL_TTL_SEC` | нет | `3600` | TTL подписанных URL |
-| `LOCAL_ASSET_PREFIX` | нет | `uploads/library-assets` | Путь локального fallback хранилища |
-| `TEMP_PREVIEW_TTL_SEC` | нет | `1800` | TTL preview-ссылки (сек.) |
+Основные (фактически используемые backend):
 
-\* Для базового входа/конструктора не обязателен, но обязателен для админских функций и части server-side операций.
+- `PORT`
+- `SUPABASE_URL`
+- `SUPABASE_PUBLISHABLE_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY` (обязательно для admin API и части server-side операций)
+- `ADMIN_EMAILS`
+- `PREINSTALLED_MANAGER_EMAILS`
+- `PLAYER_BASE_URL`
+- `TEMP_PREVIEW_TTL_SEC`
+- `OPENAI_API_KEY`
+- `OPENAI_MODEL`
+- `AWS_REGION`, `S3_BUCKET`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
+- `ASSET_CHARACTER_MAX_BYTES`, `ASSET_BACKGROUND_MAX_BYTES`, `ASSET_SIGNED_URL_TTL_SEC`, `LOCAL_ASSET_PREFIX`
+
+Пример и комментарии: [.env.example](/c:/github/Dialog-Trainer/.env.example)
 
 ## Настройка Supabase Auth
 
-В Supabase Dashboard:
+В `Authentication -> URL Configuration`:
 
-1. `Authentication -> URL Configuration`
-   - `Site URL`:
-     - локально: `http://localhost:3000`
-     - прод: `https://www.rudtrip.ru`
-   - `Additional Redirect URLs`:
-     - `http://localhost:3000/*`
-     - `https://www.rudtrip.ru/*`
-     - `https://rudtrip.ru/*`
+- `Site URL`: `https://www.rudtrip.ru` (prod), `http://localhost:3000` (local)
+- `Additional Redirect URLs`:
+  - `http://localhost:3000/*`
+  - `https://www.rudtrip.ru/*`
+  - `https://rudtrip.ru/*`
 
-2. `Authentication -> Providers`
-   - Базовый сценарий: email/password
-   - OAuth-провайдеры включайте только при необходимости
+Если SSO не требуется, отключите OAuth providers и оставьте email/password.
 
-## Миграции Supabase
+## Миграции
 
-Актуальные миграции:
+Текущие миграции в `supabase/migrations` включают:
 
-- `001_create_dialog_trainer_core.sql`
-- `002_enable_rls_and_policies.sql`
-- `003_relax_workspace_insert_policy.sql`
-- `004_create_library_assets.sql`
-- `005_promote_character_preinstalled_and_cleanup.sql`
-- `006_fix_preinstalled_character_media_paths.sql`
+- core-таблицы сценариев;
+- библиотеку ассетов и preinstalled-данные;
+- тарифные планы (`007_create_tariff_plans.sql`).
 
-Применение:
+Runbook по миграциям: [docs/runbooks/migrations.md](/c:/github/Dialog-Trainer/docs/runbooks/migrations.md)
 
-```powershell
-$env:SUPABASE_ACCESS_TOKEN="<your_pat>"
-npx supabase link --project-ref <project-ref>
-npx supabase db push
+## Production (VPS)
+
+Основной runbook: [docs/runbooks/deployment-vps.md](/c:/github/Dialog-Trainer/docs/runbooks/deployment-vps.md)
+
+Быстрый релиз на сервере:
+
+```bash
+cd /var/www/dialog-trainer/current \
+  && git pull --ff-only origin main \
+  && npm ci --silent \
+  && pm2 restart dialog-trainer
 ```
 
-## Основные маршруты
+## Полезные маршруты
 
-### UI
+UI:
 
-- `/register`
-- `/login`
-- `/builder`
-- `/builder/dialog/:id`
-- `/assets`
-- `/assets/characters/:id`
-- `/assets/персонажей/:id` (legacy)
-- `/admin/users`
+- `/register`, `/login`
+- `/builder`, `/builder/dialog/:id`
+- `/assets`, `/assets/characters/:id`
+- `/cabinet`
+- `/admin/users`, `/admin/rate`
+
+Runtime:
+
 - `/preview/:token`
 - `/p/:publicationKey`
 - `/export/:publicationKey.html`
 
-### API
+## Частые ошибки и причины
 
-Auth:
+### `insufficient_quota` (OpenAI)
 
-- `POST /api/v1/auth/register`
-- `POST /api/v1/auth/login`
-- `GET /api/v1/auth/me`
+Ключ OpenAI не имеет доступной квоты/биллинга.
 
-Assets:
+### `model_not_found`
 
-- `GET /api/v1/assets`
-- `POST /api/v1/assets`
-- `GET /api/v1/assets/:id`
-- `PATCH /api/v1/assets/:id`
-- `POST /api/v1/assets/:id/emotions/:state`
-- `DELETE /api/v1/assets/:id`
+В `OPENAI_MODEL` указан недоступный для аккаунта model id.
 
-Builder:
+### `Unsupported value: 'temperature' ...`
 
-- `GET /api/v1/builder/dialogs`
-- `POST /api/v1/builder/dialogs`
-- `GET /api/v1/builder/dialogs/:id/editor`
-- `PUT /api/v1/builder/dialogs/:id/editor`
-- `POST /api/v1/builder/dialogs/:id/duplicate`
-- `POST /api/v1/builder/dialogs/:id/publish`
-- `POST /api/v1/builder/dialogs/:id/unpublish`
-- `GET /api/v1/builder/dialogs/:id/export`
-- `DELETE /api/v1/builder/dialogs/:id`
+Для некоторых моделей не поддерживаются кастомные значения temperature. В проекте используется дефолтное значение модели.
 
-Preview/Runtime:
+### `Admin API is not configured. Missing SUPABASE_SERVICE_ROLE_KEY`
 
-- `GET /api/v1/publications/:publicationKey/runtime`
-- `POST /api/v1/builder/dialogs/:id/preview/link`
-- `GET /api/v1/preview/:token`
-- `GET /api/v1/builder/dialogs/:id/preview/attempts/summary`
-- `POST /api/v1/builder/dialogs/:id/preview/attempts/complete`
+На сервере не задан `SUPABASE_SERVICE_ROLE_KEY` или процесс не перезапущен после изменения `.env.local`.
 
-Admin:
+## Дополнительная документация
 
-- `GET /api/v1/admin/users`
-- `POST /api/v1/admin/users/:id/password`
-- `POST /api/v1/admin/users/:id/tariff`
-- `POST /api/v1/admin/users/:id/impersonate`
+- Deployment: [docs/runbooks/deployment-vps.md](/c:/github/Dialog-Trainer/docs/runbooks/deployment-vps.md)
+- Operations: [docs/runbooks/operations.md](/c:/github/Dialog-Trainer/docs/runbooks/operations.md)
+- Migrations: [docs/runbooks/migrations.md](/c:/github/Dialog-Trainer/docs/runbooks/migrations.md)
+- Publish validation: [docs/publish-validation.md](/c:/github/Dialog-Trainer/docs/publish-validation.md)
 
-## Встраивание сценария
-
-### Iframe
-
-```html
-<iframe
-  src="https://www.rudtrip.ru/p/<publicationKey>"
-  width="100%"
-  height="720"
-  frameborder="0"
-  allowfullscreen
-></iframe>
-```
-
-### Script
-
-```html
-<script
-  src="https://www.rudtrip.ru/embed.js"
-  data-publication="<publicationKey>"
-  data-width="100%"
-  data-height="720"
-></script>
-```
-
-## Продакшен и деплой
-
-Подробный runbook: [docs/runbooks/deployment-vps.md](docs/runbooks/deployment-vps.md)
-
-Текущий production-контур:
-
-- домен: `rudtrip.ru`
-- reverse proxy: `Nginx`
-- process manager: `PM2`
-- backend: локальный порт `3010`
-
-## Troubleshooting
-
-### `S3 is not configured. Missing bucket or credentials.`
-
-Это нормальный fallback-режим: загрузки идут в `public/uploads/library-assets`.
-
-### `Supabase login failed`
-
-Проверьте:
-
-- `SUPABASE_URL`
-- `SUPABASE_PUBLISHABLE_KEY`
-- URL/Redirect конфигурацию в Supabase Auth
-
-### Preview-ссылка не открывается
-
-Preview-токен хранится в памяти процесса и истекает по `TEMP_PREVIEW_TTL_SEC`.  
-После рестарта backend старые preview-токены недействительны.
-
-### В iframe отображается `{ "error": "Not found." }`
-
-Проверьте, что используется правильный путь: `/p/<publicationKey>`.
-
-## Лицензия
-
-В текущем состоянии используется лицензия из `package.json` (`ISC`).
-
----
-
-Если вы используете Dialog Trainer в корпоративном контуре, рекомендуем зафиксировать:
-
-- релизный чеклист,
-- регламент rollback,
-- мониторинг `healthz`, PM2 и Nginx логов.

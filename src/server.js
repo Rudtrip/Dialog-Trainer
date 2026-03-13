@@ -4902,6 +4902,30 @@ app.get("/", (_req, res) => {
   <body>
     <script>
       (function () {
+        function redirectToBuilder() {
+          window.location.replace("/builder");
+        }
+        function redirectToRegister() {
+          window.location.replace("/register");
+        }
+        function readStoredSessionToken() {
+          var directToken = String(localStorage.getItem("dialogTrainerAccessToken") || "").trim();
+          if (directToken) {
+            return { accessToken: directToken, refreshToken: "" };
+          }
+          var raw = localStorage.getItem("dialogTrainerSession");
+          if (!raw) {
+            return { accessToken: "", refreshToken: "" };
+          }
+          try {
+            var session = JSON.parse(raw);
+            var sessionToken = String((session && session.access_token) || "").trim();
+            var refreshToken = String((session && session.refresh_token) || "").trim();
+            return { accessToken: sessionToken, refreshToken: refreshToken };
+          } catch (_parseError) {
+            return { accessToken: "", refreshToken: "" };
+          }
+        }
         try {
           var hash = String(window.location.hash || "");
           if (hash && hash.indexOf("access_token=") >= 0) {
@@ -4922,12 +4946,59 @@ app.get("/", (_req, res) => {
               };
               localStorage.setItem("dialogTrainerSession", JSON.stringify(session));
               localStorage.setItem("dialogTrainerAccessToken", accessToken);
-              window.location.replace("/builder");
+              redirectToBuilder();
               return;
             }
           }
+          var stored = readStoredSessionToken();
+          if (stored.accessToken) {
+            localStorage.setItem("dialogTrainerAccessToken", stored.accessToken);
+            redirectToBuilder();
+            return;
+          }
+          if (stored.refreshToken) {
+            fetch("/api/v1/auth/refresh", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ refreshToken: stored.refreshToken })
+            })
+              .then(function (response) {
+                return response.json().catch(function () { return {}; }).then(function (payload) {
+                  if (!response.ok) {
+                    throw new Error(payload && payload.error ? payload.error : "Refresh failed");
+                  }
+                  return payload;
+                });
+              })
+              .then(function (payload) {
+                var session = payload && payload.session && typeof payload.session === "object"
+                  ? payload.session
+                  : null;
+                var accessToken = String((session && session.access_token) || payload.accessToken || "").trim();
+                if (!accessToken) {
+                  throw new Error("Access token is empty");
+                }
+                if (!session) {
+                  var expiresIn = Number(payload && payload.expiresIn);
+                  session = {
+                    access_token: accessToken,
+                    refresh_token: String(payload && payload.refreshToken || stored.refreshToken || "").trim() || null,
+                    token_type: String(payload && payload.tokenType || "bearer").trim().toLowerCase() || "bearer",
+                    expires_in: Number.isFinite(expiresIn) && expiresIn > 0 ? Math.trunc(expiresIn) : null,
+                    expires_at: Number.isFinite(expiresIn) && expiresIn > 0 ? Math.floor(Date.now() / 1000) + Math.trunc(expiresIn) : null
+                  };
+                }
+                localStorage.setItem("dialogTrainerSession", JSON.stringify(session));
+                localStorage.setItem("dialogTrainerAccessToken", accessToken);
+                redirectToBuilder();
+              })
+              .catch(function () {
+                redirectToRegister();
+              });
+            return;
+          }
         } catch (_e) {}
-        window.location.replace("/register");
+        redirectToRegister();
       })();
     </script>
   </body>

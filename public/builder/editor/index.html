@@ -732,6 +732,7 @@
         accessToken: "dialogTrainerAccessToken",
         session: "dialogTrainerSession",
       };
+      let refreshSessionPromise = null;
 
       const MESSAGE_EMOTION_STATES = [
         { key: "neutral", label: "Нейтрально", icon: "sentiment_neutral" },
@@ -2173,16 +2174,95 @@
         renderAiAssistantPanel();
       }
 
-      function getToken() {
-        const direct = localStorage.getItem(storageKeys.accessToken);
-        if (direct) return direct;
+      function getSessionFromStorage() {
         const raw = localStorage.getItem(storageKeys.session);
         if (!raw) return null;
         try {
           const session = JSON.parse(raw);
-          return session?.access_token || null;
+          return session && typeof session === "object" ? session : null;
         } catch (_error) {
           return null;
+        }
+      }
+
+      function persistSession(nextSession) {
+        if (!nextSession || typeof nextSession !== "object") return;
+        const accessToken = String(nextSession.access_token || "").trim();
+        if (!accessToken) return;
+        localStorage.setItem(storageKeys.session, JSON.stringify(nextSession));
+        localStorage.setItem(storageKeys.accessToken, accessToken);
+        app.token = accessToken;
+      }
+
+      function isSessionExpiringSoon(session, thresholdSeconds = 60) {
+        const expiresAt = Number(session?.expires_at);
+        if (!Number.isFinite(expiresAt) || expiresAt <= 0) return false;
+        const now = Math.floor(Date.now() / 1000);
+        return expiresAt - now <= Math.max(0, Number(thresholdSeconds) || 0);
+      }
+
+      function getToken() {
+        const direct = localStorage.getItem(storageKeys.accessToken);
+        if (direct) return direct;
+        return getSessionFromStorage()?.access_token || null;
+      }
+
+      async function refreshAuthSession(forceRefresh = false) {
+        const session = getSessionFromStorage();
+        if (!session) return app.token || null;
+
+        const refreshToken = String(session.refresh_token || "").trim();
+        const accessToken = String(session.access_token || "").trim();
+        if (!refreshToken) return accessToken || app.token || null;
+
+        const mustRefresh = forceRefresh || !accessToken || isSessionExpiringSoon(session);
+        if (!mustRefresh) {
+          return accessToken || app.token || null;
+        }
+
+        if (refreshSessionPromise) {
+          return refreshSessionPromise;
+        }
+
+        refreshSessionPromise = (async () => {
+          const response = await fetch("/api/v1/auth/refresh", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ refreshToken }),
+          });
+
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            const error = new Error(payload?.error || `Ошибка обновления сессии: ${response.status}`);
+            error.status = response.status;
+            throw error;
+          }
+
+          const nextSession =
+            payload?.session && typeof payload.session === "object"
+              ? payload.session
+              : {
+                  access_token: payload?.accessToken || accessToken,
+                  refresh_token: payload?.refreshToken || refreshToken,
+                  token_type: payload?.tokenType || session.token_type || "bearer",
+                  expires_in: payload?.expiresIn || session.expires_in || null,
+                  expires_at: payload?.expiresIn
+                    ? Math.floor(Date.now() / 1000) + Number(payload.expiresIn)
+                    : session.expires_at || null,
+                };
+
+          if (!nextSession.refresh_token) {
+            nextSession.refresh_token = refreshToken;
+          }
+
+          persistSession(nextSession);
+          return app.token || null;
+        })();
+
+        try {
+          return await refreshSessionPromise;
+        } finally {
+          refreshSessionPromise = null;
         }
       }
 
@@ -2292,7 +2372,8 @@
         };
       }
 
-      async function apiRequest(pathname, options) {
+      async function apiRequest(pathname, options, retryOnUnauthorized = true) {
+        await refreshAuthSession(false);
         const response = await fetch(pathname, {
           method: options?.method || "GET",
           headers: {
@@ -2309,6 +2390,17 @@
             data = JSON.parse(text);
           } catch (_error) {
             data = {};
+          }
+        }
+
+        if (response.status === 401 && retryOnUnauthorized) {
+          try {
+            await refreshAuthSession(true);
+            if (app.token) {
+              return await apiRequest(pathname, options, false);
+            }
+          } catch (_refreshError) {
+            // Ignore and return original 401 below.
           }
         }
 
@@ -4044,6 +4136,12 @@
       }
 
       async function init() {
+        app.token = getToken();
+        try {
+          await refreshAuthSession(false);
+        } catch (_error) {
+          // Ignore background refresh error during bootstrap.
+        }
         app.token = getToken();
         if (!app.token) {
           window.location.href = "/login";

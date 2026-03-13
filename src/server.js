@@ -2595,6 +2595,69 @@ app.post("/api/v1/auth/login", async (req, res) => {
   }
 });
 
+app.post("/api/v1/auth/refresh", async (req, res) => {
+  if (!ensureJsonObject(req.body)) {
+    return res.status(400).json({
+      error: "Request body must be a JSON object.",
+    });
+  }
+
+  if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+    return res.status(500).json({
+      error: "Backend is not configured. Missing SUPABASE_URL or SUPABASE_PUBLISHABLE_KEY.",
+    });
+  }
+
+  const refreshToken = String(req.body.refreshToken || req.body.refresh_token || "").trim();
+  if (!refreshToken) {
+    return res.status(400).json({
+      error: "Refresh token is required.",
+    });
+  }
+
+  const refreshUrl = `${SUPABASE_URL.replace(/\/+$/, "")}/auth/v1/token?grant_type=refresh_token`;
+
+  try {
+    const response = await fetch(refreshUrl, {
+      method: "POST",
+      headers: {
+        apikey: SUPABASE_PUBLISHABLE_KEY,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        refresh_token: refreshToken,
+      }),
+    });
+
+    const data = await fetchJsonSafe(response);
+
+    if (!response.ok) {
+      const message =
+        data.msg ||
+        data.error_description ||
+        data.error ||
+        "Supabase refresh failed.";
+
+      return res.status(response.status).json({
+        error: message,
+      });
+    }
+
+    return res.status(200).json({
+      session: data,
+      accessToken: data.access_token || null,
+      refreshToken: data.refresh_token || refreshToken || null,
+      expiresIn: data.expires_in || null,
+      tokenType: data.token_type || null,
+    });
+  } catch (error) {
+    return res.status(502).json({
+      error: "Unable to reach Supabase Auth.",
+      details: String(error && error.message ? error.message : error),
+    });
+  }
+});
+
 app.get("/api/v1/auth/me", async (req, res) => {
   const context = await requireUserContext(req, res);
   if (!context) {

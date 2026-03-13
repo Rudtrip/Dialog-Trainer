@@ -33,6 +33,15 @@ function readOptionalEnv(name) {
 
 const app = express();
 const port = Number(process.env.PORT || 3000);
+const CANONICAL_HOST = String(process.env.CANONICAL_HOST || "www.rudtrip.ru")
+  .trim()
+  .toLowerCase();
+const CANONICAL_REDIRECT_HOSTS = new Set(
+  String(process.env.CANONICAL_REDIRECT_HOSTS || "rudtrip.ru")
+    .split(",")
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean)
+);
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY;
@@ -145,6 +154,26 @@ const tempPreviewSessions = new Map();
 
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: false }));
+app.use((req, res, next) => {
+  const hostHeader = String(req.headers.host || "").trim().toLowerCase();
+  if (!hostHeader || !CANONICAL_HOST) {
+    next();
+    return;
+  }
+
+  const hostWithoutPort = hostHeader.split(":")[0];
+  if (
+    !hostWithoutPort ||
+    hostWithoutPort === CANONICAL_HOST ||
+    !CANONICAL_REDIRECT_HOSTS.has(hostWithoutPort)
+  ) {
+    next();
+    return;
+  }
+
+  const targetUrl = `https://${CANONICAL_HOST}${req.originalUrl || "/"}`;
+  res.redirect(301, targetUrl);
+});
 
 const publicDir = path.resolve(process.cwd(), "public");
 app.use(express.static(publicDir));

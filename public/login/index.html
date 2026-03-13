@@ -221,9 +221,87 @@
       return true;
     }
 
-    if (applyAuthSessionFromHash()) {
-      // Supabase magic link session was applied and redirected.
+    async function tryRestoreSessionAndRedirect() {
+      const directToken = String(localStorage.getItem("dialogTrainerAccessToken") || "").trim();
+      if (directToken) {
+        window.location.replace("/builder");
+        return true;
+      }
+
+      const rawSession = localStorage.getItem("dialogTrainerSession");
+      if (!rawSession) {
+        return false;
+      }
+
+      let session = null;
+      try {
+        session = JSON.parse(rawSession);
+      } catch (_error) {
+        return false;
+      }
+
+      const accessToken = String(session?.access_token || "").trim();
+      if (accessToken) {
+        localStorage.setItem("dialogTrainerAccessToken", accessToken);
+        window.location.replace("/builder");
+        return true;
+      }
+
+      const refreshToken = String(session?.refresh_token || "").trim();
+      if (!refreshToken) {
+        return false;
+      }
+
+      try {
+        const response = await fetch("/api/v1/auth/refresh", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ refreshToken }),
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          return false;
+        }
+
+        const refreshedSession =
+          payload?.session && typeof payload.session === "object"
+            ? payload.session
+            : null;
+        const refreshedAccessToken = String(
+          refreshedSession?.access_token || payload?.accessToken || ""
+        ).trim();
+        if (!refreshedAccessToken) {
+          return false;
+        }
+
+        localStorage.setItem(
+          "dialogTrainerSession",
+          JSON.stringify(
+            refreshedSession || {
+              access_token: refreshedAccessToken,
+              refresh_token: payload?.refreshToken || refreshToken,
+              token_type: payload?.tokenType || "bearer",
+              expires_in: payload?.expiresIn || null,
+              expires_at: payload?.expiresIn
+                ? Math.floor(Date.now() / 1000) + Number(payload.expiresIn)
+                : null,
+            }
+          )
+        );
+        localStorage.setItem("dialogTrainerAccessToken", refreshedAccessToken);
+        window.location.replace("/builder");
+        return true;
+      } catch (_error) {
+        return false;
+      }
     }
+
+    (async function bootstrapAuthRedirect() {
+      if (applyAuthSessionFromHash()) {
+        return;
+      }
+      await tryRestoreSessionAndRedirect();
+    })();
 
     function isEmailValid(email) {
       return /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email.trim());

@@ -369,7 +369,9 @@ async function resolveSignedAssetUrl(assetRow) {
 }
 
 async function mapLibraryAsset(assetRow, options) {
-  const canDeletePreinstalled = Boolean(options?.canDeletePreinstalled);
+  const canManagePreinstalled = Boolean(
+    options?.canManagePreinstalled || options?.canDeletePreinstalled
+  );
   const signedUrl = await resolveSignedAssetUrl(assetRow);
   const thumbnailUrl =
     assetRow.source === "user_upload"
@@ -392,7 +394,12 @@ async function mapLibraryAsset(assetRow, options) {
     width: assetRow.width || null,
     height: assetRow.height || null,
     workspaceId: assetRow.workspace_id || null,
-    canDelete: assetRow.source === "user_upload" || (canDeletePreinstalled && assetRow.source === "preinstalled"),
+    canDelete:
+      assetRow.source === "user_upload" ||
+      (canManagePreinstalled && assetRow.source === "preinstalled"),
+    canEdit:
+      assetRow.source === "user_upload" ||
+      (canManagePreinstalled && assetRow.source === "preinstalled"),
     metadata: ensureJsonObject(assetRow.metadata_json) ? assetRow.metadata_json : {},
   };
 }
@@ -2973,11 +2980,11 @@ app.get("/api/v1/assets", async (req, res) => {
       context.user,
       req.query.workspaceId
     );
-    const canDeletePreinstalled = isPreinstalledAssetManager(context.user);
+    const canManagePreinstalled = isPreinstalledAssetManager(context.user);
 
     const rows = await listLibraryAssetsRows(context.token, workspaceId, assetType);
     const items = await Promise.all(
-      rows.map((row) => mapLibraryAsset(row, { canDeletePreinstalled }))
+      rows.map((row) => mapLibraryAsset(row, { canManagePreinstalled }))
     );
 
     return res.status(200).json({
@@ -3134,7 +3141,7 @@ app.post("/api/v1/assets", async (req, res) => {
     }
 
     const mapped = await mapLibraryAsset(insertedRow, {
-      canDeletePreinstalled: canManagePreinstalled,
+      canManagePreinstalled,
     });
     return res.status(201).json({ item: mapped });
   } catch (error) {
@@ -3155,13 +3162,13 @@ app.get("/api/v1/assets/:id", async (req, res) => {
   }
 
   try {
-    const canDeletePreinstalled = isPreinstalledAssetManager(context.user);
+    const canManagePreinstalled = isPreinstalledAssetManager(context.user);
     const row = await getLibraryAssetRowById(context.token, assetId);
     if (!row || !row.is_active) {
       return res.status(404).json({ error: "Asset not found." });
     }
 
-    const item = await mapLibraryAsset(row, { canDeletePreinstalled });
+    const item = await mapLibraryAsset(row, { canManagePreinstalled });
     return res.status(200).json({ item });
   } catch (error) {
     const payload = formatErrorPayload(error, "Unable to load asset.");
@@ -3185,6 +3192,7 @@ app.patch("/api/v1/assets/:id", async (req, res) => {
   }
 
   try {
+    const canManagePreinstalled = isPreinstalledAssetManager(context.user);
     const row = await getLibraryAssetRowById(context.token, assetId);
     if (!row || !row.is_active) {
       return res.status(404).json({ error: "Asset not found." });
@@ -3194,18 +3202,20 @@ app.patch("/api/v1/assets/:id", async (req, res) => {
       return res.status(400).json({ error: "Only character assets support profile editing." });
     }
 
-    if (row.source !== "user_upload") {
+    if (row.source === "preinstalled" && !canManagePreinstalled) {
       return res.status(403).json({ error: "Preinstalled assets cannot be edited." });
     }
 
-    const membership = await getMembershipForWorkspace(
-      context.token,
-      context.user.id,
-      row.workspace_id
-    );
+    if (row.source === "user_upload") {
+      const membership = await getMembershipForWorkspace(
+        context.token,
+        context.user.id,
+        row.workspace_id
+      );
 
-    if (!membership || (membership.role !== "owner" && membership.role !== "editor")) {
-      return res.status(403).json({ error: "No permission to edit this asset." });
+      if (!membership || (membership.role !== "owner" && membership.role !== "editor")) {
+        return res.status(403).json({ error: "No permission to edit this asset." });
+      }
     }
 
     const patch = {};
@@ -3241,16 +3251,30 @@ app.patch("/api/v1/assets/:id", async (req, res) => {
       patch.metadata_json = metadata;
     }
 
-    const updatedRows = await supabaseRest(`/library_assets?id=eq.${encodeURIComponent(assetId)}`, {
-      method: "PATCH",
-      token: context.token,
-      prefer: "return=representation",
-      body: patch,
-    });
+    let updatedRows = [];
+    if (row.source === "preinstalled" && canManagePreinstalled) {
+      if (!SUPABASE_SERVICE_ROLE_KEY) {
+        return res.status(500).json({
+          error: "Preinstalled edit is not configured. Missing SUPABASE_SERVICE_ROLE_KEY.",
+        });
+      }
+      updatedRows = await supabasePublicRest(`/library_assets?id=eq.${encodeURIComponent(assetId)}`, {
+        method: "PATCH",
+        prefer: "return=representation",
+        body: patch,
+      });
+    } else {
+      updatedRows = await supabaseRest(`/library_assets?id=eq.${encodeURIComponent(assetId)}`, {
+        method: "PATCH",
+        token: context.token,
+        prefer: "return=representation",
+        body: patch,
+      });
+    }
 
     const updated = updatedRows[0] || row;
     const item = await mapLibraryAsset(updated, {
-      canDeletePreinstalled: isPreinstalledAssetManager(context.user),
+      canManagePreinstalled,
     });
     return res.status(200).json({ item });
   } catch (error) {
@@ -3304,6 +3328,7 @@ app.post("/api/v1/assets/:id/emotions/:state", async (req, res) => {
   }
 
   try {
+    const canManagePreinstalled = isPreinstalledAssetManager(context.user);
     const row = await getLibraryAssetRowById(context.token, assetId);
     if (!row || !row.is_active) {
       return res.status(404).json({ error: "Asset not found." });
@@ -3313,23 +3338,26 @@ app.post("/api/v1/assets/:id/emotions/:state", async (req, res) => {
       return res.status(400).json({ error: "Emotion uploads are allowed only for characters." });
     }
 
-    if (row.source !== "user_upload") {
+    if (row.source === "preinstalled" && !canManagePreinstalled) {
       return res.status(403).json({ error: "Preinstalled assets cannot be edited." });
     }
 
-    const membership = await getMembershipForWorkspace(
-      context.token,
-      context.user.id,
-      row.workspace_id
-    );
+    if (row.source === "user_upload") {
+      const membership = await getMembershipForWorkspace(
+        context.token,
+        context.user.id,
+        row.workspace_id
+      );
 
-    if (!membership || (membership.role !== "owner" && membership.role !== "editor")) {
-      return res.status(403).json({ error: "No permission to edit this asset." });
+      if (!membership || (membership.role !== "owner" && membership.role !== "editor")) {
+        return res.status(403).json({ error: "No permission to edit this asset." });
+      }
     }
 
     const extension = getUploadExtFromMime(normalizedMime);
     const uploadId = crypto.randomUUID();
-    const objectKey = `${LOCAL_ASSET_PREFIX}/${row.workspace_id}/character-emotions/${row.id}/${emotionState}-${uploadId}.${extension}`;
+    const storageScope = row.source === "preinstalled" ? "preinstalled" : String(row.workspace_id || "unknown");
+    const objectKey = `${LOCAL_ASSET_PREFIX}/${storageScope}/character-emotions/${row.id}/${emotionState}-${uploadId}.${extension}`;
     const fileUrl = await putAssetObject(objectKey, file.buffer, normalizedMime);
 
     const metadata = ensurePlainObject(row.metadata_json) ? { ...row.metadata_json } : {};
@@ -3352,14 +3380,29 @@ app.post("/api/v1/assets/:id/emotions/:state", async (req, res) => {
 
     let updatedRows = [];
     try {
-      updatedRows = await supabaseRest(`/library_assets?id=eq.${encodeURIComponent(assetId)}`, {
-        method: "PATCH",
-        token: context.token,
-        prefer: "return=representation",
-        body: {
-          metadata_json: metadata,
-        },
-      });
+      if (row.source === "preinstalled" && canManagePreinstalled) {
+        if (!SUPABASE_SERVICE_ROLE_KEY) {
+          return res.status(500).json({
+            error: "Preinstalled edit is not configured. Missing SUPABASE_SERVICE_ROLE_KEY.",
+          });
+        }
+        updatedRows = await supabasePublicRest(`/library_assets?id=eq.${encodeURIComponent(assetId)}`, {
+          method: "PATCH",
+          prefer: "return=representation",
+          body: {
+            metadata_json: metadata,
+          },
+        });
+      } else {
+        updatedRows = await supabaseRest(`/library_assets?id=eq.${encodeURIComponent(assetId)}`, {
+          method: "PATCH",
+          token: context.token,
+          prefer: "return=representation",
+          body: {
+            metadata_json: metadata,
+          },
+        });
+      }
     } catch (error) {
       await deleteAssetObject(objectKey, fileUrl);
       throw error;
@@ -3371,7 +3414,7 @@ app.post("/api/v1/assets/:id/emotions/:state", async (req, res) => {
 
     const updated = updatedRows[0] || row;
     const item = await mapLibraryAsset(updated, {
-      canDeletePreinstalled: isPreinstalledAssetManager(context.user),
+      canManagePreinstalled,
     });
     return res.status(200).json({ item });
   } catch (error) {

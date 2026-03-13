@@ -253,7 +253,7 @@
           </div>
 
           <div id="readOnlyBanner" hidden class="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            Это предустановленный персонаж. Можно просматривать данные, но редактирование и загрузка отключены.
+            У вас нет прав на редактирование этого персонажа. Доступен только просмотр.
           </div>
 
           <div class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
@@ -573,7 +573,7 @@
     }
 
     function isReadOnlyAsset() {
-      return state.asset?.source !== "user_upload";
+      return !Boolean(state.asset?.canEdit);
     }
 
     function canDeleteAsset() {
@@ -633,8 +633,8 @@
 
       els.crumbTitle.textContent = title;
       els.pageTitle.textContent = title;
-      els.subtitle.textContent = asset.source === "preinstalled"
-        ? "Предустановленный character (read-only)"
+      els.subtitle.textContent = isReadOnlyAsset()
+        ? "Доступен только просмотр"
         : "Редактируйте профиль и загружайте эмоции";
 
       els.nameInput.value = title;

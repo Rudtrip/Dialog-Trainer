@@ -4853,13 +4853,27 @@ app.get("/export/:publicationKey.html", (req, res) => {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/logo-small.svg" />
     <title>Dialog Runtime</title>
+    <!-- Yandex.Metrika counter -->
+    <script type="text/javascript">
+      (function(m,e,t,r,i,k,a){
+          m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+          m[i].l=1*new Date();
+          for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
+          k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
+      })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=107721459', 'ym');
+
+      ym(107721459, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce:true, trackLinks:true});
+    </script>
+    <!-- /Yandex.Metrika counter -->
     <style>
       html,body{margin:0;padding:0;height:100%;background:#f1f5f9}
       iframe{width:100%;height:100%;border:0;display:block}
     </style>
   </head>
   <body>
+    <noscript><div><img src="https://mc.yandex.ru/watch/107721459" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
     <iframe src="${iframeSrc}" allowfullscreen loading="lazy"></iframe>
   </body>
 </html>`);
@@ -4897,9 +4911,23 @@ app.get("/", (_req, res) => {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/logo-small.svg" />
     <title>Redirecting...</title>
+    <!-- Yandex.Metrika counter -->
+    <script type="text/javascript">
+      (function(m,e,t,r,i,k,a){
+          m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+          m[i].l=1*new Date();
+          for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
+          k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
+      })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=107721459', 'ym');
+
+      ym(107721459, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce:true, trackLinks:true});
+    </script>
+    <!-- /Yandex.Metrika counter -->
   </head>
   <body>
+    <noscript><div><img src="https://mc.yandex.ru/watch/107721459" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
     <script>
       (function () {
         function redirectToBuilder() {

@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/svg+xml" href="/logo-small.svg" />
   <title>Вход в конструктор</title>
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -50,14 +51,25 @@
       background: #94a3b8;
     }
   </style>
+<!-- Yandex.Metrika counter -->
+<script type="text/javascript">
+  (function(m,e,t,r,i,k,a){
+      m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+      m[i].l=1*new Date();
+      for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
+      k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
+  })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=107721459', 'ym');
+
+  ym(107721459, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce:true, trackLinks:true});
+</script>
+<!-- /Yandex.Metrika counter -->
 </head>
 <body class="bg-background-light font-display antialiased text-slate-900 min-h-screen flex flex-col">
+<noscript><div><img src="https://mc.yandex.ru/watch/107721459" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
   <header class="w-full px-6 py-4 flex items-center justify-between border-b border-slate-200 bg-white/80 backdrop-blur-md sticky top-0 z-50">
     <div class="flex items-center gap-3">
-      <div class="size-8 rounded-lg bg-primary flex items-center justify-center text-white">
-        <span class="material-symbols-outlined" style="font-size:20px;">school</span>
-      </div>
-      <h2 class="text-slate-900 text-lg font-bold tracking-tight">Reezonly Builder</h2>
+      <img src="/logo-full.svg" alt="Reezonly Builder" class="h-8 w-auto" />
+      <h2 class="text-slate-900 text-lg font-bold tracking-tight"></h2>
     </div>
     <div class="hidden sm:flex items-center gap-4 text-sm font-medium">
       <span class="text-slate-500">Нет аккаунта?</span>
@@ -304,7 +316,15 @@
     })();
 
     function isEmailValid(email) {
-      return /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email.trim());
+      const normalized = String(email || "").trim();
+      if (!normalized || /\s/.test(normalized)) {
+        return false;
+      }
+      const atIndex = normalized.indexOf("@");
+      if (atIndex <= 0 || atIndex !== normalized.lastIndexOf("@") || atIndex >= normalized.length - 1) {
+        return false;
+      }
+      return true;
     }
 
     function markInput(input, isValid) {
@@ -436,4 +456,3 @@
   </script>
 </body>
 </html>
-

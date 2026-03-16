@@ -1,125 +1,82 @@
-﻿# Dialog Trainer - Phase 1 Architecture (Stack Agnostic)
+# Dialog Trainer: Phase 1 Architecture (Current)
 
-## 1. Product Model
+Статус: реализовано в production и активно поддерживается.
 
-Dialog Trainer is a third-party builder service for interactive dialog simulators.
+## 1. Компоненты
 
-Primary capabilities:
-- Let an instructional designer/teacher/producer create a simulator in an admin console.
-- Configure scenario graph, branching logic, scoring rules, and visual theme.
-- Publish a simulator.
-- Export runtime artifacts:
-  - Self-contained HTML (online mode, scenario embedded into HTML).
-  - LMS embed code (iframe and script embed options).
+### Backend (`src/server.js`)
 
-## 2. Core Subsystems
+- API (auth, builder, assets, admin, tariffs, runtime, preview);
+- раздача статических страниц (`public/*`);
+- canonical redirect (`rudtrip.ru` -> `www.rudtrip.ru`);
+- local/S3 storage для ассетов;
+- интеграция OpenAI для AI-генерации сценариев.
 
-### A. Admin Console (Builder)
-Responsibilities:
-- Identity and access: email/password registration and login.
-- Simulator workspace management.
-- Scenario editor (nodes, transitions, conditions).
-- Scoring and feedback rules editor.
-- Visual styling editor.
-- Publish and export actions.
+### Frontend (`public/*`)
 
-### B. Runtime Player
-Responsibilities:
-- Render simulator in browser.
-- Execute branching/conditions.
-- Track progress and scoring.
-- Emit attempt and analytics events.
+- `builder` — визуальный редактор сценария;
+- `assets` — библиотека персонажей/фонов;
+- `admin` — пользователи и тарифы;
+- `cabinet` — кабинет пользователя;
+- `preview` и `player` — runtime режимы.
 
-### C. Delivery and Export Service
-Responsibilities:
-- Build self-contained HTML package from published scenario.
-- Generate embed snippets:
-  - iframe URL embed.
-  - script-based container embed.
-- Version and integrity metadata for published builds.
+### Supabase
 
-### D. Data and Analytics
-Responsibilities:
-- Store simulator definitions and published versions.
-- Store learner attempts and event logs.
-- Provide completion and score summaries.
+- Auth (email/password, refresh);
+- Postgres таблицы домена;
+- RLS и workspace-доступ.
 
-## 3. Roles and Access
+## 2. Ключевые потоки
 
-- Owner: workspace billing, members, all permissions.
-- Editor: create/edit scenarios and publish.
-- Viewer: read-only access to simulator definitions and analytics.
+### 2.1 Создание и публикация
 
-## 4. Domain Entities
+1. пользователь создает draft;
+2. редактирует граф;
+3. валидирует;
+4. публикует immutable snapshot;
+5. получает runtime/embed/export.
 
-- Workspace
-- User
-- Membership (workspace role)
-- Simulator
-- ScenarioVersion (draft/published snapshot)
-- Node (message/question/system step)
-- Transition (edge with condition)
-- ScoreRule
-- ThemeConfig
-- Asset (image/audio/video)
-- Publication
-- ExportArtifact (self-contained HTML, iframe config, script config)
-- Attempt
-- AttemptEvent
+### 2.2 Предпросмотр
 
-## 5. Lifecycle
+1. backend генерирует временный preview token;
+2. фронт открывает `/preview/:token`;
+3. runtime берет snapshot из `GET /api/v1/preview/:token`.
 
-1. User creates simulator in Draft state.
-2. User edits scenario/theme/rules and saves draft versions.
-3. User publishes version N.
-4. Platform generates export artifacts for version N.
-5. LMS/website consumes iframe/script embed or hosted self-contained HTML.
-6. Learner attempts produce events and score summaries.
+### 2.3 AI-генерация
 
-## 6. Auth Contract (Phase 1)
+1. пользователь описывает сценарий;
+2. backend проверяет тариф (`pro`, `enterprise`);
+3. backend запрашивает OpenAI;
+4. ответ нормализуется в editor graph;
+5. граф сохраняется в draft.
 
-### Register
-- Endpoint: `POST /api/v1/auth/register`
-- Payload:
-  - `fullName` (string, required, min 2)
-  - `email` (string, required, valid email)
-  - `password` (string, required, min 8)
-  - `acceptTerms` (boolean, required true)
-- Result:
-  - `201 Created` + user profile + session token OR verification pending flag.
+## 3. Доступ и роли
 
-### Login
-- Endpoint: `POST /api/v1/auth/login`
-- Payload:
-  - `email`
-  - `password`
-- Result:
-  - `200 OK` + session token.
+- `owner/editor` — редактирование и публикация;
+- `viewer` — read-only;
+- админ определяется по `ADMIN_EMAILS`.
 
-### Session
-- Endpoint: `POST /api/v1/auth/logout`
-- Endpoint: `GET /api/v1/auth/me`
+Дополнительно:
 
-## 7. Export Artifacts
+- `PREINSTALLED_MANAGER_EMAILS` может управлять preinstalled ассетами.
 
-### Self-contained HTML
-- Single HTML file.
-- Includes runtime JS/CSS and scenario JSON payload inline.
-- No external API dependency for core playback.
+## 4. Тарифная модель
 
-### LMS Embed
-- iframe snippet:
-  - `<iframe src="https://player.example.com/p/{publicationId}" ...></iframe>`
-- script snippet:
-  - `<script src="https://player.example.com/embed.js" data-publication="{publicationId}"></script>`
+- дефолтный тариф при регистрации: `free`;
+- лимит симуляторов проверяется сервером;
+- тарифы редактируются в `/admin/rate` и применяются глобально;
+- `/cabinet` и admin-модалки читают тарифы из БД (`tariff_plans`).
 
-## 8. Phase 1 Scope
+## 5. Сессия и авторизация
 
-Included now:
-- Architecture document.
-- `/register` UI page with client-side validation and UX interactions.
+- login/register сохраняют session в localStorage;
+- перед API вызовами выполняется refresh, если access token истек;
+- при наличии сессии `/login` и `/register` редиректят в `/builder`.
 
-Deferred:
-- Backend implementation.
-- Scenario editor and publishing flow.
-- Analytics dashboards.
+## 6. Основные риски
+
+- неверные redirect URL в Supabase -> циклы авторизации;
+- отсутствие `SUPABASE_SERVICE_ROLE_KEY` -> нерабочая админка;
+- неверный `OPENAI_MODEL`/billing -> падение AI-генерации;
+- неактуальный snapshot публикации -> ошибка embed/runtime.
+

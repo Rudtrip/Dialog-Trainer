@@ -1,14 +1,14 @@
-# Runbook: Production Deploy on VPS (Ubuntu + Nginx + PM2)
+# Runbook: Deployment to VPS (Ubuntu + Nginx + PM2)
 
 ## 1. Контур
 
 - Репозиторий: `git@github.com:Rudtrip/Dialog-Trainer.git`
 - Домен: `rudtrip.ru`, `www.rudtrip.ru`
-- Reverse proxy: `Nginx`
-- Процесс приложения: `PM2` (`dialog-trainer`)
-- Backend порт: `3010`
-- Рабочая папка: `/var/www/dialog-trainer/current`
-- Общие секреты: `/var/www/dialog-trainer/shared/.env.local`
+- Приложение: Node.js (`src/server.js`)
+- Процесс-менеджер: PM2 (`dialog-trainer`)
+- Внутренний порт backend: `3010`
+- Рабочая директория: `/var/www/dialog-trainer/current`
+- Секреты: `/var/www/dialog-trainer/shared/.env.local`
 
 ## 2. One-time setup
 
@@ -55,13 +55,15 @@ SUPABASE_URL=...
 SUPABASE_PUBLISHABLE_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...
 PLAYER_BASE_URL=https://www.rudtrip.ru
+CANONICAL_HOST=www.rudtrip.ru
+CANONICAL_REDIRECT_HOSTS=rudtrip.ru
 ```
 
 ### 2.5 PM2
 
 ```bash
 cd /var/www/dialog-trainer/current
-pm2 start src/server.js --name dialog-trainer
+PORT=3010 pm2 start src/server.js --name dialog-trainer
 pm2 save
 pm2 startup
 ```
@@ -73,9 +75,9 @@ curl -i http://127.0.0.1:3010/healthz
 pm2 status
 ```
 
-### 2.6 Nginx
+## 3. Nginx
 
-`/etc/nginx/sites-available/dialog-trainer`:
+Файл `/etc/nginx/sites-available/dialog-trainer`:
 
 ```nginx
 server {
@@ -114,13 +116,25 @@ sudo nginx -t
 sudo systemctl restart nginx
 ```
 
-### 2.7 SSL
+## 4. SSL (Let's Encrypt)
 
 ```bash
-sudo certbot --nginx -d rudtrip.ru -d www.rudtrip.ru --redirect -m <YOUR_EMAIL> --agree-tos --no-eff-email
+sudo certbot --nginx -d rudtrip.ru -d www.rudtrip.ru --redirect -m <EMAIL> --agree-tos --no-eff-email
 ```
 
-## 3. Стандартный релиз (prod update)
+Проверка:
+
+```bash
+curl -i https://www.rudtrip.ru/healthz
+curl -I https://rudtrip.ru
+```
+
+Ожидается:
+
+- `https://www.rudtrip.ru/healthz` -> `200`
+- `https://rudtrip.ru` -> `301` на `https://www.rudtrip.ru/...`
+
+## 5. Стандартный релиз
 
 ```bash
 cd /var/www/dialog-trainer/current
@@ -131,7 +145,7 @@ pm2 restart dialog-trainer
 pm2 save
 ```
 
-Smoke-check:
+Smoke checks:
 
 ```bash
 curl -f http://127.0.0.1:3010/healthz
@@ -139,7 +153,7 @@ curl -f https://www.rudtrip.ru/healthz
 pm2 status
 ```
 
-## 4. Откат
+## 6. Rollback
 
 ```bash
 cd /var/www/dialog-trainer/current
@@ -149,41 +163,33 @@ npm ci --silent
 pm2 restart dialog-trainer
 ```
 
-После отката обязательно проверить `/healthz`, login и загрузку `/builder`.
+После rollback:
 
-## 5. Частые проблемы
+- `/healthz` отвечает `200`;
+- работают `/login`, `/builder`, `/assets`.
 
-### 5.1 `bind() to 0.0.0.0:443 failed`
+## 7. Частые проблемы
 
-Порт 443 занят другим сервисом:
+### 7.1 `bind() to 0.0.0.0:443 failed`
+
+Порт занят другим процессом.
 
 ```bash
 ss -ltnp | grep ':443'
 lsof -i :443
 ```
 
-### 5.2 Nginx: `unknown directive "ln"`
+### 7.2 `unknown directive "ln"` в Nginx
 
-В конфиг случайно попала shell-команда. Исправьте файл и перезапустите Nginx.
+В конфиг случайно вставлена shell-команда. Исправить файл и перезапустить Nginx.
 
-### 5.3 `Admin API is not configured. Missing SUPABASE_SERVICE_ROLE_KEY`
+### 7.3 `Missing SUPABASE_SERVICE_ROLE_KEY`
 
-- проверьте значение в `/var/www/dialog-trainer/shared/.env.local`;
-- выполните `pm2 restart dialog-trainer`.
+Нет переменной `SUPABASE_SERVICE_ROLE_KEY` в production env или приложение не перезапущено после правки env.
 
-### 5.4 AI generation errors (`insufficient_quota`, `model_not_found`)
+### 7.4 Ошибки AI (`insufficient_quota`, `model_not_found`)
 
-- проверьте `OPENAI_API_KEY` и биллинг;
-- проверьте `OPENAI_MODEL` и доступность модели в аккаунте.
-
-## 6. Полезные команды
-
-```bash
-pm2 logs dialog-trainer --lines 200
-sudo systemctl status nginx
-sudo tail -n 200 /var/log/nginx/error.log
-sudo tail -n 200 /var/log/nginx/access.log
-df -h
-free -m
-```
+- проверить `OPENAI_API_KEY`;
+- проверить `OPENAI_MODEL`;
+- проверить billing/доступ к модели в OpenAI.
 

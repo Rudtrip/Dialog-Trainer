@@ -3,37 +3,35 @@
 ## 1. Ежедневный чек-лист
 
 - `GET /healthz` возвращает `200`.
-- `pm2 status` -> `dialog-trainer` в `online`.
-- нет аномалий в `pm2 logs dialog-trainer`.
-- нет 5xx-всплесков в `nginx access/error logs`.
-- достаточно диска и RAM.
+- `pm2 status` -> процесс `dialog-trainer` в `online`.
+- нет критичных ошибок в `pm2 logs dialog-trainer`.
+- нет всплеска `5xx` в Nginx.
+- проверено свободное место на диске и RAM.
 - открываются ключевые страницы:
   - `/login`
   - `/builder`
   - `/assets`
-  - `/admin/users` (для админов)
   - `/cabinet`
+  - `/admin/users` (для админа)
 
 ## 2. Еженедельный чек-лист
 
-- обновить системные security-патчи;
-- проверить срок SSL сертификата;
+- обновить security-патчи ОС;
+- проверить срок действия SSL-сертификата;
 - проверить автозапуск PM2 после reboot;
-- проверить, что backup/PITR Supabase активны;
-- проверить доступность AI-генерации (только Pro/Institution).
+- проверить backup/PITR в Supabase;
+- проверить AI-генерацию для тарифов `pro` и `enterprise`.
 
-## 3. Мониторинг
-
-Минимум:
+## 3. Мониторинг (минимум)
 
 - uptime `/healthz`;
 - HTTP 5xx;
 - CPU/RAM/disk;
-- ошибки Auth/Supabase;
+- ошибки Supabase Auth/API;
 - ошибки загрузки ассетов;
-- ошибки OpenAI (`insufficient_quota`, `model_not_found`).
+- ошибки OpenAI API.
 
-## 4. Диагностика
+## 4. Команды диагностики
 
 ```bash
 pm2 status
@@ -47,24 +45,26 @@ df -h
 free -m
 ```
 
-## 5. Частые инциденты
+## 5. Типовые инциденты
 
-### 5.1 Ошибки авторизации пользователей
+### 5.1 Пользователь редиректится на `/register`
 
 Проверить:
 
-- `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`;
-- redirect URLs в Supabase Auth;
-- доступность `https://<project-ref>.supabase.co`.
+- Supabase `Site URL` и `Additional Redirect URLs`;
+- доступность `https://<project-ref>.supabase.co`;
+- что домен работает как `https://www.rudtrip.ru` (canonical).
 
 ### 5.2 Админ-функции не работают
 
-Ошибка вида: `Missing SUPABASE_SERVICE_ROLE_KEY`.
+Ошибка вида:
 
-Проверить:
+`Admin API is not configured. Missing SUPABASE_SERVICE_ROLE_KEY`
 
-- переменную `SUPABASE_SERVICE_ROLE_KEY` в production env;
-- что PM2 процесс перезапущен после изменения env.
+Действия:
+
+1. проверить `SUPABASE_SERVICE_ROLE_KEY` в `.env.local`;
+2. выполнить `pm2 restart dialog-trainer`.
 
 ### 5.3 AI не генерирует сценарий
 
@@ -72,20 +72,21 @@ free -m
 
 - `OPENAI_API_KEY` задан;
 - `OPENAI_MODEL` доступна аккаунту;
-- в логах нет `insufficient_quota`.
+- нет ошибки `insufficient_quota`.
 
-### 5.4 Ошибки по ассетам
+### 5.4 Ассеты не открываются / битые ссылки
 
-Если S3 не настроен, используется локальный fallback (`public/uploads/library-assets`).
-Проверить права на директорию и свободное место.
+- проверить корректность `file_url` и `metadata_json.emotionImages`;
+- проверить локальные файлы в `public/uploads/library-assets` (если не S3);
+- проверить права на директории и наличие места на диске.
 
-## 6. Релиз и коммуникация
+## 6. Инцидент-отчет (шаблон)
 
-Минимум для отчета по инциденту:
+После инцидента фиксировать:
 
-- время начала и окончания;
-- impact;
-- корневая причина;
-- что исправлено;
-- какие prevention-задачи заведены.
+1. время начала/окончания;
+2. impact (какие пользователи и функции затронуты);
+3. корневая причина;
+4. что исправлено;
+5. prevention-задачи.
 

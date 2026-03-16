@@ -4,99 +4,100 @@
 
 ## Зачем нужен проект
 
-Dialog Trainer закрывает типовые проблемы L&D и методических команд:
+Dialog Trainer сокращает путь от идеи до рабочего учебного сценария:
 
-- долгое согласование сценариев в таблицах и документах;
-- слабая визуализация ветвлений и логики ответов;
-- сложный технический путь от идеи до LMS/портала;
-- отсутствие единых правил оценки (PTS, проходной балл, попытки).
+- визуальный конструктор ветвящихся диалогов;
+- единая логика оценки (PTS, порог прохождения, попытки);
+- публикация в клик и готовые коды встраивания в LMS/портал;
+- библиотека персонажей и фонов;
+- админка пользователей и тарифов.
 
-Итог: сценарии запускаются быстрее, их проще редактировать и поддерживать, а результаты обучения становятся измеримыми.
+## Для кого
 
-## Кому подходит
+- L&D и корпоративные университеты;
+- методисты и instructional designers;
+- команды обучения продажам/сервису/soft skills;
+- владельцы LMS и внутренних учебных порталов.
 
-- корпоративным университетам и L&D-командам;
-- методистам, instructional designers, HR-академиям;
-- командам обучения продажам, сервису, soft skills;
-- владельцам LMS и внутренних обучающих порталов.
+## Что реализовано
 
-## Ключевые возможности
+### 1. Конструктор сценариев `/builder`
 
-### 1) Конструктор сценариев (`/builder`)
+- граф нод: `Start`, `Message`, `Response`, `End`;
+- правый инспектор параметров ноды;
+- валидация графа перед публикацией;
+- предпросмотр прямо из редактора;
+- режимы сцены: `Мессенджер` и `Диалог`.
 
-- граф из нод: `Start`, `Message`, `Response`, `End`;
-- настройка нод в правой панели;
-- валидации структуры графа перед публикацией;
-- preview и publish прямо из редактора;
-- режимы сцены: `messenger` и `dialog`.
+### 2. AI-генерация сценариев
 
-### 2) AI-генерация сценариев
+- доступна для тарифов `Pro Educator` и `Institution`;
+- запуск из редактора через кнопку с иконкой `✨`;
+- генерация ветвящегося графа (не линейного);
+- результат сразу сохраняется в текущий draft.
 
-- доступна на тарифах `Pro Educator52` и `Institution`;
-- запуск из редактора (кнопка рядом со `Start` + боковая AI-панель);
-- генерация русского контента;
-- поддержка настоящего ветвления: ответы ведут в разные ветки, а не в одно общее сообщение.
+### 3. Библиотека ассетов `/assets`
 
-### 3) Библиотека ассетов (`/assets`)
-
-- типы ассетов: `character`, `background`;
+- типы: `character`, `background`;
 - эмоции персонажа: `neutral`, `happy`, `concerned`, `angry`;
 - preinstalled и пользовательские ассеты;
-- хранение в S3 (если настроено) или локальный fallback.
+- хранение в S3 или локально (`/public/uploads/library-assets`).
 
-### 4) Runtime и публикация
+### 4. Публикация и встраивание
 
-- предпросмотр по временной ссылке: `/preview/:token`;
-- публичный рантайм: `/p/:publicationKey`;
-- артефакты встройки:
-  - iframe;
-  - script (`/embed.js`);
-  - HTML export (`/export/:publicationKey.html`).
+- публикация immutable-снапшота;
+- runtime: `/p/:publicationKey`;
+- временный preview: `/preview/:token`;
+- экспорт и embed:
+  - iframe,
+  - script (`/embed.js`),
+  - HTML (`/export/:publicationKey.html`).
 
-### 5) Админка и тарифы
+### 5. Админ-панель
 
-- пользователи: `/admin/users`;
-- тарифы: `/admin/rate`;
-- действия администратора:
-  - смена пароля;
-  - смена тарифа;
-  - вход под пользователем (impersonation).
+- `/admin/users`: список пользователей, смена пароля, смена тарифа, вход под пользователем;
+- `/admin/rate`: редактирование тарифных планов;
+- изменения тарифов подтягиваются в `/cabinet`.
 
-### 6) Кабинет пользователя (`/cabinet`)
+### 6. Кабинет пользователя `/cabinet`
 
-- профиль;
-- текущий тариф и лимиты;
-- сравнение планов и выбор тарифа.
+- профиль (имя, email);
+- текущий тариф;
+- сравнение тарифов и выбор плана;
+- лимиты симуляторов по тарифу.
 
-## Стек
+## Тарифная логика
 
-- Backend: `Node.js 18+`, `Express 5`;
+- при регистрации пользователь получает `free`;
+- для `free` действует лимит по количеству симуляторов (`simulator_limit`);
+- если лимит достигнут, создание нового тренажера блокируется с понятной ошибкой;
+- лимиты и параметры берутся из таблицы `public.tariff_plans` (не хардкод).
+
+## Технологии
+
+- Backend: Node.js 18+, Express 5;
 - Frontend: статические страницы (`public/*`, vanilla JS + Tailwind CDN);
-- DB/Auth: `Supabase (Postgres, Auth, RLS)`;
-- Media: `S3` или локальное хранилище.
+- Auth/DB: Supabase (Auth + Postgres + RLS);
+- Media: S3 (опционально) или локальное хранилище.
 
 ## Структура проекта
 
 ```text
 Dialog-Trainer/
-  public/
-  src/
-    server.js
-  supabase/
-    migrations/
-  docs/
-    runbooks/
-  schemas/
+  public/                # фронтенд страницы
+  src/server.js          # API + статический сервер
+  supabase/migrations/   # SQL-миграции
+  docs/                  # документация и runbooks
+  schemas/               # JSON-схемы
   .env.example
-  README.md
 ```
 
 ## Быстрый старт (локально)
 
 ### Требования
 
-- `Node.js 18+`
-- `npm 9+`
+- Node.js 18+
+- npm 9+
 - проект в Supabase
 
 ### Установка
@@ -130,96 +131,125 @@ npm run dev
 
 ## Переменные окружения
 
-Основные (фактически используемые backend):
+Смотри полный пример: [`.env.example`](.env.example)
+
+Ключевые переменные:
 
 - `PORT`
 - `SUPABASE_URL`
 - `SUPABASE_PUBLISHABLE_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY` (обязательно для admin API и части server-side операций)
-- `ADMIN_EMAILS`
-- `PREINSTALLED_MANAGER_EMAILS`
+- `SUPABASE_SERVICE_ROLE_KEY` (обязательно для `/admin/*` и server-side операций)
+- `ADMIN_EMAILS` (кто считается админом)
+- `PREINSTALLED_MANAGER_EMAILS` (кто может управлять preinstalled ассетами)
 - `PLAYER_BASE_URL`
 - `TEMP_PREVIEW_TTL_SEC`
-- `OPENAI_API_KEY`
-- `OPENAI_MODEL`
+- `CANONICAL_HOST`, `CANONICAL_REDIRECT_HOSTS`
+- `OPENAI_API_KEY`, `OPENAI_MODEL`
 - `AWS_REGION`, `S3_BUCKET`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
 - `ASSET_CHARACTER_MAX_BYTES`, `ASSET_BACKGROUND_MAX_BYTES`, `ASSET_SIGNED_URL_TTL_SEC`, `LOCAL_ASSET_PREFIX`
 
-Пример и комментарии: [.env.example](/c:/github/Dialog-Trainer/.env.example)
-
 ## Настройка Supabase Auth
 
-В `Authentication -> URL Configuration`:
+В Supabase: `Authentication -> URL Configuration`
 
-- `Site URL`: `https://www.rudtrip.ru` (prod), `http://localhost:3000` (local)
-- `Additional Redirect URLs`:
+- `Site URL`:
+  - локально: `http://localhost:3000`
+  - прод: `https://www.rudtrip.ru`
+- `Additional Redirect URLs` минимум:
   - `http://localhost:3000/*`
   - `https://www.rudtrip.ru/*`
   - `https://rudtrip.ru/*`
 
-Если SSO не требуется, отключите OAuth providers и оставьте email/password.
+Если SSO не используется, отключите OAuth providers и оставьте email/password.
 
 ## Миграции
 
-Текущие миграции в `supabase/migrations` включают:
+Миграции лежат в `supabase/migrations`.
 
-- core-таблицы сценариев;
-- библиотеку ассетов и preinstalled-данные;
-- тарифные планы (`007_create_tariff_plans.sql`).
+Ключевые:
 
-Runbook по миграциям: [docs/runbooks/migrations.md](/c:/github/Dialog-Trainer/docs/runbooks/migrations.md)
+- `004_create_library_assets.sql` — библиотека ассетов;
+- `007_create_tariff_plans.sql` — тарифные планы.
 
-## Production (VPS)
+Подробно: [`docs/runbooks/migrations.md`](docs/runbooks/migrations.md)
 
-Основной runbook: [docs/runbooks/deployment-vps.md](/c:/github/Dialog-Trainer/docs/runbooks/deployment-vps.md)
+## API (основные маршруты)
 
-Быстрый релиз на сервере:
+### Auth
+
+- `POST /api/v1/auth/register`
+- `POST /api/v1/auth/login`
+- `POST /api/v1/auth/refresh`
+- `GET /api/v1/auth/me`
+- `PATCH /api/v1/auth/me`
+
+### Tariffs/Admin
+
+- `GET /api/v1/tariffs`
+- `GET /api/v1/admin/users`
+- `GET /api/v1/admin/tariffs`
+- `PUT /api/v1/admin/tariffs/:key`
+- `POST /api/v1/admin/users/:id/password`
+- `POST /api/v1/admin/users/:id/tariff`
+- `POST /api/v1/admin/users/:id/impersonate`
+
+### Assets
+
+- `GET /api/v1/assets`
+- `POST /api/v1/assets`
+- `PATCH /api/v1/assets/:id`
+- `POST /api/v1/assets/:id/emotions/:state`
+- `DELETE /api/v1/assets/:id`
+
+### Builder
+
+- `GET /api/v1/builder/dialogs`
+- `POST /api/v1/builder/dialogs`
+- `GET /api/v1/builder/dialogs/:id/editor`
+- `PUT /api/v1/builder/dialogs/:id/editor`
+- `POST /api/v1/builder/dialogs/:id/ai/generate`
+- `POST /api/v1/builder/dialogs/:id/publish`
+- `POST /api/v1/builder/dialogs/:id/unpublish`
+- `GET /api/v1/builder/dialogs/:id/export`
+- `POST /api/v1/builder/dialogs/:id/preview/link`
+
+## Продакшн деплой (VPS)
+
+Подробный runbook: [`docs/runbooks/deployment-vps.md`](docs/runbooks/deployment-vps.md)
+
+Быстрое обновление на сервере:
 
 ```bash
 cd /var/www/dialog-trainer/current \
   && git pull --ff-only origin main \
   && npm ci --silent \
-  && pm2 restart dialog-trainer
+  && pm2 restart dialog-trainer \
+  && pm2 save
 ```
 
-## Полезные маршруты
+## Операционка
 
-UI:
+- ежедневные проверки и инциденты: [`docs/runbooks/operations.md`](docs/runbooks/operations.md)
+- валидация публикации: [`docs/publish-validation.md`](docs/publish-validation.md)
 
-- `/register`, `/login`
-- `/builder`, `/builder/dialog/:id`
-- `/assets`, `/assets/characters/:id`
-- `/cabinet`
-- `/admin/users`, `/admin/rate`
+## Частые проблемы
 
-Runtime:
+### `Missing SUPABASE_SERVICE_ROLE_KEY`
 
-- `/preview/:token`
-- `/p/:publicationKey`
-- `/export/:publicationKey.html`
-
-## Частые ошибки и причины
+На сервере не задан `SUPABASE_SERVICE_ROLE_KEY` или не перезапущен PM2.
 
 ### `insufficient_quota` (OpenAI)
 
-Ключ OpenAI не имеет доступной квоты/биллинга.
+Недостаточно квоты/биллинга по API-ключу OpenAI.
 
 ### `model_not_found`
 
-В `OPENAI_MODEL` указан недоступный для аккаунта model id.
+В `OPENAI_MODEL` указан model id, недоступный вашему аккаунту OpenAI.
 
-### `Unsupported value: 'temperature' ...`
+### Пользователь всегда уходит на `/register`
 
-Для некоторых моделей не поддерживаются кастомные значения temperature. В проекте используется дефолтное значение модели.
+Проверьте:
 
-### `Admin API is not configured. Missing SUPABASE_SERVICE_ROLE_KEY`
-
-На сервере не задан `SUPABASE_SERVICE_ROLE_KEY` или процесс не перезапущен после изменения `.env.local`.
-
-## Дополнительная документация
-
-- Deployment: [docs/runbooks/deployment-vps.md](/c:/github/Dialog-Trainer/docs/runbooks/deployment-vps.md)
-- Operations: [docs/runbooks/operations.md](/c:/github/Dialog-Trainer/docs/runbooks/operations.md)
-- Migrations: [docs/runbooks/migrations.md](/c:/github/Dialog-Trainer/docs/runbooks/migrations.md)
-- Publish validation: [docs/publish-validation.md](/c:/github/Dialog-Trainer/docs/publish-validation.md)
-
+- корректность `Site URL` и `Additional Redirect URLs` в Supabase;
+- что домен открывается как `https://www.rudtrip.ru`;
+- что localStorage session не блокируется браузером/расширениями.

@@ -808,6 +808,8 @@
           loading: false,
         },
       };
+      const CANVAS_MIN_COORD = 20;
+      const CANVAS_MAX_COORD = 20000;
 
       const els = {
         backToBuilderBtn: document.getElementById("backToBuilderBtn"),
@@ -1908,7 +1910,25 @@
         }
       }
 
-      function renderPhonePreview() {
+      function scrollPhonePreviewMessagesToLatest(behavior = "auto") {
+        if (!els.phonePreviewMessages) {
+          return;
+        }
+        const scrollContainer = els.phonePreviewMessages;
+        const applyScroll = () => {
+          const top = scrollContainer.scrollHeight;
+          try {
+            scrollContainer.scrollTo({ top, behavior });
+          } catch (_error) {
+            scrollContainer.scrollTop = top;
+          }
+        };
+        requestAnimationFrame(() => {
+          requestAnimationFrame(applyScroll);
+        });
+      }
+
+      function renderPhonePreview(options = {}) {
         updatePhonePreviewToolVisibility();
 
         if (!els.phonePreviewPanel) {
@@ -2062,6 +2082,9 @@
           els.phonePreviewChoices.innerHTML = choicesMarkup;
         }
         app.phonePreview.lastBubbleKeys = preview.bubbles.map((bubble) => String(bubble.key || ""));
+        if (options && options.scrollToLatest) {
+          scrollPhonePreviewMessagesToLatest("smooth");
+        }
       }
 
       function renderDialogPreview() {
@@ -3369,8 +3392,8 @@
         }
 
         return {
-          x: Math.max(20, Math.min(3600, baseX + offsetX)),
-          y: Math.max(20, Math.min(3600, messageNode.position.y + 220)),
+          x: Math.max(CANVAS_MIN_COORD, Math.min(CANVAS_MAX_COORD, baseX + offsetX)),
+          y: Math.max(CANVAS_MIN_COORD, Math.min(CANVAS_MAX_COORD, messageNode.position.y + 220)),
         };
       }
 
@@ -3391,13 +3414,16 @@
 
         return {
           x: Math.max(
-            20,
+            CANVAS_MIN_COORD,
             Math.min(
-              3600,
+              CANVAS_MAX_COORD,
               sourceNode.position.x + Math.round((sourceSize.width - targetSize.width) / 2) + offsetX
             )
           ),
-          y: Math.max(20, Math.min(3600, sourceNode.position.y + sourceSize.height + 170)),
+          y: Math.max(
+            CANVAS_MIN_COORD,
+            Math.min(CANVAS_MAX_COORD, sourceNode.position.y + sourceSize.height + 170)
+          ),
         };
       }
 
@@ -3604,8 +3630,14 @@
         if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
           app.dragging.moved = true;
         }
-        node.position.x = Math.max(20, Math.min(3800, app.dragging.originX + dx));
-        node.position.y = Math.max(20, Math.min(3800, app.dragging.originY + dy));
+        node.position.x = Math.max(
+          CANVAS_MIN_COORD,
+          Math.min(CANVAS_MAX_COORD, app.dragging.originX + dx)
+        );
+        node.position.y = Math.max(
+          CANVAS_MIN_COORD,
+          Math.min(CANVAS_MAX_COORD, app.dragging.originY + dy)
+        );
         nodeEl.style.left = `${node.position.x}px`;
         nodeEl.style.top = `${node.position.y}px`;
         renderEdges();
@@ -4106,7 +4138,7 @@
 
             app.phonePreview.awaitFirstChoice = false;
             app.phonePreview.selections[messageId] = responseId;
-            renderPhonePreview();
+            renderPhonePreview({ scrollToLatest: true });
             updateToolButtons();
           });
         }

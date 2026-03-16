@@ -1451,9 +1451,13 @@ function buildEditorGraphFromAiBlueprint(blueprint) {
 
   const messageX = 640;
   const firstMessageY = 240;
-  const messageGapY = 360;
-  const responseYShift = 170;
-  const responseGapX = 290;
+  const messageGapY = 560;
+  const responseYShift = 240;
+  // Node sizes match the editor client (nodeSizeByType in editor).
+  const messageNodeWidth = 320;
+  const responseNodeWidth = 260;
+  const responseGapX = 360;
+  const clusterGapX = 160;
   const messagePositions = new Map();
 
   const depthByMessage = new Map();
@@ -1487,7 +1491,9 @@ function buildEditorGraphFromAiBlueprint(blueprint) {
   }
 
   const groupsByDepth = new Map();
+  const messageByKey = new Map();
   normalized.messages.forEach((message, messageIndex) => {
+    messageByKey.set(message.id, message);
     const fallbackDepth = messageIndex;
     const depth = Number.isFinite(Number(depthByMessage.get(message.id)))
       ? Number(depthByMessage.get(message.id))
@@ -1500,12 +1506,26 @@ function buildEditorGraphFromAiBlueprint(blueprint) {
   Array.from(groupsByDepth.entries())
     .sort((a, b) => a[0] - b[0])
     .forEach(([depth, messageKeys]) => {
-      const startX = messageX - ((messageKeys.length - 1) * responseGapX) / 2;
-      messageKeys.forEach((messageKey, index) => {
-        messagePositions.set(messageKey, {
-          x: Math.round(startX + index * responseGapX),
+      const clusters = messageKeys.map((messageKey) => {
+        const message = messageByKey.get(messageKey) || null;
+        const responses = Array.isArray(message?.responses) ? message.responses.slice(0, 3) : [];
+        const responseCount = Math.max(1, responses.length);
+        const responseClusterWidth = responseNodeWidth + (responseCount - 1) * responseGapX;
+        const clusterWidth = Math.max(messageNodeWidth, responseClusterWidth);
+        return { messageKey, clusterWidth };
+      });
+      const rowWidth =
+        clusters.reduce((sum, item) => sum + item.clusterWidth, 0) +
+        Math.max(0, clusters.length - 1) * clusterGapX;
+      let cursorX = messageX - rowWidth / 2;
+
+      clusters.forEach((item) => {
+        const centerX = cursorX + item.clusterWidth / 2;
+        messagePositions.set(item.messageKey, {
+          x: Math.round(centerX),
           y: firstMessageY + depth * messageGapY,
         });
+        cursorX += item.clusterWidth + clusterGapX;
       });
     });
 
@@ -1544,12 +1564,16 @@ function buildEditorGraphFromAiBlueprint(blueprint) {
     (maxValue, position) => Math.max(maxValue, Number(position?.y) || 0),
     firstMessageY
   );
+  const messageXValues = Array.from(messagePositions.values()).map((position) => Number(position?.x) || 0);
+  const minMessageX = messageXValues.length > 0 ? Math.min(...messageXValues) : messageX;
+  const maxMessageX = messageXValues.length > 0 ? Math.max(...messageXValues) : messageX;
+  const endingsHalfSpan = Math.max(420, Math.round((maxMessageX - minMessageX) / 2));
   const endingY = messageMaxY + 360;
   const endingNodes = {
     success: {
       id: "node_end_success_ai",
       type: "end",
-      position: { x: messageX - 340, y: endingY },
+      position: { x: messageX - endingsHalfSpan, y: endingY },
       data: {
         endingType: "success",
         title: normalized.endings.success.title,
@@ -1569,7 +1593,7 @@ function buildEditorGraphFromAiBlueprint(blueprint) {
     fail: {
       id: "node_end_fail_ai",
       type: "end",
-      position: { x: messageX + 340, y: endingY },
+      position: { x: messageX + endingsHalfSpan, y: endingY },
       data: {
         endingType: "fail",
         title: normalized.endings.fail.title,
@@ -1645,6 +1669,20 @@ function buildEditorGraphFromAiBlueprint(blueprint) {
       }
     });
   });
+
+  // If branching is wide, keep all nodes inside positive canvas coordinates.
+  const minX = nodes.reduce((value, node) => Math.min(value, Number(node?.position?.x) || 0), Number.POSITIVE_INFINITY);
+  const minY = nodes.reduce((value, node) => Math.min(value, Number(node?.position?.y) || 0), Number.POSITIVE_INFINITY);
+  const shiftX = Number.isFinite(minX) ? Math.max(0, 120 - minX) : 0;
+  const shiftY = Number.isFinite(minY) ? Math.max(0, 80 - minY) : 0;
+  if (shiftX || shiftY) {
+    nodes.forEach((node) => {
+      node.position = {
+        x: Math.round((Number(node?.position?.x) || 0) + shiftX),
+        y: Math.round((Number(node?.position?.y) || 0) + shiftY),
+      };
+    });
+  }
 
   return sanitizeEditorGraph({
     version: 1,
@@ -2262,6 +2300,7 @@ function isEditorEdgeAllowed(sourceType, targetType) {
 function sanitizeEditorGraph(inputGraph) {
   const fallback = buildDefaultEditorGraph();
   const graph = ensureJsonObject(inputGraph) ? inputGraph : {};
+  const maxEditorCoordinate = 20000;
 
   const normalizedNodes = [];
   const byId = new Map();
@@ -2286,8 +2325,8 @@ function sanitizeEditorGraph(inputGraph) {
       id,
       type,
       position: {
-        x: Math.trunc(clampNumber(rawNode?.position?.x, 0, 4000, 120 + index * 20)),
-        y: Math.trunc(clampNumber(rawNode?.position?.y, 0, 4000, 120 + index * 20)),
+        x: Math.trunc(clampNumber(rawNode?.position?.x, 0, maxEditorCoordinate, 120 + index * 20)),
+        y: Math.trunc(clampNumber(rawNode?.position?.y, 0, maxEditorCoordinate, 120 + index * 20)),
       },
       data: sanitizeNodeDataByType(type, rawNode.data),
     };

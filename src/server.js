@@ -1453,6 +1453,7 @@ function buildEditorGraphFromAiBlueprint(blueprint) {
   const firstMessageY = 240;
   const messageGapY = 560;
   const responseYShift = 240;
+  const endingYShift = 220;
   // Node sizes match the editor client (nodeSizeByType in editor).
   const messageNodeWidth = 320;
   const responseNodeWidth = 260;
@@ -1560,49 +1561,6 @@ function buildEditorGraphFromAiBlueprint(blueprint) {
     });
   }
 
-  const messageMaxY = Array.from(messagePositions.values()).reduce(
-    (maxValue, position) => Math.max(maxValue, Number(position?.y) || 0),
-    firstMessageY
-  );
-  const messageXValues = Array.from(messagePositions.values()).map((position) => Number(position?.x) || 0);
-  const minMessageX = messageXValues.length > 0 ? Math.min(...messageXValues) : messageX;
-  const maxMessageX = messageXValues.length > 0 ? Math.max(...messageXValues) : messageX;
-  const endingsHalfSpan = Math.max(420, Math.round((maxMessageX - minMessageX) / 2));
-  const endingY = messageMaxY + 360;
-  const endingNodes = {
-    success: {
-      id: "node_end_success_ai",
-      type: "end",
-      position: { x: messageX - endingsHalfSpan, y: endingY },
-      data: {
-        endingType: "success",
-        title: normalized.endings.success.title,
-        description: normalized.endings.success.description,
-      },
-    },
-    neutral: {
-      id: "node_end_neutral_ai",
-      type: "end",
-      position: { x: messageX, y: endingY + 20 },
-      data: {
-        endingType: "neutral",
-        title: normalized.endings.neutral.title,
-        description: normalized.endings.neutral.description,
-      },
-    },
-    fail: {
-      id: "node_end_fail_ai",
-      type: "end",
-      position: { x: messageX + endingsHalfSpan, y: endingY },
-      data: {
-        endingType: "fail",
-        title: normalized.endings.fail.title,
-        description: normalized.endings.fail.description,
-      },
-    },
-  };
-  nodes.push(endingNodes.success, endingNodes.neutral, endingNodes.fail);
-
   normalized.messages.forEach((message, messageIndex) => {
     const sourceMessageId = messageNodeIdByKey.get(message.id);
     if (!sourceMessageId) {
@@ -1618,13 +1576,14 @@ function buildEditorGraphFromAiBlueprint(blueprint) {
     responses.forEach((response, responseIndex) => {
       const responseId = `node_response_ai_${messageIndex + 1}_${responseIndex + 1}`;
       const scoreDelta = clampInteger(response.scoreDelta, -1000, 1000, 0);
+      const responsePosition = {
+        x: Math.round(responseStartX + responseIndex * responseGapX),
+        y: sourcePosition.y + responseYShift,
+      };
       nodes.push({
         id: responseId,
         type: "response",
-        position: {
-          x: Math.round(responseStartX + responseIndex * responseGapX),
-          y: sourcePosition.y + responseYShift,
-        },
+        position: responsePosition,
         data: {
           responseText: String(response.text || "").slice(0, 4000),
           scoreDelta,
@@ -1660,11 +1619,29 @@ function buildEditorGraphFromAiBlueprint(blueprint) {
           routeEndingType === "success" || routeEndingType === "neutral" || routeEndingType === "fail"
             ? routeEndingType
             : normalizeAiEndingTypeByScore(scoreDelta);
-        const endingNode = endingNodes[endingType] || endingNodes.neutral;
+        const endingKey =
+          endingType === "success" || endingType === "neutral" || endingType === "fail"
+            ? endingType
+            : "neutral";
+        const endingMeta = normalized.endings[endingKey] || normalized.endings.neutral;
+        const endingNodeId = `node_end_ai_${messageIndex + 1}_${responseIndex + 1}_${endingKey}`;
+        nodes.push({
+          id: endingNodeId,
+          type: "end",
+          position: {
+            x: responsePosition.x,
+            y: responsePosition.y + endingYShift,
+          },
+          data: {
+            endingType: endingKey,
+            title: endingMeta.title,
+            description: endingMeta.description,
+          },
+        });
         edges.push({
-          id: `edge_response_${messageIndex + 1}_${responseIndex + 1}_to_end_${endingType}`,
+          id: `edge_response_${messageIndex + 1}_${responseIndex + 1}_to_end_${endingKey}`,
           source: responseId,
-          target: endingNode.id,
+          target: endingNodeId,
         });
       }
     });
@@ -1708,6 +1685,10 @@ async function requestAiScenarioBlueprint({ description, dialogName, sceneType }
     "Create true branching: each learner response must explicitly define routing via nextType and nextRef.",
     "Use nextType='message' with nextRef=<message.id> for branch continuation, or nextType='ending' with nextRef in [success, neutral, fail].",
     "The first NPC message must have 2-3 responses that lead to different next messages (no single shared follow-up for all options).",
+    "For terminal branches, avoid shared endings in logic design: each branch should naturally conclude with its own learner outcome.",
+    "Do not collapse multiple responses into one generic ending path.",
+    "If two responses are terminal, they must represent different outcome texts and independent branch conclusions.",
+    "Prefer at least 2-3 distinct terminal branches across the whole scenario.",
     "Each message should include 2-3 response options with scoreDelta from -20 to 20.",
     "Do not include markdown or extra commentary.",
   ].join(" ");
@@ -2301,6 +2282,7 @@ function sanitizeEditorGraph(inputGraph) {
   const fallback = buildDefaultEditorGraph();
   const graph = ensureJsonObject(inputGraph) ? inputGraph : {};
   const maxEditorCoordinate = 20000;
+  const maxResponseOutgoingEdges = 2;
 
   const normalizedNodes = [];
   const byId = new Map();
@@ -2381,7 +2363,7 @@ function sanitizeEditorGraph(inputGraph) {
 
     if (sourceNode.type === "response") {
       const currentCount = Number(responseOutgoing.get(source) || 0);
-      if (currentCount >= 1) {
+      if (currentCount >= maxResponseOutgoingEdges) {
         return;
       }
       responseOutgoing.set(source, currentCount + 1);

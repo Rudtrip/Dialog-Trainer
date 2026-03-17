@@ -764,6 +764,7 @@
         revision: null,
         tool: "select",
         pendingConnectSourceId: null,
+        connectAutoReturn: false,
         quickAddMenuOpen: false,
         responseAddMenuForId: null,
         dirty: false,
@@ -810,6 +811,7 @@
       };
       const CANVAS_MIN_COORD = 20;
       const CANVAS_MAX_COORD = 20000;
+      const MAX_RESPONSE_OUTGOING = 2;
 
       const els = {
         backToBuilderBtn: document.getElementById("backToBuilderBtn"),
@@ -2372,7 +2374,7 @@
         const normalizedEdges = [];
         const edgeKeySet = new Set();
         const startEdgeSources = new Set();
-        const responseEdgeSources = new Set();
+        const responseEdgeSources = new Map();
         for (const edge of edges) {
           if (!edge || typeof edge !== "object") continue;
           const source = String(edge.source || "").trim();
@@ -2384,7 +2386,10 @@
           if (sourceNode.type === "end" || targetNode.type === "start") continue;
           if (!isConnectionAllowed(sourceNode.type, targetNode.type)) continue;
           if (sourceNode.type === "start" && startEdgeSources.has(source)) continue;
-          if (sourceNode.type === "response" && responseEdgeSources.has(source)) continue;
+          if (sourceNode.type === "response") {
+            const currentCount = Number(responseEdgeSources.get(source) || 0);
+            if (currentCount >= MAX_RESPONSE_OUTGOING) continue;
+          }
           const key = `${source}->${target}`;
           if (edgeKeySet.has(key)) continue;
           edgeKeySet.add(key);
@@ -2397,7 +2402,7 @@
             startEdgeSources.add(source);
           }
           if (sourceNode.type === "response") {
-            responseEdgeSources.add(source);
+            responseEdgeSources.set(source, Number(responseEdgeSources.get(source) || 0) + 1);
           }
         }
 
@@ -2691,8 +2696,10 @@
           }
 
           if (node.type === "response") {
-            const hasOutgoing = hasResponseOutgoingEdge(node.id);
-            const menuVisible = app.responseAddMenuForId === node.id && !hasOutgoing;
+            const responseOutgoingCount = getResponseOutgoingCount(node.id);
+            const canAddMoreOutcomes = responseOutgoingCount < MAX_RESPONSE_OUTGOING;
+            const hasOutgoing = !canAddMoreOutcomes;
+            const menuVisible = app.responseAddMenuForId === node.id && canAddMoreOutcomes;
             const responseAddWrap = document.createElement("div");
             responseAddWrap.className = "absolute left-1/2 -translate-x-1/2 -bottom-16 z-30";
             responseAddWrap.innerHTML = `
@@ -2700,10 +2707,10 @@
                 type="button"
                 data-response-add-btn="${node.id}"
                 class="size-10 rounded-full bg-primary hover:bg-primary-hover text-white shadow-lg shadow-indigo-200 flex items-center justify-center transition-all transform hover:scale-105 active:scale-95 ${
-                  hasOutgoing ? "opacity-50 cursor-not-allowed" : ""
+                  canAddMoreOutcomes ? "" : "opacity-50 cursor-not-allowed"
                 }"
-                ${hasOutgoing ? "disabled" : ""}
-                title="${hasOutgoing ? "Следующий шаг уже задан" : "Добавить следующий шаг"}"
+                ${canAddMoreOutcomes ? "" : "disabled"}
+                title="${hasOutgoing ? "Достигнут лимит исходов: 2" : "Добавить исход"}"
               >
                 <span class="material-symbols-outlined">add</span>
               </button>
@@ -2743,6 +2750,20 @@
                     <div class="flex flex-col">
                       <span class="text-sm font-medium text-gray-700">Финиш</span>
                       <span class="text-[10px] text-gray-400">Завершить ветку</span>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    data-response-add-type="existing"
+                    data-response-node-id="${node.id}"
+                    class="response-add-option-btn flex items-center gap-3 w-full p-2 hover:bg-gray-50 rounded-lg text-left group transition-colors"
+                  >
+                    <div class="size-8 rounded bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-slate-100 transition-colors">
+                      <span class="material-symbols-outlined text-lg">cable</span>
+                    </div>
+                    <div class="flex flex-col">
+                      <span class="text-sm font-medium text-gray-700">Связать с нодой</span>
+                      <span class="text-[10px] text-gray-400">К уже существующей ноде</span>
                     </div>
                   </button>
                 </div>
@@ -3266,8 +3287,9 @@
         return String(type || "");
       }
 
-      function hasResponseOutgoingEdge(sourceId) {
-        return app.graph.edges.some((edge) => edge.source === sourceId);
+      function getResponseOutgoingCount(sourceId) {
+        if (!sourceId) return 0;
+        return app.graph.edges.filter((edge) => edge.source === sourceId).length;
       }
 
       function hasStartOutgoingMessageEdge(sourceId) {
@@ -3327,8 +3349,8 @@
           return false;
         }
 
-        if (source.type === "response" && hasResponseOutgoingEdge(sourceId)) {
-          toast("У ноды «Ответ» может быть только один следующий шаг («Сообщение» или «Финиш»).", "warn");
+        if (source.type === "response" && getResponseOutgoingCount(sourceId) >= MAX_RESPONSE_OUTGOING) {
+          toast("У ноды «Ответ» может быть не более двух исходящих связей.", "warn");
           return false;
         }
 
@@ -3432,8 +3454,8 @@
           return null;
         }
 
-        if (sourceNode.type === "response" && hasResponseOutgoingEdge(sourceNode.id)) {
-          toast("Для ноды «Ответ» уже задан следующий шаг.", "warn");
+        if (sourceNode.type === "response" && getResponseOutgoingCount(sourceNode.id) >= MAX_RESPONSE_OUTGOING) {
+          toast("Для ноды «Ответ» уже задано максимальное количество исходов (2).", "warn");
           return null;
         }
 
@@ -3533,7 +3555,7 @@
           const blockedByResponseLimit =
             selected.type === "response" &&
             (addType === "message" || addType === "end") &&
-            hasResponseOutgoingEdge(selected.id);
+            getResponseOutgoingCount(selected.id) >= MAX_RESPONSE_OUTGOING;
           const allowed = allowedByType && !blockedByStartLimit && !blockedByResponseLimit;
           button.disabled = !allowed;
           if (allowed) {
@@ -3683,8 +3705,19 @@
           const sourceNode = getNodeById(responseAddOption.dataset.responseNodeId);
           const addType = responseAddOption.dataset.responseAddType;
           if (!sourceNode || sourceNode.type !== "response") return;
-          if (!["message", "end"].includes(addType)) return;
+          if (!["message", "end", "existing"].includes(addType)) return;
           app.responseAddMenuForId = null;
+          if (addType === "existing") {
+            app.quickAddMenuOpen = false;
+            app.tool = "connect";
+            app.pendingConnectSourceId = sourceNode.id;
+            app.connectAutoReturn = true;
+            updateToolButtons();
+            updateQuickAddUI();
+            selectNode(sourceNode.id);
+            toast("Выберите существующую ноду «Сообщение» или «Финиш».", "info");
+            return;
+          }
           createLinkedNode(sourceNode, addType);
           return;
         }
@@ -3704,6 +3737,12 @@
           const sourceId = app.pendingConnectSourceId;
           app.pendingConnectSourceId = null;
           const created = addEdge(sourceId, nodeId);
+          const shouldAutoReturn = app.connectAutoReturn;
+          app.connectAutoReturn = false;
+          if (shouldAutoReturn) {
+            app.tool = "select";
+            updateToolButtons();
+          }
           if (created) toast("Связь создана.");
           renderAll();
           return;
@@ -3715,6 +3754,7 @@
       function setTool(tool) {
         app.tool = tool;
         app.pendingConnectSourceId = null;
+        app.connectAutoReturn = false;
         app.quickAddMenuOpen = false;
         app.responseAddMenuForId = null;
         updateToolButtons();

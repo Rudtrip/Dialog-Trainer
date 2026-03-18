@@ -398,6 +398,112 @@
         return outgoing.filter((node) => node.type === targetType);
       }
 
+      function clampNumber(value, min, max) {
+        const parsed = Number(value);
+        if (!Number.isFinite(parsed)) return min;
+        return Math.min(Math.max(parsed, min), max);
+      }
+
+      function normalizeEndingType(value) {
+        const normalized = String(value || "").trim().toLowerCase();
+        if (normalized === "success" || normalized === "fail" || normalized === "neutral") {
+          return normalized;
+        }
+        return "neutral";
+      }
+
+      function getFinishTypeMeta(endingType) {
+        const normalized = normalizeEndingType(endingType);
+        if (normalized === "success") {
+          return {
+            key: "success",
+            label: "Успех",
+            icon: "check_circle",
+            badgeClass: "border-emerald-200 bg-emerald-50 text-emerald-700",
+          };
+        }
+        if (normalized === "fail") {
+          return {
+            key: "fail",
+            label: "Провал",
+            icon: "cancel",
+            badgeClass: "border-rose-200 bg-rose-50 text-rose-700",
+          };
+        }
+        return {
+          key: "neutral",
+          label: "Нейтрально",
+          icon: "flag",
+          badgeClass: "border-sky-200 bg-sky-50 text-sky-700",
+        };
+      }
+
+      function getScenarioMaxScore(initialMessageId) {
+        if (!initialMessageId) return 0;
+
+        function walkMessage(messageId, visitedMessageIds, depth) {
+          if (!messageId || depth > 64 || visitedMessageIds.has(messageId)) {
+            return null;
+          }
+
+          const nextVisited = new Set(visitedMessageIds);
+          nextVisited.add(messageId);
+
+          const responseNodes = sortNodesByX(getOutgoingNodes(messageId, "response"));
+          if (responseNodes.length === 0) {
+            return 0;
+          }
+
+          let bestScore = null;
+          responseNodes.forEach((responseNode) => {
+            const scoreDelta = Number(responseNode.data?.scoreDelta);
+            const ownScore = Number.isFinite(scoreDelta) ? scoreDelta : 0;
+            const nextMessage = sortNodesByX(getOutgoingNodes(responseNode.id, "message"))[0] || null;
+
+            if (nextMessage) {
+              const continuationScore = walkMessage(nextMessage.id, nextVisited, depth + 1);
+              if (continuationScore === null) {
+                return;
+              }
+              const candidateScore = ownScore + continuationScore;
+              if (bestScore === null || candidateScore > bestScore) {
+                bestScore = candidateScore;
+              }
+              return;
+            }
+
+            if (bestScore === null || ownScore > bestScore) {
+              bestScore = ownScore;
+            }
+          });
+
+          return bestScore === null ? 0 : bestScore;
+        }
+
+        const resolved = walkMessage(initialMessageId, new Set(), 0);
+        return Number.isFinite(resolved) ? resolved : 0;
+      }
+
+      function getFinishSummary(preview) {
+        const customDescription = String(preview.finishDescription || "").trim();
+        if (customDescription) {
+          return customDescription;
+        }
+
+        if (preview.passed) {
+          if (preview.passScore !== null) {
+            return `Сценарий завершен успешно. Вы набрали достаточно баллов для прохождения и достигли порога ${preview.passScore}.`;
+          }
+          return "Сценарий завершен успешно. Итог определяется выбранной веткой и набранными баллами.";
+        }
+
+        if (preview.passScore !== null) {
+          return `Сценарий завершен, но набранных баллов недостаточно для прохождения. Требуемый порог: ${preview.passScore}.`;
+        }
+
+        return "Сценарий завершен неуспешно. Попробуйте пройти его еще раз и выбрать другую стратегию ответа.";
+      }
+
       function resolveAssetMediaUrl(value) {
         if (!value) return "";
         if (typeof value === "string") return value.trim();
@@ -473,15 +579,22 @@
           activeEmotionLabel: "Нейтрально",
           activeEmotionIcon: "sentiment_neutral",
           totalScore: 0,
+          maxScore: 0,
+          scorePercent: 0,
           passScore,
           finished: false,
           passed: true,
+          finishType: "neutral",
+          finishTypeLabel: "Нейтрально",
           finishLabel: "Финиш",
+          finishDescription: "",
         };
 
         const firstMessageFromStart = sortNodesByX(getOutgoingNodes(startNode?.id, "message"))[0] || null;
         const fallbackMessage = nodes.find((node) => node.type === "message") || null;
-        let currentMessage = firstMessageFromStart || fallbackMessage;
+        const initialMessage = firstMessageFromStart || fallbackMessage;
+        const scenarioMaxScore = getScenarioMaxScore(initialMessage?.id);
+        let currentMessage = initialMessage;
 
         if (!currentMessage) {
           return baseState;
@@ -596,6 +709,16 @@
           }
         }
 
+        const finishType = normalizeEndingType(finishNode?.data?.endingType);
+        const finishTypeMeta = getFinishTypeMeta(finishType);
+        const maxScore = Math.max(0, Number.isFinite(scenarioMaxScore) ? scenarioMaxScore : 0, totalScore);
+        const scorePercent =
+          maxScore > 0
+            ? Math.round(clampNumber((totalScore / maxScore) * 100, 0, 100))
+            : totalScore > 0
+              ? 100
+              : 0;
+
         return {
           sceneType: normalizeSceneType(state.data?.sceneType),
           dialogName: String(state.data?.dialogName || "Предпросмотр").trim() || "Предпросмотр",
@@ -611,9 +734,14 @@
           activeEmotionLabel: activeMeta?.emotionLabel || "Нейтрально",
           activeEmotionIcon: activeMeta?.emotionIcon || "sentiment_neutral",
           totalScore,
+          maxScore,
+          scorePercent,
           passScore,
           finished,
           passed,
+          finishType,
+          finishTypeLabel: finishTypeMeta.label,
+          finishDescription: String(finishNode?.data?.description || "").trim(),
           finishLabel: String(finishNode?.data?.title || "").trim() || "Финиш",
         };
       }
@@ -627,11 +755,9 @@
           .join("");
 
         const selectedId = String(state.selections[preview.activeMessageId] || "");
-        const choicesMarkup = preview.finished
-          ? renderFinishCard(preview)
-          : preview.choices
-            .map(
-              (choice) => `
+        const choicesMarkup = preview.choices
+          .map(
+            (choice) => `
               <button
                 type="button"
                 class="runtime-choice-btn ${selectedId === choice.id ? "active" : ""}"
@@ -641,8 +767,8 @@
                 ${escapeHtml(choice.text)}
               </button>
             `
-            )
-            .join("");
+          )
+          .join("");
 
         const backgroundStyle = preview.activeBackgroundImageUrl
           ? `style="background-image:linear-gradient(rgba(255,255,255,0.94), rgba(255,255,255,0.94)),url('${escapeHtml(
@@ -699,12 +825,10 @@
       }
 
       function renderDialog(preview) {
-        const choicesMarkup = preview.finished
-          ? renderFinishCard(preview)
-          : preview.choices
-            .map((choice) => {
-              const selectedId = String(state.selections[preview.activeMessageId] || "");
-              return `
+        const choicesMarkup = preview.choices
+          .map((choice) => {
+            const selectedId = String(state.selections[preview.activeMessageId] || "");
+            return `
                 <button
                   type="button"
                   class="runtime-choice-btn ${selectedId === choice.id ? "active" : ""}"
@@ -714,8 +838,8 @@
                   ${escapeHtml(choice.text)}
                 </button>
               `;
-            })
-            .join("");
+          })
+          .join("");
 
         const stageBackground = preview.activeBackgroundImageUrl
           ? `style="background-image:url('${escapeHtml(
@@ -780,6 +904,93 @@
         `;
       }
 
+      function renderRuntimeResult(preview) {
+        const completionMeta = preview.passed
+          ? {
+              label: "Сценарий пройден",
+              icon: "check_circle",
+              badgeClass: "border-emerald-200 bg-emerald-50 text-emerald-700",
+              gradientClass: "from-emerald-400 to-primary",
+            }
+          : {
+              label: "Сценарий не пройден",
+              icon: "cancel",
+              badgeClass: "border-rose-200 bg-rose-50 text-rose-700",
+              gradientClass: "from-rose-400 to-orange-400",
+            };
+        const finishTypeMeta = getFinishTypeMeta(preview.finishType);
+        const maxScore = Math.max(0, Number(preview.maxScore) || 0, Number(preview.totalScore) || 0);
+        const scorePercent = Math.round(clampNumber(preview.scorePercent, 0, 100));
+        const progressOffset = 264 - (264 * scorePercent) / 100;
+        const summaryText = getFinishSummary(preview);
+
+        return `
+          <div class="h-screen overflow-auto bg-slate-50 font-display text-slate-800 antialiased">
+            <main class="min-h-full flex items-center justify-center p-4 sm:p-8">
+              <div class="w-full max-w-2xl mx-auto">
+                <div class="relative overflow-hidden rounded-[28px] border border-slate-100 bg-white p-6 text-center shadow-[0_20px_60px_rgba(15,23,42,0.08)] sm:p-8 md:p-10">
+                  <div class="absolute left-0 top-0 h-2 w-full bg-gradient-to-r ${completionMeta.gradientClass}"></div>
+                  <div class="mb-6 inline-flex items-center justify-center gap-2 rounded-full border px-4 py-1.5 text-sm font-semibold tracking-wide ${completionMeta.badgeClass}">
+                    <span class="material-symbols-outlined text-[18px]">${completionMeta.icon}</span>
+                    ${completionMeta.label}
+                  </div>
+                  <div class="relative mx-auto mb-6 size-40 cursor-default sm:size-52">
+                    <svg class="size-full -rotate-90 transform" viewBox="0 0 100 100">
+                      <circle class="text-slate-100" cx="50" cy="50" fill="transparent" r="42" stroke="currentColor" stroke-width="6"></circle>
+                      <circle
+                        class="text-primary progress-circle"
+                        cx="50"
+                        cy="50"
+                        fill="transparent"
+                        r="42"
+                        stroke="currentColor"
+                        stroke-dasharray="264"
+                        stroke-dashoffset="${escapeHtml(String(progressOffset))}"
+                        stroke-linecap="round"
+                        stroke-width="6"
+                      ></circle>
+                    </svg>
+                    <div class="absolute inset-0 flex flex-col items-center justify-center">
+                      <span class="text-5xl font-bold tracking-tight text-slate-900 sm:text-6xl">
+                        ${escapeHtml(String(scorePercent))}<span class="text-xl font-normal text-slate-400 sm:text-2xl">%</span>
+                      </span>
+                      <span class="mt-1 text-xs font-medium uppercase tracking-wider text-slate-400 sm:text-sm">Результат</span>
+                    </div>
+                  </div>
+                  <h1 class="mb-3 text-2xl font-bold text-slate-900 sm:text-3xl">${escapeHtml(
+                    preview.finishLabel || "Результат сценария"
+                  )}</h1>
+                  <div class="mb-4 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold ${finishTypeMeta.badgeClass}">
+                    <span class="material-symbols-outlined text-[18px]">${finishTypeMeta.icon}</span>
+                    <span>Тип завершения: ${escapeHtml(preview.finishTypeLabel || finishTypeMeta.label)}</span>
+                  </div>
+                  <p class="mx-auto mb-6 max-w-xl text-sm leading-relaxed text-slate-500 sm:text-base">
+                    ${escapeHtml(summaryText)}
+                  </p>
+                  <div class="mx-auto mb-6 grid w-full max-w-xl grid-cols-1 gap-4">
+                    <div class="flex flex-col items-center rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                      <span class="mb-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">Баллы</span>
+                      <div class="flex items-baseline gap-1">
+                        <span class="text-2xl font-bold text-slate-900">${escapeHtml(String(preview.totalScore))}</span>
+                        <span class="text-sm font-medium text-slate-400">/ ${escapeHtml(String(maxScore))}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="flex w-full justify-center">
+                    <button
+                      id="resetBtn"
+                      class="h-12 w-full rounded-xl border-2 border-primary px-6 font-semibold text-primary transition-all duration-200 hover:bg-primary hover:text-white sm:w-auto sm:min-w-[220px]"
+                    >
+                      Пройти снова
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </main>
+          </div>
+        `;
+      }
+
       function renderFinishCard(preview) {
         return `
           <div class="rounded-xl border px-4 py-3 text-sm ${
@@ -834,6 +1045,10 @@
         }
 
         const preview = buildRuntimeState();
+        if (preview.finished) {
+          appEl.innerHTML = renderRuntimeResult(preview);
+          return;
+        }
         appEl.innerHTML =
           preview.sceneType === "dialog" ? renderDialog(preview) : renderMessenger(preview);
       }
